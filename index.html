@@ -334,10 +334,10 @@ body:not(.hud-dev) #mini{top:64px!important}
     <div class="crwrap">
       <div class="crhud"><span class="blink">●</span> REMAP ACTIVE<span id="crDna">DNA ———</span></div>
       <div class="crtop">
-        <div class="prevbox"><canvas id="crPrev" width="144" height="144"></canvas><i class="scanb"></i><i class="cb tl"></i><i class="cb tr"></i><i class="cb bl"></i><i class="cb br"></i><div class="turn"><button data-turn="-1">◀</button><button data-turn="1">▶</button></div></div>
+        <div class="crleft"><div class="prevbox"><canvas id="crPrev" width="144" height="144"></canvas><i class="scanb"></i><i class="cb tl"></i><i class="cb tr"></i><i class="cb bl"></i><i class="cb br"></i><div class="turn"><button data-turn="-1">◀</button><button data-turn="1">▶</button></div></div><div id="crBio"></div></div>
         <div class="f">
           <div><label for="crName">// HANDLE</label><input type="text" id="crName" maxlength="12" autocomplete="off" spellcheck="false"></div>
-          <div><div class="lab" style="margin:0 0 5px">// FRAME</div><div class="row" id="crBody"></div></div>
+          <div><div class="lab" style="margin:0 0 5px">// FRAME</div><div class="row" id="crBody"></div></div><div><div class="lab" style="margin:0 0 5px">// BUILD</div><div class="row" id="crBuild"></div></div>
           <div id="crCard" class="idcard"></div>
           <button class="chip" id="crRand" style="margin-top:auto">⟳ SCRAMBLE GENOME</button>
         </div>
@@ -2053,7 +2053,52 @@ function rdFrame(now){
     if(c.ty==='robot'){if(a>330){if(!c.fin){c.fin=1;RD.fx.push({t:'boom',p:c.p,c:'#ffb03c',r:1.5,t0:now});for(let n=0;n<14;n++)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.4,vx:(Math.random()-.5)*9,vy:-Math.random()*7,t:now,c:['#ffe14a','#8a9098','#ff7a2a'][n%3]});RD.decals.push({x:X(c.p)+.5,y:Y(c.p)+.7,r:.9,n:12,c:'#0c0c12',s:c.p*3});}return false;}
       if(Math.random()<.5)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.3,vx:(Math.random()-.5)*6,vy:-Math.random()*5,t:now,c:'#ffe14a'});draw(0,1,((a/50)|0)&1,(Math.random()-.5)*3*S,0);return true;}
     if(c.ty==='ghost'||c.ty==='swarm'){if(a>450)return false;if(vis)for(let q=0;q<5;q++){g.globalAlpha=(1-a/450)*.8;g.drawImage(sp,0,(4+q*3)*1,SZ,3,px-sw/2+(Math.random()-.5)*10*S*(a/450),py-sw*(PAD+15)/SZ+(4+q*3)*S*sc,sw,3*S*sc);}g.globalAlpha=1;return true;}
-    if(a>2600)return false;const p=Math.min(1,a/320);draw(p*1.5708*(c.f<0?-1:1)*-1+0,a>1800?1-(a-1800)/800:1,a<70,0,-p*2*S);return true;});
+    // --- flying things spin down and hit the deck ---
+    if(c.ty==='fly'){if(a>900){if(!c.fin){c.fin=1;RD.fx.push({t:'boom',p:c.p,c:'#ffb03c',r:1.2,t0:now});
+        for(let n=0;n<10;n++)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.4,vx:(Math.random()-.5)*8,vy:-Math.random()*5,t:now,c:['#ffe14a','#8a9098'][n%2]});
+        RD.decals.push({x:X(c.p)+.5,y:Y(c.p)+.72,r:.7,n:9,c:'#0c0c12',s:c.p*5});}return false;}
+      const p=a/900,fall=p*p;
+      if(Math.random()<.45)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.2+fall*.4,vx:(Math.random()-.5)*4,vy:-Math.random()*2,t:now,c:'#ffe14a'});
+      if(a>640&&!c.bump){c.bump=1;RD.shake=Math.min(6,(RD.shake||0)+2);}
+      draw(p*9*(c.f<0?-1:1),a>760?1-(a-760)/140:1,((a/60)|0)&1,Math.sin(p*18)*4*S*(1-p),-(1-fall)*10*S);return true;}
+    // --- androids: stutter, white spray, then drop ---
+    if(c.ty==='synth'){if(a>1500)return false;
+      const p=Math.min(1,a/420),gl=a<700&&((a/70)|0)%2===0;
+      if(a<520&&Math.random()<.5)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.35,vx:(Math.random()-.5)*5,vy:-Math.random()*4,t:now,c:Math.random()<.5?'#ffffff':'#dfe8ee'});
+      if(!c.fin&&a>430){c.fin=1;RD.decals.push({x:X(c.p)+.5,y:Y(c.p)+.74,r:.85,n:12,c:'#c8d2da',s:c.p*11});
+        for(let n=0;n<8;n++)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.3,vx:(Math.random()-.5)*7,vy:-Math.random()*4,t:now,c:n%3?'#dfe8ee':'#7ae0ff'});}
+      draw(p*1.5708*(c.f<0?-1:1)*-1,a>1150?1-(a-1150)/350:1,gl,gl?(Math.random()-.5)*5*S:0,-p*2*S);return true;}
+    // --- heavy frames land hard ---
+    if(c.ty==='heavy'){if(a>2400)return false;
+      const p=Math.min(1,a/260);
+      if(!c.fin&&a>240){c.fin=1;RD.shake=Math.min(9,(RD.shake||0)+5);sfxSafe('thud');
+        RD.fx.push({t:'boom',p:c.p,c:'#6a6a72',r:1.5,t0:now});
+        RD.decals.push({x:X(c.p)+.5,y:Y(c.p)+.78,r:1.25,n:16,c:'#0b0b11',s:c.p*7});
+        for(let n=0;n<12;n++)RD.parts.push({x:X(c.p)+.5+(Math.random()-.5),y:Y(c.p)+.7,vx:(Math.random()-.5)*7,vy:-Math.random()*2.2,t:now,c:'#58525a'});}
+      draw(p*1.5708*(c.f<0?-1:1)*-1,a>1700?1-(a-1700)/700:1,a<90,0,p*1.5*S);return true;}
+    // --- four-legged things tumble ---
+    if(c.ty==='beast'){if(a>2200)return false;
+      const p=Math.min(1,a/380);
+      draw(p*3.6*(c.f<0?-1:1)*-1,a>1500?1-(a-1500)/700:1,a<70,Math.sin(p*7)*3*S*(1-p),-p*2*S);return true;}
+    // --- bolted-down things topple off their mount ---
+    if(c.ty==='still'){if(a>1600)return false;
+      const p=Math.min(1,a/520);
+      if(a<440&&Math.random()<.6)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.35,vx:(Math.random()-.5)*6,vy:-Math.random()*5,t:now,c:['#ffe14a','#7ae0ff','#ff7a2a'][(Math.random()*3)|0]});
+      if(!c.fin&&a>500){c.fin=1;RD.fx.push({t:'boom',p:c.p,c:'#ffb03c',r:1.1,t0:now});}
+      draw(p*1.5708*(c.f<0?-1:1)*-1,a>1100?1-(a-1100)/500:1,((a/70)|0)&1,0,0);return true;}
+    // --- people: four ways to go down, picked per corpse ---
+    if(a>2600)return false;
+    {const p=Math.min(1,a/320),dir=(c.f<0?-1:1),fade=a>1800?1-(a-1800)/800:1;
+     if(c.vr===1){ // pitched forward onto the face
+       draw(p*1.5708*dir,fade,a<70,p*3*S*dir,-p*1.5*S);
+     }else if(c.vr===2){ // dropped straight down, knees first
+       draw(p*.42*dir,fade,a<70,0,p*5.5*S);
+     }else if(c.vr===3){ // spun off their feet
+       draw(p*2.6*dir*-1,fade,a<70,Math.sin(p*5)*4*S*(1-p*.6),-p*2*S);
+     }else{ // the classic topple
+       draw(p*1.5708*dir*-1,fade,a<70,0,-p*2*S);
+     }
+     return true;}});
   // mobs
   const ms=L.mobs.slice().sort((a,b)=>Y(a.pos)-Y(b.pos));const seenIds={};
   for(const m of ms){
@@ -2114,7 +2159,7 @@ function rdFrame(now){
   // intake fx
   while(FX.length){const f=FX.shift();f.t0=now+(f.d||0);if(f.t==='smoke')RD.sitT=Math.max(RD.sitT||0,f.t0+420);
     if(f.t==='hit'){if(f.hero){RD.flash.hero=now;RD.shake=Math.min(6,RD.shake+3);}else if(f.id)RD.flash[f.id]=now;for(let n=0;n<5;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*5,vy:-Math.random()*4,t:now,c:f.hero?'#ff5a5a':'#ffe9a8'});f.t='txt';}
-    if(f.t==='die'&&f.m){const d=MOBS[f.k],rp=RD.rp[f.id];RD.corpses.push({m:f.m,p:f.p,t0:now,nb:0,f:rp?rp.f:1,ty:d.boss?'boss':d.a==='swarm'?'swarm':d.ghost?'ghost':d.robot?'robot':'org'});if(d.synth||!d.robot&&!d.ghost){const sy=d.synth;RD.decals.push({x:X(f.p)+.5,y:Y(f.p)+.75,r:.9,n:14,c:sy?'#c8d2da':'#6a0a14',s:f.p*7+f.id});for(let n=0;n<10;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*6,vy:-Math.random()*5,t:now,c:sy?(n%2?'#ffffff':'#dfe8ee'):'#c8142c'});}if(RD.decals.length>260)RD.decals.splice(0,40);continue;}
+    if(f.t==='die'&&f.m){const d=MOBS[f.k],rp=RD.rp[f.id];RD.corpses.push({m:f.m,p:f.p,t0:now,nb:0,f:rp?rp.f:1,ty:corpseTy(d),vr:(Math.random()*4)|0});if(d.synth||!d.robot&&!d.ghost){const sy=d.synth;RD.decals.push({x:X(f.p)+.5,y:Y(f.p)+.75,r:.9,n:14,c:sy?'#c8d2da':'#6a0a14',s:f.p*7+f.id});for(let n=0;n<10;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*6,vy:-Math.random()*5,t:now,c:sy?(n%2?'#ffffff':'#dfe8ee'):'#c8142c'});}if(RD.decals.length>260)RD.decals.splice(0,40);continue;}
     if(f.t==='blood'){const wb=f.w;for(let n=0;n<4;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*5,vy:-Math.random()*4,t:now,c:wb?(n%2?'#ffffff':'#cfd8dc'):(n%2?'#c8142c':'#8a0a1a')});if(Math.random()<.4)RD.decals.push({x:X(f.p)+.2+Math.random()*.6,y:Y(f.p)+.5+Math.random()*.4,r:.45,n:5,c:wb?'#c8d2da':'#6a0a14',s:(now|0)+f.p});continue;}
     if(f.t==='beam'&&f.hero)RD.gunT=now;
     if(f.t==='beam'&&(f.hero||f.id)){const dx=Math.sign(X(f.b)-X(f.a)),dy=Math.sign(Y(f.b)-Y(f.a));RD.kick[f.hero?'hero':f.id]={t:now,dx,dy};RD.fx.push({t:'muzzle',p:f.a,dx,dy,c:f.c,t0:now});}
@@ -2270,6 +2315,8 @@ function refreshCreate(){
   $('#crHairC').innerHTML=HAIRC.map(s=>`<button class="sw ${s===c.look.hair?'on':''}" data-hair="${s}" style="background:${s}"></button>`).join('');
   $('#crHair').textContent=HAIRS[c.look.hs];$('#crFace').textContent=FACES[c.look.face];
   $('#crBody').innerHTML=['MASC','FEM'].map((n,i)=>`<button class="chip ${c.look.body===i?'on':''}" data-body="${i}">${n}</button>`).join('');
+  $('#crBuild').innerHTML=BUILDS.map((n,i)=>`<button class="chip ${(c.look.bt|0)===i?'on':''}" data-bt="${i}">${n.toUpperCase()}</button>`).join('');
+  {const bio=$('#crBio');if(bio)bio.innerHTML=bioStrip(c.look,{hp:CLASSES[c.cls].hp||20,compact:1});}
   $('#crDiff').innerHTML=DIFFS.map((d,i)=>`<button class="chip ${c.diff===i?'on':''}" data-diff="${i}">${d.name}</button>`).join('');
   $('#crDiffInfo').textContent=DIFFS[c.diff].desc;
   if($('#crName').value!==c.name)$('#crName').value=c.name;
@@ -2540,7 +2587,7 @@ function boot(){
   $('#crName').addEventListener('input',e=>{UI.cr.name=e.target.value;});
   $('#crRand').onclick=()=>{const c=UI.cr;c.name=pick(HANDLES);c.look={body:rnd(2),skin:pick(SKINS),hs:rnd(HAIRS.length),hair:pick(HAIRC),face:rnd(FACES.length)};refreshCreate();};
   $('#create').addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const c=UI.cr,d=t.dataset;
-    if(d.cls)c.cls=d.cls;else if(d.skin)c.look.skin=d.skin;else if(d.hair)c.look.hair=d.hair;else if(d.body)c.look.body=+d.body;else if(d.diff)c.diff=+d.diff;
+    if(d.cls)c.cls=d.cls;else if(d.skin)c.look.skin=d.skin;else if(d.hair)c.look.hair=d.hair;else if(d.bt!==undefined)c.look.bt=+d.bt;else if(d.body)c.look.body=+d.body;else if(d.diff)c.diff=+d.diff;
     else if(d.cyc){const [k,dir]=d.cyc.split(','),n=k==='hs'?HAIRS.length:FACES.length;c.look[k]=(c.look[k]+ +dir+n)%n;}else return;
     refreshCreate();});
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!(G&&G.over)&&!(UI.bag&&UI.bag.pick)){closeModal();if(G)refresh();}});
@@ -3466,6 +3513,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26b','Fixes for v0.26, which I got wrong in two places: the message log had been shoved to the top of the screen by a bad CSS rule of mine — it is back above the tool bar · the BUILD picker and the biomonitor were put in the in-game NEW LOOK screen instead of the NEW RUN character creator, where you actually asked for them; both are now in the creator, with the biomonitor filling the dead space under the preview · iPhone safe-area fix reduced to the one line that was actually wrong, so it stops fighting the existing #mini and #log rules · death animations by enemy type, which v0.26 claimed and did not ship: drones spin down and crash, androids stutter and spray white before dropping, mechs and big frames land hard with a dust ring and a screen shake, four-legged things tumble, turrets topple off their mounts — and people now go down four different ways, picked per corpse, so a room full of bodies no longer looks copy-pasted'],
  ['v0.26','BUILD picker: Athletic, Hourglass, Curvy, Tall, Petite and Bruiser, for both frames — fem now defaults to Athletic (no skirt, squared shoulders, legs free) · biomonitor with a live ECG under the character preview · drag the screen with one finger to look around, it eases back when you move · you walk straight past your own drone and allies instead of getting stuck · talk to vendors across a counter · bars are sealed wall to wall and the bartender keeps a shotgun under it — counters block movement but not bullets · you can get drunk: aim drops, hits land harder, the room moves · sector vaults just open when you hold three keyshards, and cracking one raw is a high-TECH alternative instead of a prompt you always see · finishers rewritten — per-archetype, class flavour, a STR set when you are strong, and bosses finally get their own · rippers stock a chrome case you can buy from, with bone saw, grinder and welder noise and a line from the slicer on every cut · Chef Okabe and Doc Sato are no longer in your contacts at boot — visit the store for one, wake up on the table for the other · Reyes is just the MTX Captain until she gives you her name, and she tells you Voss burned the uplinks · TOWER FM got a band: walking upright bass, brushed ride, comped piano and a vibrato sax, on a real tuner display with signal bars · ranged weapons lock onto cameras when nothing hostile is up · drone QUIET RUN order · Sentinel Edge hook reattached and the tan nub under the guard cleaned off · caution tape across the tower doors · no more black bars top and bottom on iPhone (safe area was applied twice) and the changelog no longer sits on the SETTINGS button · the Voss roof scene is slower: the camera arrives before the blade does'],
  ['v0.25','Looking out is just tapping a window: next to it you look out, further away you walk over to it. No LOOK OUT button, search button back to normal'],
  ['v0.23','Title LEGEND & CHANGELOG button fixed (it crashed with no run loaded) and made a real button · versions now count up plainly: 0.23, 0.24…'],
@@ -3538,7 +3586,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26b · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4878,9 +4926,10 @@ function radioTab(){
 
 
 // --- biomonitor strip: fills the dead space under the character preview ---
-function bioStrip(L){
-  const h=(typeof G!=='undefined'&&G&&G.hero)||null;
-  const hp=h?Math.max(1,Math.round(h.hp)):40, mhp=h?Math.max(1,Math.round(h.mhp)):40;
+function bioStrip(L,o){
+  o=o||{};
+  const h=o.hp?null:((typeof G!=='undefined'&&G&&G.hero)||null);
+  const hp=h?Math.max(1,Math.round(h.hp)):(o.hp||40), mhp=h?Math.max(1,Math.round(h.mhp)):(o.hp||40);
   const pct=Math.max(.08,Math.min(1,hp/mhp));
   const bpm=Math.round(62+(1-pct)*54);
   const dur=(60/bpm*2).toFixed(2);
@@ -4889,7 +4938,7 @@ function bioStrip(L){
   const col=pct>.6?'#39ffb0':pct>.3?'#ffd24a':'#ff5a5a';
   // one ECG period, repeated by the pattern
   const beat='M0 20 L16 20 L20 20 L23 9 L26 31 L29 16 L33 20 L48 20 L52 20 L55 18 L58 22 L62 20 L80 20';
-  return `<div class="biostrip">
+  return `<div class="biostrip${o.compact?' cmp':''}">
     <div class="biorow">
       <span class="biolab">BIOMONITOR</span>
       <span class="biov" style="--c:${col}">${hp}<i>/${mhp}</i></span>
@@ -4963,23 +5012,46 @@ function blocksShotLine(a,b){
     for(const i of p){if(i===b)break;if(blocksShot(i))return true;}
     return false;}catch(e){return false;}
 }
+
+
+// --- which death animation a mob gets ---
+function corpseTy(d){
+  if(d.boss)return 'boss';
+  if(d.a==='swarm')return 'swarm';
+  if(d.ghost)return 'ghost';
+  if(d.still||d.a==='turret')return 'still';   // bolted down: topples off its mount
+  if(d.a==='drone')return 'fly';               // spins down and crashes
+  if(d.synth)return 'synth';                   // stutters, sprays white, drops
+  if(d.a==='mech'||(d.big&&d.robot))return 'heavy';
+  if(d.a==='quad'||d.a==='crab'||d.a==='cat')return 'beast'; // four legs tumble, robot or not
+  if(d.robot)return 'robot';
+  if(d.big)return 'heavy';                     // big people land hard too
+  return 'org';
+}
+function sfxSafe(n){try{if(typeof sfx==='function')sfx(n);}catch(e){}}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
 
 <style id="v26css">
-/* the top/bottom bars: safe-area was being applied to BOTH body and #app */
+/* The top/bottom bars: the safe area was applied TWICE — once on body, once on #app.
+   v0.23 already killed the bottom half with #app{bottom:0}. Dropping the body padding
+   removes the remaining doubling; #app's own top/left/right insets still keep content
+   clear of the notch, and #tools/#mini/#log already carry their own insets. */
 body{padding:0!important}
-#app{top:0!important;bottom:0!important;left:0!important;right:0!important}
-/* HUD furniture keeps its own inset so nothing hides under the notch or the home bar */
-#topbar,#hud>#topbar{padding-top:max(4px,env(safe-area-inset-top))!important}
-#log{top:calc(max(4px,env(safe-area-inset-top)) + 4px)!important}
 
 /* changelog no longer sits on top of SETTINGS — it flows under the buttons */
 #title .tlog{position:static!important;transform:none!important;margin:16px auto 0!important;bottom:auto!important}
 #title{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
 
 /* biomonitor */
+.biostrip.cmp{margin:0}
+.biostrip.cmp .biorow{gap:5px;font-size:7px;letter-spacing:.08em}
+.biostrip.cmp .biov{font-size:10px}
+.biostrip.cmp .bioscreen{height:30px}
+.biostrip.cmp .bioscreen svg{height:30px}
+.biostrip.cmp .biorow.bb{font-size:6.5px}
+.crleft{display:flex;flex-direction:column;gap:8px;width:144px;flex:none}
 .biostrip{margin:8px 0 10px;border:1px solid #1d2b31;border-radius:6px;background:#070b0d;padding:7px 8px 6px}
 .biorow{display:flex;align-items:baseline;gap:10px;font-family:var(--px);font-size:8px;letter-spacing:.14em;color:#5d7079}
 .biorow.bb{margin-top:5px;justify-content:space-between;letter-spacing:.1em}
