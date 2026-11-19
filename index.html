@@ -321,7 +321,7 @@ body:not(.hud-dev) #mini{top:64px!important}
     <svg id="tWires"></svg>
     <div class="tsign"><i class="bolt b1"></i><i class="bolt b2"></i><i class="bolt b3"></i><i class="bolt b4"></i>
       <h1 class="logo"><span class="a">MEGA</span><span class="b">TOWER</span><span class="c">MANIA</span></h1></div>
-    <div class="tagline"><span class="tq">“</span>NOWHERE TO GO BUT UP.<span class="tq">”</span><small class="tby">— CAPT. REYES</small></div>
+    <div class="tagline"><span class="tq">“</span>NOWHERE TO GO BUT UP.<span class="tq">”</span></div>
     <div class="tbtns">
       <button class="btn go" id="btnCont">CONTINUE RUN</button>
       <button class="btn go" id="btnNew">NEW RUN</button>
@@ -1684,7 +1684,7 @@ function drawHeld(R,k,o,f,c){
 // ===== v0.26: body builds (L.bt) — 0 Athletic,1 Hourglass,2 Curvy,3 Tall,4 Petite,5 Bruiser =====
 const BUILDS=['Athletic','Hourglass','Curvy','Tall','Petite','Bruiser'];
 function BUILD(R,L,o,wk,out,out2,pants,fem){
-  const bt=(L.bt|0)%6,hi=shade(out,.3),P=(x,y,c)=>R(x,y,1,1,c);
+  const bt=(L.bld|0)%6,hi=shade(out,.3),P=(x,y,c)=>R(x,y,1,1,c);
   if(bt===1){ // Hourglass
     R(5,6+o,6,2,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(4,10+o,8,1,out);
     P(5,8+o,shade(out,-.55));P(10,8+o,shade(out,-.55));
@@ -1767,7 +1767,7 @@ const ARCH={
 };
 function npcLook(seed,kind){
   const r=tileRng((seed*7919+13)%2147483647),pk=a=>a[r()*a.length|0];
-  const L={skin:pk(['#f1d0b5','#e0b89a','#c99a7a','#a8744f','#8a5a3a','#5e3d28']),hair:pk(['#1a1a1a','#3a2a20','#5a3a22','#c9a227','#e8e8e8','#ff3fa4','#3fe8ff','#39ffb0','#c06aff']),hs:pk([0,1,2,3,4,6,2,3]),body:r()<.5?1:0,bt:(r()*6)|0,face:pk([0,0,2,3,4,5,6,2]),outfit:pk(['#4a4a5a','#5a3a4a','#3a4a3a','#2a2a36','#6a5a3a','#2e3440','#7a2a3a','#3a5a7a']),pants:pk(['#22222a','#2a2a3a','#3a2e26']),coat:pk(['long','hood','short','collar','short']),wc:null};
+  const L={skin:pk(['#f1d0b5','#e0b89a','#c99a7a','#a8744f','#8a5a3a','#5e3d28']),hair:pk(['#1a1a1a','#3a2a20','#5a3a22','#c9a227','#e8e8e8','#ff3fa4','#3fe8ff','#39ffb0','#c06aff']),hs:pk([0,1,2,3,4,6,2,3]),body:r()<.5?1:0,bld:(r()*6)|0,face:pk([0,0,2,3,4,5,6,2]),outfit:pk(['#4a4a5a','#5a3a4a','#3a4a3a','#2a2a36','#6a5a3a','#2e3440','#7a2a3a','#3a5a7a']),pants:pk(['#22222a','#2a2a3a','#3a2e26']),coat:pk(['long','hood','short','collar','short']),wc:null};
   if(r()<.5)L.trim=pk(['#3fe8ff','#ff3fa4','#ffe14a','#39ffb0']);
   L.cy={arm:r()<.45?pk(['#b8c0c8','#d8b24a','#5a626c']):null,port:r()<.55?pk(['#3fe8ff','#ff3b4e','#39ffb0']):null,jaw:r()<.18};
   if(L.face===4&&L.body)L.face=5;
@@ -2315,7 +2315,7 @@ function refreshCreate(){
   $('#crHairC').innerHTML=HAIRC.map(s=>`<button class="sw ${s===c.look.hair?'on':''}" data-hair="${s}" style="background:${s}"></button>`).join('');
   $('#crHair').textContent=HAIRS[c.look.hs];$('#crFace').textContent=FACES[c.look.face];
   $('#crBody').innerHTML=['MASC','FEM'].map((n,i)=>`<button class="chip ${c.look.body===i?'on':''}" data-body="${i}">${n}</button>`).join('');
-  $('#crBuild').innerHTML=BUILDS.map((n,i)=>`<button class="chip ${(c.look.bt|0)===i?'on':''}" data-bt="${i}">${n.toUpperCase()}</button>`).join('');
+  $('#crBuild').innerHTML=BUILDS.map((n,i)=>`<button class="chip ${(c.look.bld|0)===i?'on':''}" data-bld="${i}">${n.toUpperCase()}</button>`).join('');
   {const bio=$('#crBio');if(bio)bio.innerHTML=bioStrip(c.look,{hp:CLASSES[c.cls].hp||20,compact:1});}
   $('#crDiff').innerHTML=DIFFS.map((d,i)=>`<button class="chip ${c.diff===i?'on':''}" data-diff="${i}">${d.name}</button>`).join('');
   $('#crDiffInfo').textContent=DIFFS[c.diff].desc;
@@ -2590,7 +2590,7 @@ function boot(){
   $('#crName').addEventListener('input',e=>{UI.cr.name=e.target.value;});
   $('#crRand').onclick=()=>{const c=UI.cr;c.name=pick(HANDLES);c.look={body:rnd(2),skin:pick(SKINS),hs:rnd(HAIRS.length),hair:pick(HAIRC),face:rnd(FACES.length)};refreshCreate();};
   $('#create').addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const c=UI.cr,d=t.dataset;
-    if(d.cls)c.cls=d.cls;else if(d.skin)c.look.skin=d.skin;else if(d.hair)c.look.hair=d.hair;else if(d.bt!==undefined)c.look.bt=+d.bt;else if(d.body)c.look.body=+d.body;else if(d.diff)c.diff=+d.diff;
+    if(d.cls)c.cls=d.cls;else if(d.skin)c.look.skin=d.skin;else if(d.hair)c.look.hair=d.hair;else if(d.bld!==undefined)c.look.bld=+d.bld;else if(d.body)c.look.body=+d.body;else if(d.diff)c.diff=+d.diff;
     else if(d.cyc){const [k,dir]=d.cyc.split(','),n=k==='hs'?HAIRS.length:FACES.length;c.look[k]=(c.look[k]+ +dir+n)%n;}else return;
     refreshCreate();});
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!(G&&G.over)&&!(UI.bag&&UI.bag.pick)){closeModal();if(G)refresh();}});
@@ -2928,11 +2928,11 @@ function doSurgery(k,arg){
 function lookEditor(m){
   const h=G.hero,L=UI.newLook=UI.newLook||Object.assign({},h.look);
   const cyc=(k,lab,arr)=>`<div><div class="lab">${lab}</div><div class="cyc"><button data-c="${k},-1">◀</button><b>${arr[L[k]]}</b><button data-c="${k},1">▶</button></div></div>`;
-  const p=openModal(`<div class="mhead"><h2>NEW LOOK</h2><span class="cr">◈ ${surgCost('look')}</span><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" style="width:96px;height:96px" src="${urlOf(lookSprite(Object.assign({},heroLook(),L),0))}"><div class="row">${['MASC','FEM'].map((n,i)=>`<button class="chip ${L.body===i?'on':''}" data-b="${i}">${n}</button>`).join('')}</div><div class="row">${BUILDS.map((n,i)=>`<button class="chip ${(L.bt|0)===i?'on':''}" data-bt="${i}">${n}</button>`).join('')}</div></div>${bioStrip(L)}<div class="two">${cyc('hs','HAIR',HAIRS)}${cyc('face','FACE',FACES)}</div><div class="lab">SKIN</div><div class="row">${SKINS.map(s=>`<button class="sw ${s===L.skin?'on':''}" data-sk="${s}" style="background:${s}"></button>`).join('')}</div><div class="lab">HAIR COLOR</div><div class="row">${HAIRC.map(s=>`<button class="sw ${s===L.hair?'on':''}" data-hc="${s}" style="background:${s}"></button>`).join('')}</div><div class="btns"><button class="btn go" data-act="ok">GO UNDER</button><button class="btn" data-act="close">CANCEL</button></div></div>`,'shop');
+  const p=openModal(`<div class="mhead"><h2>NEW LOOK</h2><span class="cr">◈ ${surgCost('look')}</span><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" style="width:96px;height:96px" src="${urlOf(lookSprite(Object.assign({},heroLook(),L),0))}"><div class="row">${['MASC','FEM'].map((n,i)=>`<button class="chip ${L.body===i?'on':''}" data-b="${i}">${n}</button>`).join('')}</div><div class="row">${BUILDS.map((n,i)=>`<button class="chip ${(L.bld|0)===i?'on':''}" data-bld="${i}">${n}</button>`).join('')}</div></div>${bioStrip(L)}<div class="two">${cyc('hs','HAIR',HAIRS)}${cyc('face','FACE',FACES)}</div><div class="lab">SKIN</div><div class="row">${SKINS.map(s=>`<button class="sw ${s===L.skin?'on':''}" data-sk="${s}" style="background:${s}"></button>`).join('')}</div><div class="lab">HAIR COLOR</div><div class="row">${HAIRC.map(s=>`<button class="sw ${s===L.hair?'on':''}" data-hc="${s}" style="background:${s}"></button>`).join('')}</div><div class="btns"><button class="btn go" data-act="ok">GO UNDER</button><button class="btn" data-act="close">CANCEL</button></div></div>`,'shop');
   p.onclick=ev=>{const t=ev.target.closest('button');if(!t)return;const d=t.dataset;
     if(d.act==='close'){UI.newLook=null;closeModal();refresh();return;}
     if(d.act==='ok'){const nl=UI.newLook;UI.newLook=null;doSurgery('look',nl);return;}
-    if(d.c){const [k,dir]=d.c.split(','),n=k==='hs'?HAIRS.length:FACES.length;L[k]=(L[k]+ +dir+n)%n;}else if(d.bt!==undefined)L.bt=+d.bt;else if(d.b)L.body=+d.b;else if(d.sk)L.skin=d.sk;else if(d.hc)L.hair=d.hc;else return;
+    if(d.c){const [k,dir]=d.c.split(','),n=k==='hs'?HAIRS.length:FACES.length;L[k]=(L[k]+ +dir+n)%n;}else if(d.bld!==undefined)L.bld=+d.bld;else if(d.b)L.body=+d.b;else if(d.sk)L.skin=d.sk;else if(d.hc)L.hair=d.hc;else return;
     lookEditor(m);};
 }
 function vendorTalk(m){
@@ -3516,6 +3516,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26e','The fem body is finally the Athletic one. Two reasons it never applied: the build index was stored in L.bt, which was ALREADY the clothing bottom (skirt/shorts), and a later override repainted the old curvy silhouette straight over whatever the build drew. Builds now live in L.bld and the curvy overlay only runs for Hourglass and Curvy. All six builds verified rendering differently. · ENDING CINEMATICS — each of the four endings now plays a short sequence of drawn panels before the epilogue: rain-slick street, the doors staying open, the badge, the horizon, the tower lit up by its own residents. Tap to advance. · Street traffic rebuilt: five vehicles instead of three, with shaded bodies, spinning spoked wheels, ground shadows, speed lines, neon underglow and a hover sedan that actually floats. · Character creator: the left column now stretches so the biomonitor fills the dead space instead of leaving a gap. · Reyes\u2019 name is off the title tagline — just the quote now. · Also audited every feature claimed in v0.26 at runtime rather than trusting that the code was there: 15 of 15 confirmed working.'],
  ['v0.26d','NEW GAME+ — beat the Core and you can go again. Your installed chrome comes with you at its upgrade level, plus a quarter of your creds and a slice of your levels; weapons and armour do not, so there is still a climb. Every cycle the tower gets meaner: enemies gain health and hit harder, and it stacks. The title screen offers the next cycle once you have earned it. Also: the drone shuffle is actually fixed. The v0.26 fix went into a dead copy of the walk routine and did nothing — the live one already handled allies. The real cause was that after you squeezed past a companion it immediately stepped back in front of you, which in a one-tile corridor is an endless shuffle. Companions now hold for one beat after you push past, unless something is in range to shoot. And belt-and-braces CSS so nothing can pin the message log to the top edge again.'],
  ['v0.26c','The ripperdoc bug, found properly this time. The clinic shop room never had a vendor type set, so the stock generator fell through to its last branch — the drone-parts list. The first ripperdoc you ever meet was standing in a shop selling scout bots, kits and EMPs, with no chrome anywhere. The clinic now stocks as a ripper: three implants and a nanite regenerator on the shelves, priced. For the record, the game already has 15 implants, all with working effects — including Thermal Eyes and Breaker Arms from the old notes. Nothing was missing from the game but the clinic stock.'],
  ['v0.26b','Fixes for v0.26, which I got wrong in two places: the message log had been shoved to the top of the screen by a bad CSS rule of mine — it is back above the tool bar · the BUILD picker and the biomonitor were put in the in-game NEW LOOK screen instead of the NEW RUN character creator, where you actually asked for them; both are now in the creator, with the biomonitor filling the dead space under the preview · iPhone safe-area fix reduced to the one line that was actually wrong, so it stops fighting the existing #mini and #log rules · death animations by enemy type, which v0.26 claimed and did not ship: drones spin down and crash, androids stutter and spray white before dropping, mechs and big frames land hard with a dust ring and a screen shake, four-legged things tumble, turrets topple off their mounts — and people now go down four different ways, picked per corpse, so a room full of bodies no longer looks copy-pasted'],
@@ -3591,7 +3592,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26d · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26e · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -3753,7 +3754,14 @@ function endingCine(){const h=G.hero,blk=$('#cineblk')||(()=>{const d=document.c
       setTimeout(()=>endingChoice(),2600);})();});}
 function endingChoice(){const k=G.karma||0;if($('#cineblk'))$('#cineblk').className='';const p=openModal(`<div class="mhead"><h2>WHAT NOW?</h2></div><div class="detail"><p>The Tower Core is warm in your hand. Everyone is looking at you.</p>${ENDINGS.map((e,i)=>{const ok=!e.need||e.need(k);return `<button class="btn ${ok?'go':'off'}" data-e="${i}" style="display:block;width:100%;margin:6px 0;text-align:left">${e.t}<br><small style="opacity:.8">${ok?e.d:'Needs more good karma.'}</small></button>`;}).join('')}</div>`);
   p.onclick=ev=>{const b=ev.target.closest('[data-e]');if(!b||b.classList.contains('off'))return;const e=ENDINGS[+b.dataset.e];G.endk=e;closeModal();epilogue(e);};}
-function epilogue(e){const lines={super:'Six months later, MTX has working elevators, a rooftop garden, and a waiting list.',sec:'Six months later, the MTX security grid answers to you, and nobody has tried a gang deal on the market level since.',pay:'Six months later, you are somewhere warm. Your phone keeps buzzing with an MTX area code.',res:'Six months later, the tenant board votes on everything — including whether to repaint your door gold.'};
+function epilogue(e){
+  const C=ENDING_CINE[e.k];
+  if(C&&!G._cinePlayed){G._cinePlayed=1;
+    const cards=C.cards.map(c=>Object.assign({},c,{grade:C.grade}));
+    cineCards(cards,()=>epilogue(e));return;}
+  return epilogue0(e);
+}
+function epilogue0(e){const lines={super:'Six months later, MTX has working elevators, a rooftop garden, and a waiting list.',sec:'Six months later, the MTX security grid answers to you, and nobody has tried a gang deal on the market level since.',pay:'Six months later, you are somewhere warm. Your phone keeps buzzing with an MTX area code.',res:'Six months later, the tenant board votes on everything — including whether to repaint your door gold.'};
   const p=openModal(`<div class="mhead"><h2>${e.t}</h2></div><div class="detail"><p>${e.d}</p><p>${lines[e.k]}</p><hr><p class="dim">Ines Vale, MTX operations, catches you by the elevators. She looks tired.</p><p>"Before you settle in. The lockdown woke things up below the building. The maintenance tunnels, the old service levels, the drains under the street. The original service robots never shut off — and something down there has been eating them."</p><p>"Nobody has been below the sub-basement in eleven years. I think you should be the first."</p><h3 style="color:#39ff7a;text-align:center;margin-top:14px">MTX: UNDERGROUND<br><small>coming soon</small></h3><div class="btns"><button class="btn go" data-act="fin">FINISH</button></div></div>`);
   p.onclick=ev=>{if(!ev.target.closest('[data-act]'))return;closeModal();$('#cineblk')&&($('#cineblk').className='');RD.focus=-1;G.cineAt=-1;G.over={won:true,cause:e.t};clearSave();if(EV.over)EV.over();};}
 
@@ -4459,7 +4467,7 @@ function achieve(k){let a={};try{a=JSON.parse(localStorage.getItem('mtm_ach')||'
 
 // ================= v0.22: street scene, curves, ripperdocs, UI clicks =================
 // ---- feminine silhouette: defined bust, pinched waist, wider hips/thighs
-{const _dh=drawHum;drawHum=function(R,L,f){_dh.apply(this,arguments);if(!L||!L.body||L.skull||L.hazmat||L.coat==='exo'||L.coat==='plate')return;const wk=f>=2,o=(f&1)?1:0,out=L.outfit||'#555',pants=L.pants||'#22222a';
+{const _dh=drawHum;drawHum=function(R,L,f){_dh.apply(this,arguments);if(!L||!L.body||L.skull||L.hazmat||L.coat==='exo'||L.coat==='plate')return;if((L.bld|0)!==2&&(L.bld|0)!==1)return;const wk=f>=2,o=(f&1)?1:0,out=L.outfit||'#555',pants=L.pants||'#22222a';
   R(6,7+o,1,1,shade(out,.45));R(9,7+o,1,1,shade(out,.45));R(6,8+o,4,1,shade(out,-.38));R(5,6+o,6,1,shade(out,.08));
   R(3,10+o,1,1,out);R(12,10+o,1,1,out);R(3,11+o,10,1,L.bt==='skirt'||L.bt==='shorts'?shade(pants,-.28):pants);
   if(!wk&&L.bt!=='skirt'){R(4,12,3,1,pants);R(9,12,3,1,pants);}};}
@@ -4488,12 +4496,96 @@ window.drawTape=drawTape;
     B(1,13,30,2,'rgba(0,0,0,.45)');B(2,6,28,6,'#e8eef4');B(1,8,30,4,'#14161a');B(1,9,30,2,'#22386a');B(8,3,15,4,'#e8eef4');B(10,4,5,2,'#5a8ab0');B(16,4,5,2,'#5a8ab0');B(15,4,1,2,'#e8eef4');
     B(12,9,9,1,'#e8eef4');B(13,9,1,1,'#22386a');B(4,11,5,3,'#0a0b0e');B(23,11,5,3,'#0a0b0e');B(5,12,3,1,'#5a6472');B(24,12,3,1,'#5a6472');B(30,7,1,2,'#fff2c8');B(1,7,1,2,'#ff3b4e');
     B(11,2,4,1,ph?'#ff2a3a':'#2a6aff');B(16,2,4,1,ph?'#2a6aff':'#ff2a3a');g.globalAlpha=.16;g.fillStyle=ph?'#ff2a3a':'#2a6aff';g.beginPath();g.arc(px+16*S,py+3*S,14*S,0,7);g.fill();g.globalAlpha=1;}
-  // ambient riders: skater on the sidewalk, cyclist and a two-up hover bike on the road
-  const span=W*TS,lane=(row,speed,ofs)=>{const x=((now*speed/1000+ofs)%(span+40*S))-20*S;return [RD.ox+x,RD.oy+row*TS];};
-  {const [x,y]=lane(16.05,26*S,0),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},k=Math.floor(now/180)%2;B(3,13,10,1,'#c06aff');B(4,14,2,1,'#39ffb0');B(10,14,2,1,'#39ffb0');B(6,5,4,5,'#ff3fa4');B(6,2,4,3,'#c99a7a');B(6,1,4,1,'#1a1a1a');B(6,10,2,3-k,'#2a3a5a');B(8,10,2,2+k,'#2a3a5a');B(4,6,2,1,'#c99a7a');B(10,6,2,1,'#c99a7a');}
-  {const [x,y]=lane(17.5,48*S,9000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},k=Math.floor(now/120)%2;B(1,10,5,5,'#14161a');B(10,10,5,5,'#14161a');B(2,11,3,3,k?'#5a6472':'#3a3f48');B(11,11,3,3,k?'#3a3f48':'#5a6472');B(4,9,8,1,'#ff9a3c');B(7,4,3,5,'#3fe8ff');B(7,1,3,3,'#8a5a3a');B(10,5,2,1,'#8a5a3a');}
-  {const [x,y]=lane(20.2,80*S,22000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},bob=Math.sin(now/160)*S;g.globalAlpha=.35;g.fillStyle='#3fe8ff';g.fillRect(x+2*S,y+14*S,22*S,1*S);g.globalAlpha=1;
-    g.save();g.translate(0,bob);B(1,9,24,3,'#22262e');B(1,9,24,1,'#ff3fa4');B(21,7,4,2,'#5a6472');B(0,10,1,1,'#fff2c8');B(25,10,1,1,'#ff3b4e');B(8,3,4,6,'#2a2e36');B(8,0,4,3,'#ffe14a');B(13,4,4,5,'#c06aff');B(13,1,4,3,'#1a1a1a');B(14,2,3,1,'#3fe8ff');g.restore();}
+  // ---- v0.26e: ambient traffic. shaded bodies, spinning wheels, ground shadows, speed lines
+  const span=W*TS;
+  const lane=(row,speed,ofs)=>{const x=((now*speed/1000+ofs)%(span+60*S))-30*S;return [RD.ox+x,RD.oy+row*TS];};
+  const sh=(hex,f)=>shade(hex,f);
+  // wheel with spinning spokes
+  const wheel=(B,g2,cx,cy,r,spin)=>{
+    B(cx-r,cy-r,r*2,r*2,'#0a0b0e');
+    B(cx-r+1,cy-r+1,r*2-2,r*2-2,'#1a1d22');
+    const a=spin%4;
+    if(a===0||a===2){B(cx-r+1,cy,r*2-2,1,'#6a7480');}
+    if(a===1||a===3){B(cx,cy-r+1,1,r*2-2,'#6a7480');}
+    B(cx-1,cy-1,2,2,'#99a4b0');
+  };
+  const glow=(g2,x,y,w,h,c,al)=>{g2.globalAlpha=al;g2.fillStyle=c;g2.fillRect(x,y,w,h);g2.globalAlpha=1;};
+  const speedLines=(B,n,y0,len,c)=>{for(let q=0;q<n;q++)B(-6-q*7,y0+q*2,len,1,c);};
+
+  // 1. SPORT BIKE — leaning rider, spinning wheels, trail
+  {const [x,y]=lane(17.45,92*S,0),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},sp=Math.floor(now/55)%4;
+   glow(g,x+1*S,y+14.4*S,24*S,1.2*S,'#000000',.4);                     // ground shadow
+   speedLines(B,3,6,5,'rgba(255,255,255,.18)');
+   wheel(B,g,4,12,2.6,sp); wheel(B,g,19,12,2.6,sp);                    // wheels
+   B(5,10,14,2,'#8a1f2e'); B(5,10,14,1,sh('#8a1f2e',.3));              // body + top light
+   B(16,8,5,2,'#b02a3c'); B(16,8,5,1,sh('#b02a3c',.35));               // tail cowl
+   B(6,8,5,2,'#2a2e36');                                               // tank
+   B(2,10,3,1,'#fff2c8'); B(22,10,2,1,'#ff3b4e');                      // head / tail light
+   glow(g,x-2*S,y+9*S,4*S,3*S,'#fff2c8',.22);
+   // rider, leaning forward
+   B(9,3,5,6,'#1a1f2e'); B(9,3,5,1,sh('#1a1f2e',.4));                  // torso
+   B(10,0,4,3,'#c06aff'); B(10,0,4,1,sh('#c06aff',.4));                // helmet
+   B(11,1,3,1,'#3fe8ff');                                              // visor
+   B(6,6,4,1,'#1a1f2e'); B(13,8,3,3,'#1a1f2e');                        // arm / leg
+   glow(g,x+4*S,y+9*S,20*S,1*S,'#ff3fa4',.20);                         // underglow
+  }
+  // 2. CARGO TRIKE — pedalling courier, boxy load, slower lane
+  {const [x,y]=lane(18.6,44*S,11000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},sp=Math.floor(now/110)%4,pk=Math.floor(now/180)%2;
+   glow(g,x+1*S,y+14.4*S,26*S,1.2*S,'#000000',.38);
+   wheel(B,g,4,12,2.4,sp); wheel(B,g,10,12,2.4,sp); wheel(B,g,22,12,2.2,sp);
+   B(2,6,10,6,'#3a6a4a'); B(2,6,10,1,sh('#3a6a4a',.35)); B(2,11,10,1,sh('#3a6a4a',-.35));  // cargo box
+   B(3,7,4,3,'#2a4a36'); B(3,7,4,1,sh('#2a4a36',.25));                  // box panel
+   B(12,10,10,1,'#6a7480');                                             // frame
+   B(19,6,2,4,'#5a6472');                                               // seat post
+   B(23,8,2,1,'#ff9a3c');                                               // handlebar
+   B(18,4,4,5,'#c9772a'); B(18,4,4,1,sh('#c9772a',.35));                // rider torso
+   B(18,1,4,3,'#8a5a3a'); B(18,1,4,1,sh('#8a5a3a',.3));                 // head
+   B(22,5,2,1,'#8a5a3a');                                               // arm to bars
+   B(17,9,2,2+pk,'#2a3a5a'); B(19,9,2,3-pk,'#2a3a5a');                  // pedalling legs
+   B(0,10,1,1,'#fff2c8');
+  }
+  // 3. HOVER SEDAN — no wheels, floats, underglow, fastest lane
+  {const [x,y]=lane(20.3,120*S,21000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},bob=Math.sin(now/190)*1.1*S;
+   glow(g,x+2*S,y+14.6*S,28*S,1.4*S,'#000000',.33);
+   g.save();g.translate(0,bob);
+   speedLines(B,4,5,7,'rgba(63,232,255,.20)');
+   B(2,8,28,4,'#1d2735'); B(2,8,28,1,sh('#1d2735',.35)); B(2,11,28,1,sh('#1d2735',-.4));
+   B(7,4,15,4,'#243246'); B(7,4,15,1,sh('#243246',.4));                 // cabin
+   B(9,5,5,2,'#5a8ab0'); B(15,5,5,2,'#5a8ab0');                         // windows
+   B(9,5,5,1,'#8ab6d8'); B(15,5,1,2,'#8ab6d8');                         // window glint
+   B(0,9,2,1,'#fff2c8'); B(30,9,2,1,'#ff3b4e');
+   glow(g,x-3*S,y+8*S+bob,5*S,3*S,'#fff2c8',.25);
+   glow(g,x+3*S,y+12*S+bob,26*S,1.4*S,'#3fe8ff',.30);                   // thruster wash
+   g.restore();
+  }
+  // 4. SKATER on the sidewalk — crouched, board wheels spinning
+  {const [x,y]=lane(16.05,34*S,5000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},k=Math.floor(now/150)%2,sp=Math.floor(now/70)%4;
+   glow(g,x+2*S,y+14.5*S,12*S,1*S,'#000000',.35);
+   B(2,13,11,1,'#c06aff'); B(2,13,11,1,sh('#c06aff',.0));               // deck
+   B(3,12,1,1,sh('#c06aff',-.4)); B(11,12,1,1,sh('#c06aff',-.4));       // kicks
+   wheel(B,g,4,14,1.3,sp); wheel(B,g,11,14,1.3,sp);
+   B(5,5,5,6,'#ff3fa4'); B(5,5,5,1,sh('#ff3fa4',.4));                   // torso
+   B(5,2,5,3,'#c99a7a'); B(5,2,5,1,sh('#c99a7a',.25));                  // head
+   B(5,1,5,1,'#1a1a1a');                                                // cap
+   B(3,6,2,1,'#c99a7a'); B(10,5,2,1,'#c99a7a');                         // arms out for balance
+   B(5,11,2,2+k,'#2a3a5a'); B(8,11,2,3-k,'#2a3a5a');                    // legs pumping
+  }
+  // 5. TWO-UP HOVER BIKE — the pair, now shaded and trailing
+  {const [x,y]=lane(21.4,70*S,33000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},bob=Math.sin(now/160)*S;
+   glow(g,x+2*S,y+14.6*S,22*S,1.2*S,'#000000',.34);
+   g.save();g.translate(0,bob);
+   speedLines(B,3,7,6,'rgba(255,63,164,.18)');
+   B(1,9,24,3,'#22262e'); B(1,9,24,1,sh('#22262e',.45)); B(1,11,24,1,sh('#22262e',-.4));
+   B(21,7,4,2,'#5a6472'); B(21,7,4,1,sh('#5a6472',.3));
+   B(0,10,1,1,'#fff2c8'); B(25,10,1,1,'#ff3b4e');
+   B(8,3,4,6,'#2a2e36'); B(8,3,4,1,sh('#2a2e36',.4));                   // front rider
+   B(8,0,4,3,'#ffe14a'); B(8,0,4,1,sh('#ffe14a',.3)); B(9,1,2,1,'#3a2a00');
+   B(13,4,4,5,'#c06aff'); B(13,4,4,1,sh('#c06aff',.4));                 // pillion
+   B(13,1,4,3,'#1a1a1a'); B(14,2,3,1,'#3fe8ff');
+   B(12,6,2,1,'#2a2e36');                                               // arm round the waist
+   glow(g,x+1*S,y+12*S+bob,24*S,1.4*S,'#ff3fa4',.28);
+   g.restore();
+  }
   }catch(e){}};}
 
 // ================= v0.22b: shoot cameras, dev SHADOW OP preset =================
@@ -4939,7 +5031,7 @@ function bioStrip(L,o){
   const bpm=Math.round(62+(1-pct)*54);
   const dur=(60/bpm*2).toFixed(2);
   const frame=(L&&L.body)?'FEM':'MASC';
-  const build=(typeof BUILDS!=='undefined'&&BUILDS[(L&&L.bt|0)||0])||'Athletic';
+  const build=(typeof BUILDS!=='undefined'&&BUILDS[(L&&L.bld|0)||0])||'Athletic';
   const col=pct>.6?'#39ffb0':pct>.3?'#ffd24a':'#ff5a5a';
   // one ECG period, repeated by the pattern
   const beat='M0 20 L16 20 L20 20 L23 9 L26 31 L29 16 L33 20 L48 20 L52 20 L55 18 L58 22 L62 20 L80 20';
@@ -5170,6 +5262,130 @@ function ngMul(){const c=(G&&G.ng)||0;return c?1+Math.min(.9,c*.22):1;}
     }
   }catch(e){}
   return _ma2.apply(this,arguments);};}
+
+
+// ================= v0.26e: ending cinematics =================
+// A short sequence of drawn panels before the epilogue text. Tap to advance, hold to skip.
+function cineLayer(){
+  let el=document.getElementById('cineScene');
+  if(el)return el;
+  el=document.createElement('div');el.id='cineScene';
+  el.innerHTML='<canvas id="cineCv"></canvas><div id="cineCap"></div><div id="cineHint">tap to continue</div>';
+  document.body.appendChild(el);
+  return el;
+}
+// ---- scene primitives, all drawn in a 160x90 virtual frame ----
+function cineScene(g,W2,H2,kind,t,grade){
+  const S2=W2/160, P=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x*S2),Math.round(y*S2),Math.max(1,Math.round(w*S2)),Math.max(1,Math.round(h*S2)));};
+  const sky=grade||['#0a0a16','#1a1030'];
+  // sky gradient
+  {const gr=g.createLinearGradient(0,0,0,H2);gr.addColorStop(0,sky[0]);gr.addColorStop(1,sky[1]);g.fillStyle=gr;g.fillRect(0,0,W2,H2);}
+  const rng=(n)=>{let x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);};
+  // far skyline
+  for(let i=0;i<22;i++){const h=14+rng(i)*30,w=5+rng(i+50)*8,x=i*7.6-2;P(x,62-h,w,h+28,'#0d0d1c');
+    for(let wy=0;wy<h-4;wy+=4)for(let wx=1;wx<w-1;wx+=2)if(rng(i*31+wy*7+wx)>.62)P(x+wx,62-h+wy+2,1,1,rng(i+wy)>.5?'#3fe8ff':'#ffd24a');}
+  if(kind==='rain'){ // leaving in the rain
+    P(0,62,160,28,'#0a0a12');
+    for(let i=0;i<70;i++){const x=(rng(i)*170+t*0.06*(1+rng(i+9)))%170-5,y=(rng(i+33)*95+t*0.22*(1+rng(i)))%95;P(x,y,1,4,'rgba(140,180,255,.30)');}
+    P(0,78,160,12,'#101826');                                   // wet street
+    for(let i=0;i<14;i++)P(rng(i+5)*160,80+rng(i)*8,6+rng(i+2)*10,1,'rgba(63,232,255,.12)'); // reflections
+    P(74,52,12,26,'#05050c');P(76,50,8,3,'#05050c');            // walking figure
+    P(77,54,2,8,'#1a2030');P(81,54,2,8,'#1a2030');
+    P(72,56,16,2,'rgba(63,232,255,.18)');
+  }else if(kind==='crowd'){ // doors open, people pour out
+    P(0,62,160,28,'#0a0a12');
+    P(44,18,72,52,'#12121f');P(46,20,68,48,'#0b0b16');          // tower face
+    for(let wy=0;wy<44;wy+=5)for(let wx=0;wx<64;wx+=5)if(rng(wx*3+wy)>.35)P(48+wx,22+wy,3,3,rng(wx+wy)>.5?'#3fe8ff33':'#ffd24a33');
+    P(68,52,24,18,'#ffd24a');P(70,54,20,16,'#fff6d8');          // open doorway, light pouring out
+    for(let i=0;i<16;i++){const x=56+rng(i)*48,y=66+rng(i+7)*8,hh=6+rng(i+3)*4;
+      P(x,y-hh,3,hh,'#0a0a12');P(x,y-hh-3,3,3,'#0a0a12');}
+    g.globalAlpha=.22;g.fillStyle='#ffd24a';g.fillRect(0,Math.round(50*S2),W2,Math.round(24*S2));g.globalAlpha=1;
+  }else if(kind==='badge'){ // head of security
+    P(0,62,160,28,'#0a0a12');
+    const bx=66,by=28,pulse=.6+Math.sin(t/420)*.25;
+    g.globalAlpha=pulse;g.fillStyle='#3fe8ff';g.fillRect(Math.round((bx-10)*S2),Math.round((by-8)*S2),Math.round(48*S2),Math.round(48*S2));g.globalAlpha=1;
+    P(bx,by,28,34,'#1a2740');P(bx+2,by+2,24,30,'#22386a');
+    P(bx+8,by+6,12,12,'#ffd24a');P(bx+10,by+8,8,8,'#fff2c8');   // shield
+    P(bx+6,by+22,16,2,'#8ab6d8');P(bx+6,by+26,12,2,'#8ab6d8');
+    for(let i=0;i<5;i++)P(30+i*22,70,8,14,'#0d1420');           // guard silhouettes
+  }else if(kind==='payout'){ // walking away with the money
+    P(0,62,160,28,'#0a0a12');
+    g.globalAlpha=.5;g.fillStyle='#ff9a3c';g.fillRect(0,Math.round(44*S2),W2,Math.round(20*S2));g.globalAlpha=1;
+    P(0,60,160,4,'#ff9a3c');                                     // horizon glow
+    P(96,48,10,22,'#05050c');P(98,46,6,3,'#05050c');             // figure walking away, small
+    P(99,50,2,7,'#121820');P(102,50,2,7,'#121820');
+    P(106,54,6,5,'#2a2e36');                                     // case in hand
+    for(let i=0;i<10;i++)P(60+i*10,78+rng(i)*6,4,1,'rgba(255,154,60,.18)');
+  }else if(kind==='coop'){ // handed to the residents
+    P(0,62,160,28,'#0a0a12');
+    P(44,14,72,56,'#12121f');
+    for(let wy=0;wy<48;wy+=5)for(let wx=0;wx<64;wx+=5){const on=rng(wx*5+wy*3)>.25;P(48+wx,18+wy,3,3,on?(rng(wx+wy)>.5?'#39ffb0':'#ffd24a'):'#0b0b16');}
+    P(60,6,40,8,'#1a1a28');P(62,8,36,4,'#39ffb0');               // new sign lit up
+    for(let i=0;i<11;i++){const x=20+i*11,hh=8+rng(i)*4;P(x,74-hh,4,hh,'#0d1420');P(x,74-hh-4,4,4,'#0d1420');
+      if(rng(i+4)>.5)P(x-1,74-hh-6,6,1,'#39ffb0');}             // residents with raised hands
+  }
+  // vignette + scanlines
+  {const vg=g.createRadialGradient(W2/2,H2/2,H2*.25,W2/2,H2/2,H2*.78);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.72)');g.fillStyle=vg;g.fillRect(0,0,W2,H2);}
+  g.globalAlpha=.07;g.fillStyle='#000';for(let y=0;y<H2;y+=3)g.fillRect(0,y,W2,1);g.globalAlpha=1;
+}
+// ---- the player: a sequence of panels, tap to advance ----
+function cineCards(cards,done){
+  const el=cineLayer();el.classList.add('on');
+  const cv=document.getElementById('cineCv'),cap=document.getElementById('cineCap');
+  let idx2=0,t0=performance.now(),raf=0,fading=0;
+  const fit=()=>{const r=el.getBoundingClientRect();cv.width=Math.max(320,r.width|0);cv.height=Math.max(180,r.height|0);};
+  fit();window.addEventListener('resize',fit);
+  const g=cv.getContext('2d');
+  const paint=(now)=>{
+    const c=cards[idx2];if(!c){return;}
+    g.setTransform(1,0,0,1,0,0);
+    cineScene(g,cv.width,cv.height,c.s,now-t0,c.grade);
+    raf=requestAnimationFrame(paint);
+  };
+  const show=()=>{
+    const c=cards[idx2];
+    if(!c){stop();return;}
+    cap.style.opacity=0;
+    cap.innerHTML=c.t;
+    setTimeout(()=>{cap.style.opacity=1;},90);
+  };
+  const next=()=>{
+    if(fading)return;
+    idx2++;
+    if(idx2>=cards.length){stop();return;}
+    t0=performance.now();show();
+  };
+  const stop=()=>{
+    fading=1;cancelAnimationFrame(raf);
+    el.classList.remove('on');
+    window.removeEventListener('resize',fit);
+    el.removeEventListener('click',next);
+    setTimeout(()=>{try{done&&done();}catch(e){}},420);
+  };
+  el.addEventListener('click',next);
+  show();raf=requestAnimationFrame(paint);
+  // auto-advance so it plays itself if they just watch
+  const tick=()=>{setTimeout(()=>{if(fading)return;const c=cards[idx2];if(!c)return;next();if(!fading)tick();},(cards[idx2]&&cards[idx2].d)||4200);};
+  tick();
+}
+const ENDING_CINE={
+  super:{grade:['#0b1020','#2a1a3a'],cards:[
+    {s:'crowd',t:'The doors stay open. They keep coming out.',d:4200},
+    {s:'coop', t:'Somebody hands you the master key. Nobody takes it back.',d:4200},
+    {s:'badge',t:'MTX has a superintendent again.',d:3800}]},
+  sec:{grade:['#071018','#10283a'],cards:[
+    {s:'crowd',t:'Thirty floors. Everyone who walked out walked out behind you.',d:4200},
+    {s:'badge',t:'Reyes pins it on without a speech. She hates speeches.',d:4200},
+    {s:'rain', t:'The lockdown protocols answer to you now. They stay off.',d:3800}]},
+  pay:{grade:['#120a0a','#3a2010'],cards:[
+    {s:'rain',  t:'You sign the DNA line and the money lands before you reach the street.',d:4200},
+    {s:'payout',t:'Somebody else can run the tower.',d:4000},
+    {s:'payout',t:'Somewhere warm. The phone keeps buzzing with an MTX area code.',d:3800}]},
+  res:{grade:['#06140e','#153528'],cards:[
+    {s:'crowd',t:'You put the Core in the tenant board’s hands and let go.',d:4200},
+    {s:'coop', t:'The first co-op megatower in the city.',d:4200},
+    {s:'coop', t:'They vote on everything now. Including your door.',d:3800}]}
+};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
@@ -5194,7 +5410,16 @@ body{padding:0!important}
 .biostrip.cmp .bioscreen{height:30px}
 .biostrip.cmp .bioscreen svg{height:30px}
 .biostrip.cmp .biorow.bb{font-size:6.5px}
-.crleft{display:flex;flex-direction:column;gap:8px;width:144px;flex:none}
+.crleft{display:flex;flex-direction:column;gap:8px;width:144px;flex:none;align-self:stretch}
+#crBio{flex:1 1 auto;display:flex;min-height:84px}
+.biostrip.cmp{flex:1;display:flex;flex-direction:column}
+.biostrip.cmp .bioscreen{flex:1 1 auto;min-height:30px}
+.biostrip.cmp .bioscreen svg{height:100%}
+.crtop{align-items:stretch}
+/* the right column was leaving a gap above SCRAMBLE */
+.crtop .f{display:flex;flex-direction:column;gap:7px}
+.crtop .f #crCard{margin-top:2px}
+
 .biostrip{margin:8px 0 10px;border:1px solid #1d2b31;border-radius:6px;background:#070b0d;padding:7px 8px 6px}
 .biorow{display:flex;align-items:baseline;gap:10px;font-family:var(--px);font-size:8px;letter-spacing:.14em;color:#5d7079}
 .biorow.bb{margin-top:5px;justify-content:space-between;letter-spacing:.1em}
@@ -5212,6 +5437,20 @@ body{padding:0!important}
   animation:bioswp linear infinite}
 @keyframes bioswp{from{transform:translateX(-40%)}to{transform:translateX(330%)}}
 @media (prefers-reduced-motion:reduce){.bioswp{animation:none;opacity:0}}
+
+/* ---- ending cinematics ---- */
+#cineScene{position:fixed;inset:0;z-index:240;background:#05050a;opacity:0;pointer-events:none;
+  transition:opacity .55s ease;display:flex;align-items:center;justify-content:center}
+#cineScene.on{opacity:1;pointer-events:auto}
+#cineCv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+#cineCap{position:absolute;left:0;right:0;bottom:max(14%,calc(env(safe-area-inset-bottom) + 70px));
+  padding:0 24px;text-align:center;font-size:clamp(15px,4.4vw,24px);line-height:1.35;color:#eef3f7;
+  text-shadow:0 2px 0 #000,0 0 16px #000;opacity:0;transition:opacity .7s ease;max-width:720px;margin:0 auto}
+#cineHint{position:absolute;left:0;right:0;bottom:max(6%,calc(env(safe-area-inset-bottom) + 18px));
+  text-align:center;font-family:var(--px);font-size:8px;letter-spacing:.22em;color:#5d6a76;
+  animation:cineHint 2.6s ease-in-out infinite}
+@keyframes cineHint{0%,100%{opacity:.25}50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){#cineHint{animation:none;opacity:.5}}
 </style>
 </body>
 </html>
