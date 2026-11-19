@@ -3516,6 +3516,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26g','Street traffic redrawn properly. Five vehicles — sport bike, street car, cargo trike, skater, two-up hover bike — now built as cached sprites that go through the same outline pass the people on the street use, so they sit in the same art style instead of looking pasted on. Real wheels with tyre, rim, hub and spokes that turn; a rider folded over the tank with an arm on the bars; a car with wheels under cut arches; a courier pedalling a cargo trike; a skateboard with trucks you can see. · Police line is back to its original look — the rewrite in the last build was worse. The only change is that a length of it now runs across the tower doorway, which it never did: the span was being added, then wiped every time the street rebuilt itself.'],
  ['v0.26f','Biomonitor rebuilt. The old one was an SVG stretched to fill its box, which squashed it in both directions — that is why it looked bad. It is a canvas now at a fixed aspect, with a trace that genuinely scrolls: P wave, QRS spike, T wave, drawn per frame, and the rate climbs as your health drops. Under it, a readout of frame, build, trade and status. · Tapping a vendor across their counter now talks instead of walking you round the long way — the ramen spot outside and the bars inside. Tapping went straight to the pathfinder, which routed around; only a manual bump was working. · Bars are properly sealed now. The previous pass only walled the counter row, and a flood-fill test showed 9 of 12 barkeeps were still reachable round the ends or through a door. The whole staff side is enclosed — 0 of 12 reachable, verified. · Creator column no longer stretches its contents.'],
  ['v0.26e','The fem body is finally the Athletic one. Two reasons it never applied: the build index was stored in L.bt, which was ALREADY the clothing bottom (skirt/shorts), and a later override repainted the old curvy silhouette straight over whatever the build drew. Builds now live in L.bld and the curvy overlay only runs for Hourglass and Curvy. All six builds verified rendering differently. · ENDING CINEMATICS — each of the four endings now plays a short sequence of drawn panels before the epilogue: rain-slick street, the doors staying open, the badge, the horizon, the tower lit up by its own residents. Tap to advance. · Street traffic rebuilt: five vehicles instead of three, with shaded bodies, spinning spoked wheels, ground shadows, speed lines, neon underglow and a hover sedan that actually floats. · Character creator: the left column now stretches so the biomonitor fills the dead space instead of leaving a gap. · Reyes\u2019 name is off the title tagline — just the quote now. · Also audited every feature claimed in v0.26 at runtime rather than trusting that the code was there: 15 of 15 confirmed working.'],
  ['v0.26d','NEW GAME+ — beat the Core and you can go again. Your installed chrome comes with you at its upgrade level, plus a quarter of your creds and a slice of your levels; weapons and armour do not, so there is still a climb. Every cycle the tower gets meaner: enemies gain health and hit harder, and it stacks. The title screen offers the next cycle once you have earned it. Also: the drone shuffle is actually fixed. The v0.26 fix went into a dead copy of the walk routine and did nothing — the live one already handled allies. The real cause was that after you squeezed past a companion it immediately stepped back in front of you, which in a one-tile corridor is an endless shuffle. Companions now hold for one beat after you push past, unless something is in range to shoot. And belt-and-braces CSS so nothing can pin the message log to the top edge again.'],
@@ -3593,7 +3594,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26f · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26g · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4497,96 +4498,23 @@ window.drawTape=drawTape;
     B(1,13,30,2,'rgba(0,0,0,.45)');B(2,6,28,6,'#e8eef4');B(1,8,30,4,'#14161a');B(1,9,30,2,'#22386a');B(8,3,15,4,'#e8eef4');B(10,4,5,2,'#5a8ab0');B(16,4,5,2,'#5a8ab0');B(15,4,1,2,'#e8eef4');
     B(12,9,9,1,'#e8eef4');B(13,9,1,1,'#22386a');B(4,11,5,3,'#0a0b0e');B(23,11,5,3,'#0a0b0e');B(5,12,3,1,'#5a6472');B(24,12,3,1,'#5a6472');B(30,7,1,2,'#fff2c8');B(1,7,1,2,'#ff3b4e');
     B(11,2,4,1,ph?'#ff2a3a':'#2a6aff');B(16,2,4,1,ph?'#2a6aff':'#ff2a3a');g.globalAlpha=.16;g.fillStyle=ph?'#ff2a3a':'#2a6aff';g.beginPath();g.arc(px+16*S,py+3*S,14*S,0,7);g.fill();g.globalAlpha=1;}
-  // ---- v0.26e: ambient traffic. shaded bodies, spinning wheels, ground shadows, speed lines
+  // ---- v0.26g: ambient traffic, drawn as cached sprites through the same
+  //      outline pass the NPC sprites use, so they sit in the same art style.
   const span=W*TS;
-  const lane=(row,speed,ofs)=>{const x=((now*speed/1000+ofs)%(span+60*S))-30*S;return [RD.ox+x,RD.oy+row*TS];};
-  const sh=(hex,f)=>shade(hex,f);
-  // wheel with spinning spokes
-  const wheel=(B,g2,cx,cy,r,spin)=>{
-    B(cx-r,cy-r,r*2,r*2,'#0a0b0e');
-    B(cx-r+1,cy-r+1,r*2-2,r*2-2,'#1a1d22');
-    const a=spin%4;
-    if(a===0||a===2){B(cx-r+1,cy,r*2-2,1,'#6a7480');}
-    if(a===1||a===3){B(cx,cy-r+1,1,r*2-2,'#6a7480');}
-    B(cx-1,cy-1,2,2,'#99a4b0');
+  const lane=(row,speed,ofs)=>{const x=((now*speed/1000+ofs)%(span+72*S))-36*S;return [RD.ox+x,RD.oy+row*TS];};
+  const put=(key,row,speed,ofs,fr)=>{
+    const [x,y]=lane(row,speed,ofs),spr=vehSprite(key,fr);
+    g.globalAlpha=.38;g.fillStyle='#000';
+    g.fillRect(x+3*S,y+(VEH_H-1)*S,(VEH_W-6)*S,1.2*S);g.globalAlpha=1;
+    g.imageSmoothingEnabled=false;
+    g.drawImage(spr,Math.round(x),Math.round(y),VEH_W*S,VEH_H*S);
   };
-  const glow=(g2,x,y,w,h,c,al)=>{g2.globalAlpha=al;g2.fillStyle=c;g2.fillRect(x,y,w,h);g2.globalAlpha=1;};
-  const speedLines=(B,n,y0,len,c)=>{for(let q=0;q<n;q++)B(-6-q*7,y0+q*2,len,1,c);};
-
-  // 1. SPORT BIKE — leaning rider, spinning wheels, trail
-  {const [x,y]=lane(17.45,92*S,0),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},sp=Math.floor(now/55)%4;
-   glow(g,x+1*S,y+14.4*S,24*S,1.2*S,'#000000',.4);                     // ground shadow
-   speedLines(B,3,6,5,'rgba(255,255,255,.18)');
-   wheel(B,g,4,12,2.6,sp); wheel(B,g,19,12,2.6,sp);                    // wheels
-   B(5,10,14,2,'#8a1f2e'); B(5,10,14,1,sh('#8a1f2e',.3));              // body + top light
-   B(16,8,5,2,'#b02a3c'); B(16,8,5,1,sh('#b02a3c',.35));               // tail cowl
-   B(6,8,5,2,'#2a2e36');                                               // tank
-   B(2,10,3,1,'#fff2c8'); B(22,10,2,1,'#ff3b4e');                      // head / tail light
-   glow(g,x-2*S,y+9*S,4*S,3*S,'#fff2c8',.22);
-   // rider, leaning forward
-   B(9,3,5,6,'#1a1f2e'); B(9,3,5,1,sh('#1a1f2e',.4));                  // torso
-   B(10,0,4,3,'#c06aff'); B(10,0,4,1,sh('#c06aff',.4));                // helmet
-   B(11,1,3,1,'#3fe8ff');                                              // visor
-   B(6,6,4,1,'#1a1f2e'); B(13,8,3,3,'#1a1f2e');                        // arm / leg
-   glow(g,x+4*S,y+9*S,20*S,1*S,'#ff3fa4',.20);                         // underglow
-  }
-  // 2. CARGO TRIKE — pedalling courier, boxy load, slower lane
-  {const [x,y]=lane(18.6,44*S,11000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},sp=Math.floor(now/110)%4,pk=Math.floor(now/180)%2;
-   glow(g,x+1*S,y+14.4*S,26*S,1.2*S,'#000000',.38);
-   wheel(B,g,4,12,2.4,sp); wheel(B,g,10,12,2.4,sp); wheel(B,g,22,12,2.2,sp);
-   B(2,6,10,6,'#3a6a4a'); B(2,6,10,1,sh('#3a6a4a',.35)); B(2,11,10,1,sh('#3a6a4a',-.35));  // cargo box
-   B(3,7,4,3,'#2a4a36'); B(3,7,4,1,sh('#2a4a36',.25));                  // box panel
-   B(12,10,10,1,'#6a7480');                                             // frame
-   B(19,6,2,4,'#5a6472');                                               // seat post
-   B(23,8,2,1,'#ff9a3c');                                               // handlebar
-   B(18,4,4,5,'#c9772a'); B(18,4,4,1,sh('#c9772a',.35));                // rider torso
-   B(18,1,4,3,'#8a5a3a'); B(18,1,4,1,sh('#8a5a3a',.3));                 // head
-   B(22,5,2,1,'#8a5a3a');                                               // arm to bars
-   B(17,9,2,2+pk,'#2a3a5a'); B(19,9,2,3-pk,'#2a3a5a');                  // pedalling legs
-   B(0,10,1,1,'#fff2c8');
-  }
-  // 3. HOVER SEDAN — no wheels, floats, underglow, fastest lane
-  {const [x,y]=lane(20.3,120*S,21000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},bob=Math.sin(now/190)*1.1*S;
-   glow(g,x+2*S,y+14.6*S,28*S,1.4*S,'#000000',.33);
-   g.save();g.translate(0,bob);
-   speedLines(B,4,5,7,'rgba(63,232,255,.20)');
-   B(2,8,28,4,'#1d2735'); B(2,8,28,1,sh('#1d2735',.35)); B(2,11,28,1,sh('#1d2735',-.4));
-   B(7,4,15,4,'#243246'); B(7,4,15,1,sh('#243246',.4));                 // cabin
-   B(9,5,5,2,'#5a8ab0'); B(15,5,5,2,'#5a8ab0');                         // windows
-   B(9,5,5,1,'#8ab6d8'); B(15,5,1,2,'#8ab6d8');                         // window glint
-   B(0,9,2,1,'#fff2c8'); B(30,9,2,1,'#ff3b4e');
-   glow(g,x-3*S,y+8*S+bob,5*S,3*S,'#fff2c8',.25);
-   glow(g,x+3*S,y+12*S+bob,26*S,1.4*S,'#3fe8ff',.30);                   // thruster wash
-   g.restore();
-  }
-  // 4. SKATER on the sidewalk — crouched, board wheels spinning
-  {const [x,y]=lane(16.05,34*S,5000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},k=Math.floor(now/150)%2,sp=Math.floor(now/70)%4;
-   glow(g,x+2*S,y+14.5*S,12*S,1*S,'#000000',.35);
-   B(2,13,11,1,'#c06aff'); B(2,13,11,1,sh('#c06aff',.0));               // deck
-   B(3,12,1,1,sh('#c06aff',-.4)); B(11,12,1,1,sh('#c06aff',-.4));       // kicks
-   wheel(B,g,4,14,1.3,sp); wheel(B,g,11,14,1.3,sp);
-   B(5,5,5,6,'#ff3fa4'); B(5,5,5,1,sh('#ff3fa4',.4));                   // torso
-   B(5,2,5,3,'#c99a7a'); B(5,2,5,1,sh('#c99a7a',.25));                  // head
-   B(5,1,5,1,'#1a1a1a');                                                // cap
-   B(3,6,2,1,'#c99a7a'); B(10,5,2,1,'#c99a7a');                         // arms out for balance
-   B(5,11,2,2+k,'#2a3a5a'); B(8,11,2,3-k,'#2a3a5a');                    // legs pumping
-  }
-  // 5. TWO-UP HOVER BIKE — the pair, now shaded and trailing
-  {const [x,y]=lane(21.4,70*S,33000),B=(a,b,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a*S,y+b*S,w*S,h*S);},bob=Math.sin(now/160)*S;
-   glow(g,x+2*S,y+14.6*S,22*S,1.2*S,'#000000',.34);
-   g.save();g.translate(0,bob);
-   speedLines(B,3,7,6,'rgba(255,63,164,.18)');
-   B(1,9,24,3,'#22262e'); B(1,9,24,1,sh('#22262e',.45)); B(1,11,24,1,sh('#22262e',-.4));
-   B(21,7,4,2,'#5a6472'); B(21,7,4,1,sh('#5a6472',.3));
-   B(0,10,1,1,'#fff2c8'); B(25,10,1,1,'#ff3b4e');
-   B(8,3,4,6,'#2a2e36'); B(8,3,4,1,sh('#2a2e36',.4));                   // front rider
-   B(8,0,4,3,'#ffe14a'); B(8,0,4,1,sh('#ffe14a',.3)); B(9,1,2,1,'#3a2a00');
-   B(13,4,4,5,'#c06aff'); B(13,4,4,1,sh('#c06aff',.4));                 // pillion
-   B(13,1,4,3,'#1a1a1a'); B(14,2,3,1,'#3fe8ff');
-   B(12,6,2,1,'#2a2e36');                                               // arm round the waist
-   glow(g,x+1*S,y+12*S+bob,24*S,1.4*S,'#ff3fa4',.28);
-   g.restore();
-  }
+  const wf=Math.floor(now/70)%4, bf=Math.floor(now/110)%4, sf=Math.floor(now/150)%4;
+  put('skater',15.6, 34*S,  5000, sf);
+  put('trike', 17.2, 46*S, 11000, bf);
+  put('bike',  18.4, 96*S,     0, wf);
+  put('sedan', 20.0,120*S, 21000, wf);
+  put('hover', 21.3, 74*S, 33000, bf);
   }catch(e){}};}
 
 // ================= v0.22b: shoot cameras, dev SHADOW OP preset =================
@@ -4852,18 +4780,20 @@ function surgSound(){
     setTimeout(()=>log('REYES: "And do not expect calls. Voss killed the relays — nothing gets in or out of that stack but local chatter."'),1500);}
   return r;};}
 
-// --- caution tape across the tower doors ---
-{const _mc=mapChanged;mapChanged=function(){
+// --- caution tape across the tower doors.
+//     This used to hang off mapChanged, but streetV3() rebuilds L.tape from
+//     scratch on entering floor 0 and wiped it every time. Runs after now. ---
+function doorTape(){
   try{
     const L=G.L;
-    if(L&&L.street&&L.tape&&!L._doorTape&&L.exit>=0){
-      const ex=X(L.exit),ey=Y(L.exit);
-      L.tape.push([ex-2.4,ey-0.15,ex+3.4]);
-      L.tape.push([ex-2.4,ey+0.85,ex+3.4]);
-      L._doorTape=1;
-    }
+    if(!L||G.depth!==0||!L.tape||L.exit<0)return;
+    const ex=X(L.exit),ey=Y(L.exit);
+    const want=(ey+0.95).toFixed(2);
+    if(L.tape.some(t=>t && (t[1]||0).toFixed(2)===want))return;   // already there
+    L.tape.push([ex-2.6,ey+0.95,ex+3.6]);
   }catch(e){}
-  return _mc.apply(this,arguments);};}
+}
+{const _ef3=enterFloor;enterFloor=function(d){const r=_ef3.apply(this,arguments);try{doorTape();}catch(e){}return r;};}
 
 
 // ================= v0.26: TOWER FM gets a band =================
@@ -5478,6 +5408,163 @@ const ENDING_CINE={
     }
   }catch(e){}
   return _ot.apply(this,arguments);};}
+
+
+// ================= v0.26g: street vehicle sprites =================
+const VEHSPR={};
+function vehOutline(g,w,h){
+  const im=g.getImageData(0,0,w,h),d=im.data,sol=new Uint8Array(w*h);
+  for(let i=0;i<w*h;i++)sol[i]=d[i*4+3]>0?1:0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=x+y*w;
+    if(!sol[p]&&((x>0&&sol[p-1])||(x<w-1&&sol[p+1])||(y>0&&sol[p-w])||(y<h-1&&sol[p+w]))){
+      d[p*4]=6;d[p*4+1]=6;d[p*4+2]=12;d[p*4+3]=255;}}
+  g.putImageData(im,0,0);
+}
+function vehSprite(key,fr){
+  const k=key+'_'+fr;
+  if(VEHSPR[k])return VEHSPR[k];
+  const c=cvs(VEH_W,VEH_H),g=c.getContext('2d');
+  VEHDRAW[key]((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fr);
+  vehOutline(g,VEH_W,VEH_H);
+  return VEHSPR[k]=c;
+}
+const VEH_W=40,VEH_H=20;
+function vShade(hex,f){if(!hex||hex[0]!=='#')return hex;const n=parseInt(hex.slice(1),16);
+  let r=n>>16&255,g=n>>8&255,b=n&255;
+  if(f<0){r*=1+f;g*=1+f;b*=1+f;}else{r+=(255-r)*f;g+=(255-g)*f;b+=(255-b)*f;}
+  return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';}
+// a real wheel: tyre ring, rim, hub
+function wheel(R,cx,cy,r,fr){
+  for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){
+    const d=Math.sqrt(x*x+y*y);
+    if(d>r+.4)continue;
+    let c;
+    if(d>r-1.1)      c='#14161a';          // tyre
+    else if(d>r-2.2) c='#2b313a';          // inner tyre
+    else if(d>1.6)   c='#434c57';          // rim
+    else             c='#8e9aa6';          // hub
+    R(cx+x,cy+y,1,1,c);
+  }
+  // two spokes that rotate
+  const a=(fr%4)*(Math.PI/4);
+  for(let k=-r+2;k<=r-2;k++){
+    R(Math.round(cx+Math.cos(a)*k),Math.round(cy+Math.sin(a)*k),1,1,'#6a7682');
+    R(Math.round(cx+Math.cos(a+Math.PI/2)*k),Math.round(cy+Math.sin(a+Math.PI/2)*k),1,1,'#6a7682');
+  }
+}
+const VEHDRAW={
+ bike(R,fr){
+  const c='#c01f38', cl=vShade(c,.40), cd=vShade(c,-.45);
+  const sk='#d0a07e', jk='#24304d', jkl=vShade('#24304d',.42), jkd=vShade('#24304d',-.4);
+  wheel(R,9,14,5,fr); wheel(R,31,14,5,fr);
+  // frame: lighter metal so the rider reads against it
+  R(12,13,8,2,'#4b5663'); R(12,13,8,1,'#6c7885');     // swingarm
+  R(15,10,8,4,'#5a6673'); R(15,10,8,1,'#7e8b98');     // engine casing
+  R(16,11,5,2,'#39414c');                              // engine vents
+  R(10,12,6,1,'#9aa6b2');                              // exhaust
+  R(29,8,2,6,'#7e8b98'); R(32,9,1,5,'#5a6673');        // forks
+  // bodywork
+  R(26,6,8,4,c); R(26,6,8,1,cl); R(26,9,8,1,cd);       // front fairing
+  R(34,7,2,2,'#fff2c8');                               // headlight
+  R(20,8,7,3,c); R(20,8,7,1,cl);                       // tank
+  R(14,8,6,2,'#15181d'); R(14,8,6,1,'#2f353d');        // seat
+  R(7,6,7,3,c); R(7,6,7,1,cl); R(7,8,7,1,cd);          // tail
+  R(5,7,2,2,'#ff3b4e');                                // tail light
+  // --- rider, folded forward: hip low and back, shoulders over the tank ---
+  R(15,9,5,4,jk); R(15,9,5,1,jkl);                     // hip / seat contact
+  R(13,11,5,3,jk);                                     // thigh, tucked back
+  R(14,13,4,2,'#15181d');                              // boot on the peg
+  R(17,5,7,5,jk); R(17,5,7,1,jkl);                     // torso, angled up-forward
+  R(22,4,5,4,jk); R(22,4,5,1,jkl);                     // shoulders
+  R(24,7,5,2,jkd); R(28,8,3,2,jkd);                    // upper arm -> forearm
+  R(30,9,2,2,sk);                                      // glove on the bar
+  R(22,0,7,5,'#6d28b8'); R(22,0,7,1,vShade('#6d28b8',.5));  // helmet, forward and low
+  R(22,4,7,1,vShade('#6d28b8',-.45));
+  R(27,2,3,2,'#3fe8ff'); R(27,2,3,1,'#b6f3ff');        // visor
+  R(20,2,2,3,vShade('#6d28b8',-.3));                   // helmet back edge
+ }, sedan(R,fr){
+  const c='#2a3a55', cl=vShade(c,.40), cd=vShade(c,-.45), gl='#5f93c4';
+  R(10,4,20,6,vShade(c,.14)); R(10,4,20,1,cl);        // cabin
+  R(12,5,7,4,gl); R(12,5,7,1,'#a9d6f5');              // windscreen
+  R(21,5,7,4,gl); R(21,5,1,4,'#a9d6f5');              // rear glass
+  R(19,5,2,4,vShade(c,.22));                          // B pillar
+  R(4,9,32,4,c); R(4,9,32,1,cl);                      // body
+  R(3,10,1,3,cd); R(36,10,1,3,cd);                    // nose + tail caps
+  R(5,11,30,1,cl);                                    // crease
+  R(3,11,2,2,'#fff2c8'); R(35,11,2,2,'#ff3b4e');      // lights
+  R(5,13,30,1,cd);                                    // sill
+  wheel(R,10,15,4,fr); wheel(R,29,15,4,fr);
+  R(6,12,8,2,'#11141a'); R(25,12,8,2,'#11141a');      // arches over the tyre tops
+ },
+ trike(R,fr){
+  const bx='#2f6a4a', bl=vShade(bx,.38), bd=vShade(bx,-.45);
+  const sk2='#8a5a3a', jk='#c9772a';
+  wheel(R,7,15,4,fr); wheel(R,16,15,4,fr); wheel(R,33,15,4,fr);
+  R(2,5,16,9,bx); R(2,5,16,1,bl); R(2,13,16,1,bd);
+  R(4,7,8,5,vShade(bx,-.22)); R(4,7,8,1,vShade(bx,.1));
+  R(5,8,6,1,'#a8e8c4'); R(5,10,4,1,'#a8e8c4');
+  R(18,12,14,2,'#4b5663'); R(18,12,14,1,'#6c7885');
+  R(28,8,2,5,'#5a6673');
+  R(26,7,6,2,'#15181d');
+  R(34,9,3,2,'#ff9a3c');
+  R(25,4,7,6,jk); R(25,4,7,1,vShade(jk,.42));         // torso
+  R(31,6,4,2,jk);                                     // arm to bars
+  R(26,1,6,4,sk2); R(26,1,6,1,vShade(sk2,.26));       // head
+  R(25,0,8,2,'#1f2630'); R(32,1,2,1,'#1f2630');       // cap + brim
+  R(31,3,1,1,'#15181d');                              // eye
+  R(26,5,6,1,vShade(sk2,-.38));                       // jaw shadow
+  R(24,10,4,3,'#26324a'); R(29,10,4,3,'#26324a');     // legs
+  R(24,13,4,1,'#15181d');
+ },
+ skater(R,fr){
+  const sh='#e0356f', shl=vShade(sh,.42), sk2='#d0a07e', dk='#6d28b8';
+  R(4,16,26,2,dk); R(4,16,26,1,vShade(dk,.45));       // one continuous deck
+  R(2,15,3,2,vShade(dk,-.28)); R(29,15,3,2,vShade(dk,-.28));  // kicks, flush with the deck
+  R(8,18,3,1,'#4b5663'); R(23,18,3,1,'#4b5663');      // trucks
+  wheel(R,9,19,2,fr); wheel(R,24,19,2,fr);
+  R(14,6,8,7,sh); R(14,6,8,1,shl);                    // torso
+  R(15,9,6,2,vShade(sh,-.32));
+  R(14,1,8,5,sk2); R(14,1,8,1,vShade(sk2,.28));       // head
+  R(13,0,10,2,'#1f2630');                             // cap
+  R(20,3,1,1,'#15181d');                              // eye
+  R(14,5,8,1,vShade(sk2,-.34));
+  R(8,7,6,3,sk2); R(22,5,7,3,sk2);                    // arms out
+  R(13,13,4,3,'#26324a'); R(19,13,4,3,'#26324a');     // legs down to the deck
+  R(12,15,5,1,'#15181d'); R(19,15,5,1,'#15181d');     // shoes sitting on the deck
+ },
+ hover(R,fr){
+  const c='#2b3240', cl=vShade(c,.44), cd=vShade(c,-.46);
+  const j1='#2f6ea8', j2='#8b2fd0', sk2='#d0a07e';
+  // ---- bike body: one solid slab, no internal gaps ----
+  R(4,12,32,5,c);                                     // chassis core
+  R(4,12,32,1,cl);                                    // top light edge
+  R(4,16,32,1,cd);                                    // bottom shade
+  R(30,10,7,2,c); R(30,10,7,1,cl);                    // nose rising
+  R(3,11,3,2,c); R(3,11,3,1,cl);                      // tail
+  R(2,12,1,3,'#ff3b4e'); R(37,11,1,2,'#fff2c8');
+  R(7,10,18,2,'#1b1f26'); R(7,10,18,1,'#3a424d');     // bench seat, sits on the chassis
+  R(28,8,3,4,'#5a6673');                              // bar column down into the body
+  R(31,7,6,2,'#7e8b98'); R(31,7,6,1,'#a3aeba');       // bars
+  // ---- pillion (behind), body runs down to the seat ----
+  R(11,5,7,6,j2); R(11,5,7,1,vShade(j2,.5));          // torso
+  R(12,11,5,1,j2);                                    // hips meeting the seat
+  R(11,1,7,4,'#dfe5ec'); R(11,1,7,1,'#ffffff');       // pale helmet
+  R(16,3,2,2,'#1b3a5c');                              // visor
+  R(17,7,4,2,j2);                                     // arm round the rider ahead
+  // ---- front rider, body runs down to the seat ----
+  R(21,4,7,7,j1); R(21,4,7,1,vShade(j1,.5));          // torso
+  R(22,11,5,1,j1);                                    // hips
+  R(27,6,4,2,j1); R(30,7,2,2,sk2);                    // arm to the bars
+  R(21,0,7,4,'#e8c22a'); R(21,0,7,1,vShade('#e8c22a',.5));
+  R(26,2,2,2,'#2a2208');                              // visor
+  // ---- thrust ----
+  const t=fr%2;
+  R(6,18,12,1+t,'#ff3fa4'); R(21,18,12,2-t,'#ff3fa4');
+  R(4,17,32,1,vShade('#ff3fa4',-.5));
+ }
+};
+const VEH_ORDER=['bike','sedan','trike','skater','hover'];
+const VEH_NAME={bike:'Sport bike',sedan:'Street car',trike:'Cargo trike',skater:'Skater',hover:'Two-up hover bike'};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
