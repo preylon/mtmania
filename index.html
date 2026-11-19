@@ -916,6 +916,7 @@ function newGame(o){
   enterFloor(0);
   log('SECOND SKIN — street clinic. You sit up in the chair. New face, new file, same debts. Doc Sato is already wiping the tools.','hi');
   log('SATO: "Check it out. It\'s a whole new you."','hi');setTimeout(()=>{if(typeof showMirror==='function')showMirror('SATO: <b>"Check it out. It\'s a whole new you."</b>');},700);
+  setTimeout(()=>{try{ripperIntro();}catch(e){}},900);
   if(o.cls==='tinker'){const p=freeNear(G.hero.pos);if(p>=0){G.L.mobs.push(scaleAlly(mkMob('a_scout',p,'ally')));}}
   updateFov();
 }
@@ -929,7 +930,7 @@ function loadGameFrom(KEY){try{const s=localStorage.getItem(KEY);if(!s)return fa
 function mobAt(i){const ms=G.L.mobs;for(let j=0;j<ms.length;j++)if(ms[j].pos===i)return ms[j];return null;}
 function pass(i){const t=G.L.map[i];return t!==T.WALL&&t!==T.LOCKED&&t!==T.SECRET&&t!==T.PILLAR&&(t<T.WINDOW||t===T.CHAIR);}
 function opaque(i){const t=G.L.map[i];if(t===T.WALL||t===T.SECRET||t===T.LOCKED||t===T.GRASS||t===T.WINDOW)return true;if(t===T.DOOR)return !(G.hero.pos===i||mobAt(i));return false;}
-function blocksShot(i){const t=G.L.map[i];return !pass(i)||(t===T.DOOR&&!(G.hero.pos===i||mobAt(i)));}
+function blocksShot(i){const t=G.L.map[i];if(t===T.COUNTER)return false;return !pass(i)||(t===T.DOOR&&!(G.hero.pos===i||mobAt(i)));}
 function inShop(i){const r=G.L.shopR;if(!r)return false;const x=X(i),y=Y(i);return x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3];}
 function mobPass(i){return pass(i)&&!inShop(i);}
 globalThis.__mp=mobPass;
@@ -1164,7 +1165,11 @@ function actMove(to){
   if(t===T.TERM){if(EV.term)EV.term(to);return false;}
   if(t===T.CLONE||t===T.LOCKER){if(EV.clone)EV.clone(to);return false;}
   if(t===T.LOCKED){const k=invFind('keycard');if(k){consume(k);L.map[to]=T.DOOR;mapChanged();log('Keycard accepted. The vault unlocks.','hi');sfx('door');spend(1);return true;}log('Locked. You need a keycard.','warn');return false;}
-  if(!pass(to))return false;
+  if(!pass(to)){
+    const d0=to-h.pos;
+    if(DIRS.indexOf(d0)>=0){const bey=to+d0,mb=(bey>=0&&bey<N&&dist(bey,h.pos)<=2)?mobAt(bey):null;
+      if(mb&&MOBS[mb.k].npc&&!mb.leave){mb.talked=1;if(EV.npc)EV.npc(mb);return false;}}
+    return false;}
   if(t===T.DOOR)sfx('door');
   h.pos=to;afterMove();if(!G.over)spend(1);return true;
 }
@@ -1675,10 +1680,38 @@ function drawHeld(R,k,o,f,c){
     case '_gun3':R(9,8+o,8,2,shade(c,-.4));R(10,8+o,6,1,c);P(11,10+o,dk);P(14,10+o,dk);P(17,8+o,c);P(17,9+o,'#ffffff');break;
   }
 }
+
+// ===== v0.26: body builds (L.bt) — 0 Athletic,1 Hourglass,2 Curvy,3 Tall,4 Petite,5 Bruiser =====
+const BUILDS=['Athletic','Hourglass','Curvy','Tall','Petite','Bruiser'];
+function BUILD(R,L,o,wk,out,out2,pants,fem){
+  const bt=(L.bt|0)%6,hi=shade(out,.3),P=(x,y,c)=>R(x,y,1,1,c);
+  if(bt===1){ // Hourglass
+    R(5,6+o,6,2,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(4,10+o,8,1,out);
+    P(5,8+o,shade(out,-.55));P(10,8+o,shade(out,-.55));
+    P(6,7+o,shade(out,.32));P(9,7+o,shade(out,.32));R(7,7+o,2,1,out2);P(10,6+o,out2);P(11,10+o,out2);return;}
+  if(bt===2){ // Curvy
+    R(5,6+o,6,1,out);R(5,7+o,6,1,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(4,10+o,8,1,out);
+    P(6,7+o,shade(out,.38));P(9,7+o,shade(out,.38));if(fem){P(6,6+o,shade(out,.2));P(9,6+o,shade(out,.2));}
+    R(7,7+o,2,1,out2);P(10,6+o,out2);P(11,10+o,out2);return;}
+  if(bt===3){ // Tall / lean
+    R(5,6+o,6,2,out);R(6,8+o,4,1,out2);R(6,9+o,4,1,out);R(5,10+o,6,1,out);
+    P(6,7+o,shade(out,.32));P(9,7+o,shade(out,.32));R(7,7+o,2,1,out2);P(10,6+o,out2);P(11,10+o,out2);return;}
+  if(bt===4){ // Petite
+    R(6,7+o,5,1,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(5,10+o,6,1,out);
+    P(6,7+o,hi);P(9,7+o,hi);R(7,9+o,2,1,out2);P(11,10+o,out2);return;}
+  if(bt===5){ // Bruiser
+    R(4,6+o,8,2,out);R(4,8+o,8,1,out2);R(4,9+o,8,2,out);
+    P(5,7+o,hi);P(10,7+o,hi);R(6,7+o,4,1,out2);
+    R(3,7+o,1,4,out2);R(12,7+o,1,4,out2);P(3,11+o,L.skin||'#c99a7a');P(12,11+o,L.skin||'#c99a7a');return;}
+  // 0 Athletic (default)
+  R(4,6+o,8,1,out);R(5,7+o,6,1,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(5,10+o,6,1,out);
+  P(5,6+o,hi);P(10,6+o,hi);R(7,7+o,2,1,out2);
+  P(6,9+o,shade(out,.2));P(9,9+o,shade(out,.2));P(11,10+o,out2);
+}
 function drawHum(R,L,f){
   const wk=f>=2?(f===2?1:-1):0;f=f&1;const o=f?1:0,skin=L.skin||'#c99a7a',sk2=shade(skin,-.22),hair=L.hair||'#222',out=L.outfit||'#555',out2=shade(out,-.3),pants=L.pants||'#22222a',hs=L.hs||0,P=(x,y,c)=>R(x,y,1,1,c),ct=L.coat||'',tr=L.trim;
   if(wk){const a=wk>0?5:9,b=wk>0?9:5;R(5,11+o,6,1,pants);R(a,12,2,2,pants);R(a,14,2,1,'#101018');R(b,12,2,1,pants);R(b,13,2,1,'#101018');}else{R(5,11+o,6,1,pants);R(5,12,2,2,pants);R(9,12,2,2,pants);R(5,14,2,1,'#101018');R(9,14,2,1,'#101018');}
-  if(L.body&&!L.skull&&!L.hazmat){R(5,6+o,6,2,out);R(6,8+o,4,1,out2);R(5,9+o,6,1,out);R(4,10+o,8,1,out);R(4,11+o,8,1,pants);R(6,7+o,1,1,shade(out,.32));R(9,7+o,1,1,shade(out,.32));R(7,7+o,2,1,out2);R(10,6+o,1,1,out2);R(11,10+o,1,1,out2);if(!wk){R(5,12,2,2,pants);R(9,12,2,2,pants);}}else{R(5,6+o,6,5,out);R(4,6+o,8,2,out);R(10,7+o,1,4,out2);}
+  if(L.body&&!L.skull&&!L.hazmat){BUILD(R,L,o,wk,out,out2,pants,1);if(!wk){R(5,12,2,2,pants);R(9,12,2,2,pants);}}else if(!L.skull&&!L.hazmat){BUILD(R,L,o,wk,out,out2,pants,0);}else{R(5,6+o,6,5,out);R(4,6+o,8,2,out);R(10,7+o,1,4,out2);}
   if(wk){R(4,7+o,1,1,out2);R(11,7+o,1,3,out2);P(11,10+o,skin);if(wk>0){R(3,8+o,1,2,out2);P(2,10+o,skin);P(3,10+o,out2);}else{R(4,8+o,1,2,out2);P(4,10+o,skin);P(5,12,'#101018');}}else{R(4,7+o,1,3,out2);R(11,7+o,1,3,out2);P(4,10+o,skin);P(11,10+o,skin);}
   if(ct==='hood'){R(4,6+o,8,1,shade(out,.18));R(6,9+o,4,1,out2);P(7,7+o,'#cfd8dc');P(8,7+o,'#cfd8dc');}
   else if(ct==='short'){R(5,10+o,6,1,shade(pants,.25));R(7,6+o,2,1,'#101018');R(7,7+o,1,3,'#101018');if(tr){P(4,8+o,tr);P(11,8+o,tr);R(5,9+o,6,1,tr);}R(4,6+o,3,1,shade(out,.2));R(9,6+o,3,1,shade(out,.2));}
@@ -1734,7 +1767,7 @@ const ARCH={
 };
 function npcLook(seed,kind){
   const r=tileRng((seed*7919+13)%2147483647),pk=a=>a[r()*a.length|0];
-  const L={skin:pk(['#f1d0b5','#e0b89a','#c99a7a','#a8744f','#8a5a3a','#5e3d28']),hair:pk(['#1a1a1a','#3a2a20','#5a3a22','#c9a227','#e8e8e8','#ff3fa4','#3fe8ff','#39ffb0','#c06aff']),hs:pk([0,1,2,3,4,6,2,3]),body:r()<.5?1:0,face:pk([0,0,2,3,4,5,6,2]),outfit:pk(['#4a4a5a','#5a3a4a','#3a4a3a','#2a2a36','#6a5a3a','#2e3440','#7a2a3a','#3a5a7a']),pants:pk(['#22222a','#2a2a3a','#3a2e26']),coat:pk(['long','hood','short','collar','short']),wc:null};
+  const L={skin:pk(['#f1d0b5','#e0b89a','#c99a7a','#a8744f','#8a5a3a','#5e3d28']),hair:pk(['#1a1a1a','#3a2a20','#5a3a22','#c9a227','#e8e8e8','#ff3fa4','#3fe8ff','#39ffb0','#c06aff']),hs:pk([0,1,2,3,4,6,2,3]),body:r()<.5?1:0,bt:(r()*6)|0,face:pk([0,0,2,3,4,5,6,2]),outfit:pk(['#4a4a5a','#5a3a4a','#3a4a3a','#2a2a36','#6a5a3a','#2e3440','#7a2a3a','#3a5a7a']),pants:pk(['#22222a','#2a2a3a','#3a2e26']),coat:pk(['long','hood','short','collar','short']),wc:null};
   if(r()<.5)L.trim=pk(['#3fe8ff','#ff3fa4','#ffe14a','#39ffb0']);
   L.cy={arm:r()<.45?pk(['#b8c0c8','#d8b24a','#5a626c']):null,port:r()<.55?pk(['#3fe8ff','#ff3b4e','#39ffb0']):null,jaw:r()<.18};
   if(L.face===4&&L.body)L.face=5;
@@ -1950,7 +1983,8 @@ function rdFrame(now){
   const k=Math.min(1,dt*16);if(hx!==Math.round(RD.hp.x)&&Math.abs(hx-RD.hp.x)>.05)RD.face=hx>RD.hp.x?1:-1;RD.hp.x+=(hx-RD.hp.x)*k;RD.hp.y+=(hy-RD.hp.y)*k;
   RD.shake*=.85;const shx=(Math.random()-.5)*RD.shake*S,shy=(Math.random()-.5)*RD.shake*S;
   if(!RD.cam)RD.cam={x:RD.hp.x,y:RD.hp.y,f:0};{const fo=RD.focus!=null&&RD.focus>=0,tx=fo?X(RD.focus):RD.hp.x,ty=fo?Y(RD.focus):RD.hp.y;RD.cam.f+=((fo?1:0)-RD.cam.f)*Math.min(1,dt*2.5);RD.cam.x=RD.hp.x+(tx-RD.hp.x)*RD.cam.f;RD.cam.y=RD.hp.y+(ty-RD.hp.y)*RD.cam.f;if(fo)RD.cam.ftx=tx,RD.cam.fty=ty;else{RD.cam.x=RD.hp.x+((RD.cam.ftx??RD.hp.x)-RD.hp.x)*RD.cam.f;RD.cam.y=RD.hp.y+((RD.cam.fty??RD.hp.y)-RD.hp.y)*RD.cam.f;}}
-  const ox=RD.ox=Math.round(RD.w/2-(RD.cam.x+.5)*TS+shx),oy=RD.oy=Math.round(RD.h*.46-(RD.cam.y+.5)*TS+shy);
+  if(!RD.pan)RD.pan={x:0,y:0,d:0};if(RD.pan.d){RD.pan.x*=.80;RD.pan.y*=.80;if(Math.abs(RD.pan.x)<.6&&Math.abs(RD.pan.y)<.6){RD.pan.x=RD.pan.y=0;RD.pan.d=0;}RD.dirty=true;}
+  const ox=RD.ox=Math.round(RD.w/2-(RD.cam.x+.5)*TS+shx+RD.pan.x),oy=RD.oy=Math.round(RD.h*.46-(RD.cam.y+.5)*TS+shy+RD.pan.y);
   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.fillStyle='#040407';g.fillRect(0,0,RD.w,RD.h);
   g.imageSmoothingEnabled=false;
   const x0=Math.max(0,Math.floor(-ox/TS)),y0=Math.max(0,Math.floor(-oy/TS)),x1=Math.min(W-1,Math.floor((RD.w-ox)/TS)),y1=Math.min(H-1,Math.floor((RD.h-oy)/TS));
@@ -2084,7 +2118,7 @@ function rdFrame(now){
     if(f.t==='blood'){const wb=f.w;for(let n=0;n<4;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*5,vy:-Math.random()*4,t:now,c:wb?(n%2?'#ffffff':'#cfd8dc'):(n%2?'#c8142c':'#8a0a1a')});if(Math.random()<.4)RD.decals.push({x:X(f.p)+.2+Math.random()*.6,y:Y(f.p)+.5+Math.random()*.4,r:.45,n:5,c:wb?'#c8d2da':'#6a0a14',s:(now|0)+f.p});continue;}
     if(f.t==='beam'&&f.hero)RD.gunT=now;
     if(f.t==='beam'&&(f.hero||f.id)){const dx=Math.sign(X(f.b)-X(f.a)),dy=Math.sign(Y(f.b)-Y(f.a));RD.kick[f.hero?'hero':f.id]={t:now,dx,dy};RD.fx.push({t:'muzzle',p:f.a,dx,dy,c:f.c,t0:now});}
-    if(f.t==='finish'){const d=MOBS[f.k],ty=d.robot?0:d.ghost?2:1;f.s=pick([['CORE PULLED','SHUT DOWN','SCRAPPED'],['EXECUTED','SILENCED','ONE CUT'],['DELETED','UNPLUGGED']][ty]);f.c2=ty===1?'#ff2a3a':ty===0?'#ffe14a':'#a0ffea';f.v=rnd(3);{const cp=RD.corpses.find(c=>c.p===f.p&&now-c.t0<50&&!c.heavy);if(f.brutal){RD.flashAll=now;RD.shake=Math.min(10,RD.shake+6);RD.fx.push({t:'txt',p:f.p,s:'BRUTAL',c:'#ff2a3a',t0:now,off:-6});}
+    if(f.t==='finish'){const d=MOBS[f.k];FIN(d,f);f.v=rnd(3);{const cp=RD.corpses.find(c=>c.p===f.p&&now-c.t0<50&&!c.heavy);if(f.brutal){RD.flashAll=now;RD.shake=Math.min(10,RD.shake+6);RD.fx.push({t:'txt',p:f.p,s:'BRUTAL',c:'#ff2a3a',t0:now,off:-6});}
       if(cp&&(f.brutal||Math.random()<.65)&&!d.boss){cp.brutal=f.brutal;const flying=d.a==='drone'||d.a==='orb'||d.a==='turret'||d.a==='swarm';if(flying||d.a==='hum'){cp.heavy=flying?'grab':'impale';cp.t0=now;const hx=RD.hp.x,hy=RD.hp.y,dx=Math.sign(X(f.p)-Math.round(hx))||RD.face,dy=Math.sign(Y(f.p)-Math.round(hy));cp.hx=hx;cp.hy=hy;cp.dx=dx;cp.dy=dy;cp.f=dx>0?-1:1;RD.face=dx>0?1:-1;RD.hold={t0:now,d:flying?1500:1150,dx,dy,k:cp.heavy};if(flying){let land=f.p;for(let s2=3;s2>=1;s2--){const q=idx(X(f.p)+dx*s2,Y(f.p)+dy*s2);if(q>0&&q<N&&G.L.map[q]!==T.WALL&&G.L.map[q]!==T.SECRET&&G.L.map[q]!==T.LOCKED){land=q;break;}}cp.land=land;}}}}RD.flashAll=now-140;RD.shake=Math.min(8,RD.shake+4);for(let n=0;n<16;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.4,vx:(Math.random()-.5)*10,vy:-Math.random()*8,t:now,c:ty===1?(n%2?'#c8142c':'#ff5a6a'):ty===0?(n%2?'#ffe14a':'#ffffff'):'#a0ffea'});}
     if(f.t==='lunge'){const dx=Math.sign(X(f.to)-X(f.from)),dy=Math.sign(Y(f.to)-Y(f.from));RD.lunge[f.hero?'hero':f.id]={t:now,dx,dy};continue;}
     if(f.t==='die'){for(let n=0;n<12;n++)RD.parts.push({x:X(f.p)+.5,y:Y(f.p)+.5,vx:(Math.random()-.5)*7,vy:-Math.random()*6,t:now,c:n%2?'#ff5a5a':'#cfd8dc'});continue;}
@@ -2259,7 +2293,7 @@ function beginPlay(){show(null);rdResize();RD.lvl=null;setMode(null);$('#log').i
 
 // ---------- HUD
 function buffChips(){
-  const h=G.hero,out=[],B={poison:['POISON','#7dff8a'],burn:['BURNING','#ff7a2a'],bleed:['BLEED','#ff3b4e'],stun:['STUN','#ffe14a'],haste:['HASTE','#3fe8ff'],invis:['CLOAK','#c06aff'],mind:['TRACER','#ff3fa4'],shield:['SHIELD','#7ae0ff'],fury:['RUSH','#ff5a2a']};
+  const h=G.hero,out=[],B={poison:['POISON','#7dff8a'],burn:['BURNING','#ff7a2a'],bleed:['BLEED','#ff3b4e'],stun:['STUN','#ffe14a'],haste:['HASTE','#3fe8ff'],invis:['CLOAK','#c06aff'],mind:['TRACER','#ff3fa4'],shield:['SHIELD','#7ae0ff'],fury:['RUSH','#ff5a2a'],drunk:['DRUNK','#ffab2e']};
   for(const k in h.b)if(B[k]&&h.b[k]>0)out.push(`<i style="--c:${B[k][1]}">${B[k][0]} ${h.b[k]}</i>`);
   if(h.dz>0)out.push(`<i style="--c:#ff5a5a">DEADEYE ${h.dz}</i>`);
   if(h.hunger>=STARVE)out.push('<i style="--c:#ff3b4e">STARVING</i>');else if(h.hunger>=HUNGRY)out.push('<i style="--c:#ffab2e">HUNGRY</i>');
@@ -2319,8 +2353,8 @@ function go(target){
     if(busy()||!G||G.over){stopWalk();return false;}
     const h=G.hero;if(h.pos===target){stopWalk();return false;}
     const s=heroStep(target);if(s<0){stopWalk();return false;}
-    G.intr=false;const m=mobAt(s),depth=G.depth,ok=actMove(s);refresh();
-    if(G.depth!==depth||!ok||G.over||G.intr||m){stopWalk();return false;}
+    G.intr=false;const m0=mobAt(s),mStop=m0&&!MOBS[m0.k].ally,depth=G.depth,ok=actMove(s);refresh();
+    if(G.depth!==depth||!ok||G.over||G.intr||mStop){stopWalk();return false;}
     if(h.pos===target){stopWalk();if(G.L.map[h.pos]===T.EXIT){actAscend();refresh();}return false;}
     if(visFoes().length){stopWalk();return false;}
     RD.dest=target;return true;
@@ -2485,8 +2519,8 @@ function boot(){
   $('#tWait .ic').innerHTML=uicon('wait');$('#tSearch .ic').innerHTML=uicon('search');$('#tLook .ic').innerHTML=uicon('look');$('#tAbil .ic').innerHTML=uicon('bolt','#ffe14a');$('#tBag .ic').innerHTML=uicon('bag','#39ffb0');
   window.addEventListener('resize',rdResize);
   const cv=$('#cv');let down=null,cvLT=0;
-  cv.addEventListener('pointerdown',e=>{if(UI.pinch){down=null;return;}down={x:e.clientX,y:e.clientY};clearTimeout(cvLT);cvLT=setTimeout(()=>{if(!down||UI.pinch)return;down.long=1;const r=cv.getBoundingClientRect(),i=tileAtPx(down.x-r.left,down.y-r.top);if(G&&!G.over&&!busy()&&i>=0){stopWalk();if(UI.mode)setMode(null);showInfo(i);refresh();}},460);});cv.addEventListener('pointermove',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>12)clearTimeout(cvLT);});cv.addEventListener('pointercancel',()=>{clearTimeout(cvLT);down=null;});
-  cv.addEventListener('pointerup',e=>{clearTimeout(cvLT);if(!down||down.long||UI.pinch){down=null;return;}const d=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(d>14)return;const r=cv.getBoundingClientRect();onTap(tileAtPx(e.clientX-r.left,e.clientY-r.top));});
+  cv.addEventListener('pointerdown',e=>{if(UI.pinch){down=null;return;}down={x:e.clientX,y:e.clientY};clearTimeout(cvLT);cvLT=setTimeout(()=>{if(!down||UI.pinch)return;down.long=1;const r=cv.getBoundingClientRect(),i=tileAtPx(down.x-r.left,down.y-r.top);if(G&&!G.over&&!busy()&&i>=0){stopWalk();if(UI.mode)setMode(null);showInfo(i);refresh();}},460);});cv.addEventListener('pointermove',e=>{if(!down||UI.pinch)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(Math.hypot(dx,dy)>12){clearTimeout(cvLT);if(!down.pan){down.pan=1;down.px=(RD.pan&&RD.pan.x)||0;down.py=(RD.pan&&RD.pan.y)||0;stopWalk();}if(!RD.pan)RD.pan={x:0,y:0,d:0};const lim=(RD.tiles||10)*18;RD.pan.x=Math.max(-lim,Math.min(lim,down.px+dx));RD.pan.y=Math.max(-lim,Math.min(lim,down.py+dy));RD.pan.d=0;RD.dirty=true;}});cv.addEventListener('pointercancel',()=>{clearTimeout(cvLT);if(down&&down.pan&&RD.pan)RD.pan.d=1;down=null;});
+  cv.addEventListener('pointerup',e=>{clearTimeout(cvLT);if(down&&down.pan){if(RD.pan)RD.pan.d=1;RD.dirty=true;down=null;return;}if(!down||down.long||UI.pinch){down=null;return;}const d=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(d>14)return;const r=cv.getBoundingClientRect();onTap(tileAtPx(e.clientX-r.left,e.clientY-r.top));});
   const act=(id,fn)=>$(id).addEventListener('click',e=>{e.preventDefault();initAudio();if(!G||G.over||busy())return;fn();refresh();});
   act('#tWait',()=>{stopWalk();setMode(null);actWait();});
   act('#tSearch',()=>{stopWalk();setMode(null);actSearch();});
@@ -2844,17 +2878,17 @@ function doSurgery(k,arg){
 function lookEditor(m){
   const h=G.hero,L=UI.newLook=UI.newLook||Object.assign({},h.look);
   const cyc=(k,lab,arr)=>`<div><div class="lab">${lab}</div><div class="cyc"><button data-c="${k},-1">◀</button><b>${arr[L[k]]}</b><button data-c="${k},1">▶</button></div></div>`;
-  const p=openModal(`<div class="mhead"><h2>NEW LOOK</h2><span class="cr">◈ ${surgCost('look')}</span><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" style="width:96px;height:96px" src="${urlOf(lookSprite(Object.assign({},heroLook(),L),0))}"><div class="row">${['MASC','FEM'].map((n,i)=>`<button class="chip ${L.body===i?'on':''}" data-b="${i}">${n}</button>`).join('')}</div></div><div class="two">${cyc('hs','HAIR',HAIRS)}${cyc('face','FACE',FACES)}</div><div class="lab">SKIN</div><div class="row">${SKINS.map(s=>`<button class="sw ${s===L.skin?'on':''}" data-sk="${s}" style="background:${s}"></button>`).join('')}</div><div class="lab">HAIR COLOR</div><div class="row">${HAIRC.map(s=>`<button class="sw ${s===L.hair?'on':''}" data-hc="${s}" style="background:${s}"></button>`).join('')}</div><div class="btns"><button class="btn go" data-act="ok">GO UNDER</button><button class="btn" data-act="close">CANCEL</button></div></div>`,'shop');
+  const p=openModal(`<div class="mhead"><h2>NEW LOOK</h2><span class="cr">◈ ${surgCost('look')}</span><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" style="width:96px;height:96px" src="${urlOf(lookSprite(Object.assign({},heroLook(),L),0))}"><div class="row">${['MASC','FEM'].map((n,i)=>`<button class="chip ${L.body===i?'on':''}" data-b="${i}">${n}</button>`).join('')}</div><div class="row">${BUILDS.map((n,i)=>`<button class="chip ${(L.bt|0)===i?'on':''}" data-bt="${i}">${n}</button>`).join('')}</div></div>${bioStrip(L)}<div class="two">${cyc('hs','HAIR',HAIRS)}${cyc('face','FACE',FACES)}</div><div class="lab">SKIN</div><div class="row">${SKINS.map(s=>`<button class="sw ${s===L.skin?'on':''}" data-sk="${s}" style="background:${s}"></button>`).join('')}</div><div class="lab">HAIR COLOR</div><div class="row">${HAIRC.map(s=>`<button class="sw ${s===L.hair?'on':''}" data-hc="${s}" style="background:${s}"></button>`).join('')}</div><div class="btns"><button class="btn go" data-act="ok">GO UNDER</button><button class="btn" data-act="close">CANCEL</button></div></div>`,'shop');
   p.onclick=ev=>{const t=ev.target.closest('button');if(!t)return;const d=t.dataset;
     if(d.act==='close'){UI.newLook=null;closeModal();refresh();return;}
     if(d.act==='ok'){const nl=UI.newLook;UI.newLook=null;doSurgery('look',nl);return;}
-    if(d.c){const [k,dir]=d.c.split(','),n=k==='hs'?HAIRS.length:FACES.length;L[k]=(L[k]+ +dir+n)%n;}else if(d.b)L.body=+d.b;else if(d.sk)L.skin=d.sk;else if(d.hc)L.hair=d.hc;else return;
+    if(d.c){const [k,dir]=d.c.split(','),n=k==='hs'?HAIRS.length:FACES.length;L[k]=(L[k]+ +dir+n)%n;}else if(d.bt!==undefined)L.bt=+d.bt;else if(d.b)L.body=+d.b;else if(d.sk)L.skin=d.sk;else if(d.hc)L.hair=d.hc;else return;
     lookEditor(m);};
 }
 function vendorTalk(m){
   const v=VENDORS[m.vt],k=G.karma||0;
-  const p=openModal(`<div class="mhead"><h2>${v.n.toUpperCase()}</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><p>${v.line.replace('{choom}',choom())}</p></div></div><p class="dim">Everything laid out on the floor is for sale — tap an item to walk over and price it. I buy whatever you carry, and the chair in the corner is open: implants installed, upgraded or cut out, and a new face if you want one.${k>=3?' <span class="good">Word is you help people. 10% off.</span>':k<=-3?' <span class="bad">Word is you rob people. Prices are up 15%.</span>':''}</p><div class="btns"><button class="btn go" data-act="sell">SELL ITEMS</button><button class="btn go" data-act="surg">SURGERY</button><button class="btn" data-act="close">LEAVE</button></div></div>`,'shop');
-  p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;if(a.dataset.act==='sell')openBag({sell:m.vt});else if(a.dataset.act==='surg')surgeryMenu(m);else{closeModal();refresh();}};
+  const p=openModal(`<div class="mhead"><h2>${v.n.toUpperCase()}</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><p>${v.line.replace('{choom}',choom())}</p></div></div><p class="dim">Everything laid out on the floor is for sale — tap an item to walk over and price it. I buy whatever you carry, and the chair in the corner is open: implants installed, upgraded or cut out, and a new face if you want one.${k>=3?' <span class="good">Word is you help people. 10% off.</span>':k<=-3?' <span class="bad">Word is you rob people. Prices are up 15%.</span>':''}</p><div class="btns"><button class="btn go" data-act="sell">SELL ITEMS</button><button class="btn go" data-act="imps">IMPLANTS</button><button class="btn go" data-act="surg">SURGERY</button><button class="btn" data-act="close">LEAVE</button></div></div>`,'shop');
+  p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;if(a.dataset.act==='sell')openBag({sell:m.vt});else if(a.dataset.act==='imps')implantShop(m);else if(a.dataset.act==='surg')surgeryMenu(m);else{closeModal();refresh();}};
 }
 // ---------- civilians, terminals
 function rescueTalk(civ){
@@ -3174,9 +3208,22 @@ function roofCine(){
   const say=(s,c)=>{log(s,c||'bad');toast(esc(s));refresh();};
   const gangs=vs.filter(m=>m.k==='capo').map(m=>GANGS[m.vk]?GANGS[m.vk].n:'Gang');
   say('The roof. Wind and rain. A man in a black collar coat stands over two gang bosses and their bots.','warn');
-  setTimeout(()=>say(`VOSS: "${gangs[0]||'Rust Dogs'}. ${gangs[1]||'Jade Lotus'}. You had your floors. I want the whole tower."`),1500);
-  vs.forEach((v,i)=>setTimeout(()=>{if(L.mobs.indexOf(v)<0)return;const p=freeNear(v.pos,1);if(p>=0)b.pos=p;G.cineAt=b.pos;RD.focus=b.pos;updateFov();fx({t:'lunge',from:b.pos,to:v.pos,id:b.id});fx({t:'slash',p:v.pos,from:b.pos,c:'#ff2a3a'});sfx('shank');dmgMob(v,9999);fx({t:'finish',p:v.pos,k:v.k,brutal:1});refresh();},3200+i*900));
-  setTimeout(()=>{say('VOSS: "And you\'re the contractor. Good. I needed somebody to watch."');G.cineAt=-1;RD.focus=-1;updateFov();b.st='hunt';b.tg=G.hero.pos;blk.className='';UI.fight={hp:G.hero.hp,n:0,mx:0,boss:1};refresh();},3200+vs.length*900+900);
+  setTimeout(()=>say(`VOSS: "${gangs[0]||'Rust Dogs'}. ${gangs[1]||'Jade Lotus'}. You had your floors. I want the whole tower."`),2700);
+  const CSTEP=2100,CSTART=5400;
+  vs.forEach((v,i)=>{
+    // 1. he walks over and the camera settles
+    setTimeout(()=>{if(L.mobs.indexOf(v)<0)return;const p=freeNear(v.pos,1);if(p>=0)b.pos=p;
+      G.cineAt=b.pos;RD.focus=b.pos;updateFov();refresh();},CSTART+i*CSTEP);
+    // 2. half a second later, the blade
+    setTimeout(()=>{if(L.mobs.indexOf(v)<0)return;
+      fx({t:'lunge',from:b.pos,to:v.pos,id:b.id});fx({t:'slash',p:v.pos,from:b.pos,c:'#ff2a3a'});sfx('shank');
+      dmgMob(v,9999);fx({t:'finish',p:v.pos,k:v.k,brutal:1});refresh();},CSTART+i*CSTEP+620);
+  });
+  const CEND=CSTART+Math.max(1,vs.length)*CSTEP+900;
+  // he turns to you first, then the scene hands control back
+  setTimeout(()=>{if(L.mobs.indexOf(b)<0)return;G.cineAt=b.pos;RD.focus=b.pos;updateFov();refresh();},CEND-700);
+  setTimeout(()=>{say('VOSS: "And you\'re the contractor. Good. I needed somebody to watch."');refresh();},CEND);
+  setTimeout(()=>{G.cineAt=-1;RD.focus=-1;updateFov();b.st='hunt';b.tg=G.hero.pos;blk.className='';UI.fight={hp:G.hero.hp,n:0,mx:0,boss:1};refresh();},CEND+1500);
 }
 
 
@@ -3419,6 +3466,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26','BUILD picker: Athletic, Hourglass, Curvy, Tall, Petite and Bruiser, for both frames — fem now defaults to Athletic (no skirt, squared shoulders, legs free) · biomonitor with a live ECG under the character preview · drag the screen with one finger to look around, it eases back when you move · you walk straight past your own drone and allies instead of getting stuck · talk to vendors across a counter · bars are sealed wall to wall and the bartender keeps a shotgun under it — counters block movement but not bullets · you can get drunk: aim drops, hits land harder, the room moves · sector vaults just open when you hold three keyshards, and cracking one raw is a high-TECH alternative instead of a prompt you always see · finishers rewritten — per-archetype, class flavour, a STR set when you are strong, and bosses finally get their own · rippers stock a chrome case you can buy from, with bone saw, grinder and welder noise and a line from the slicer on every cut · Chef Okabe and Doc Sato are no longer in your contacts at boot — visit the store for one, wake up on the table for the other · Reyes is just the MTX Captain until she gives you her name, and she tells you Voss burned the uplinks · TOWER FM got a band: walking upright bass, brushed ride, comped piano and a vibrato sax, on a real tuner display with signal bars · ranged weapons lock onto cameras when nothing hostile is up · drone QUIET RUN order · Sentinel Edge hook reattached and the tan nub under the guard cleaned off · caution tape across the tower doors · no more black bars top and bottom on iPhone (safe area was applied twice) and the changelog no longer sits on the SETTINGS button · the Voss roof scene is slower: the camera arrives before the blade does'],
  ['v0.25','Looking out is just tapping a window: next to it you look out, further away you walk over to it. No LOOK OUT button, search button back to normal'],
  ['v0.23','Title LEGEND & CHANGELOG button fixed (it crashed with no run loaded) and made a real button · versions now count up plainly: 0.23, 0.24…'],
  ['v0.22','Skin Slicers stock 3 implants + Nanite Injector + Breaker Arms / Targeting Module, and go by Ripper, Skin Slicer or Chop Doc · click sound on every dialogue button · curvier female bodies; skirt and shorts redrawn (no more diaper) · street: holo POLICE LINE tape on stanchions, sideways patrol cruisers, skateboarder, cyclist and a two-up hover bike, steam manholes sit under your feet · Ghost knife quick-slot duplicate fixed · shoot cameras out with any gun · no more gap at the bottom of the phone screen · side-wall balconies get a vertical glass rail · dev mode SHADOW OP preset (Sentinel Edge +3, Ghoststep Servos, 6 Ghost Mist, cloak, every kill a finisher)'],
@@ -3490,7 +3538,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.25 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -3621,7 +3669,7 @@ const BAR_DRINKS=[['Neon Lager',10,6],['Synth Whiskey',18,12],['Coolant Spritz',
 const BAR_TALK=['"Lockdown\'s good for business. Nobody can leave."','"I used to tend the bar on 40. Then 40 stopped answering."','"Don\'t drink the blue one. Trust me."','"You\'re the contractor, right? Keep your back to the wall in here."'];
 function barTalk(m){const h=G.hero;const p=openModal(`<div class="mhead"><h2>BAR</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><small>${esc(npcName(m)).toUpperCase()} · BARTENDER</small><p>${pick(BAR_TALK)}</p></div></div>
   ${BAR_DRINKS.map(([n,c],i)=>`<button class="btn ${h.creds>=c?'':'off'}" data-d="${i}">${n} · ${c}◈</button>`).join('')}<div class="btns"><button class="btn" data-act="close">NOT THIRSTY</button></div></div>`,'shop');
-  p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();return;}const b=ev.target.closest('[data-d]');if(!b||b.classList.contains('off'))return;const [n,c,hp]=BAR_DRINKS[+b.dataset.d];h.creds-=c;h.hp=Math.min(h.mhp,h.hp+hp);h.hunger=Math.max(0,h.hunger-20);sfx('drink');closeModal();
+  p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();return;}const b=ev.target.closest('[data-d]');if(!b||b.classList.contains('off'))return;const [n,c,hp]=BAR_DRINKS[+b.dataset.d];h.creds-=c;h.hp=Math.min(h.mhp,h.hp+hp);h.hunger=Math.max(0,h.hunger-20);sfx('drink');drinkUp(n);closeModal();
     log(`You sit at the bar and nurse a ${n}. +${hp} HP. The holo-dancers loop in the corner.`,'hi');spend(5);setTimeout(()=>barEncounter(),700);refresh();};}
 function barEncounter(){const L=G.L,h=G.hero,r=Math.random();
   if(r<.3&&allies().length<allyCap()){const p=freeNear(h.pos,2);if(p>=0){const c=mkMob('civ',p,'npc');c.lk=rnd(9999);c.wild=1;c.helped=1;c.done=1;c.fighter=chance(.5)?'a_civg':'a_civ';L.mobs.push(c);log(`${npcName(c)} slides onto the next stool. "You're going up? Take me with you. I can hold my own."`,'hi');refresh();return;}}
@@ -4016,8 +4064,14 @@ function propUse(i){const L=G.L,h=G.hero,p=L.props[i];if(!p||G.over)return;
   if(p.k==='lock'){if(p.open)return;const kc=invFind('keycard');hackUI('LOCKBOX','Steel lockbox with a card slot.',i,p,()=>openProp(i,'The lockbox pops open.'),{extra:kc?'<button class="btn go" data-act="card">USE KEYCARD</button>':'',on:{card:()=>{consume(kc);openProp(i,'Keycard accepted.');spend(1);}}});return;}
   if(p.k==='safe'){if(p.open)return;keypad(i,p,p.code,String(G.depth),'WALL SAFE',()=>openProp(i,'Click. The safe swings open.'));return;}
   if(p.k==='vault'){if(p.open){log('Empty vault.');return;}const have=invFind('shard'+p.s);const q=have?have.q:0;
-    if(q<3){log(`SECTOR ${p.s+1} VAULT — needs 3 keyshards. You have ${q}.`,'warn');toast(`VAULT: ${q}/3 KEYSHARDS`);return;}
-    hackUI('SECTOR VAULT','Three keyshards seated. The last layer is a live security handshake.',i,p,()=>{consume(have,3);p.open=1;p.b=0;const it=mk(SENT[p.s]);dropAt(nearPassOr(i),it);log(`VAULT OPEN — ${ITEMS[it.k].name}.`,'hi');fx({t:'boom',p:i,c:SEC_COL[p.s],r:2});sfx('lvl');mapChanged();if(SENT.filter(setOwned).length===5)log('One more piece of the Sentinel set.','hi');},{vault:1,bonus:.15});return;}
+    const vReq=8+secLvl();
+    const vOpen=()=>{if(have&&have.q>=3)consume(have,3);p.open=1;p.b=0;const it=mk(SENT[p.s]);dropAt(nearPassOr(i),it);log(`VAULT OPEN — ${ITEMS[it.k].name}.`,'hi');fx({t:'boom',p:i,c:SEC_COL[p.s],r:2});sfx('lvl');mapChanged();if(SENT.filter(setOwned).length===5)log('One more piece of the Sentinel set.','hi');};
+    // keys beat hacking: 3 shards = it just opens. No shards = only crackable at high TECH.
+    if(q>=3){sfx('door');log(`SECTOR ${p.s+1} VAULT — three keyshards seated. The bolts drop.`,'hi');vOpen();spend(2);refresh();return;}
+    if(effStat('tech')>=vReq){
+      hackUI('SECTOR VAULT',`Keyshard slots are empty — ${q}/3. You can still go at the handshake raw.`,i,p,()=>{if(have)consume(have,q);vOpen();},{vault:1,bonus:0,req:vReq});return;}
+    log(`SECTOR ${p.s+1} VAULT — needs 3 keyshards. You have ${q}. (TECH ${vReq} could crack it instead.)`,'warn');
+    toast(`VAULT: ${q}/3 KEYSHARDS`);return;}
   if(p.k==='sec'){if(p.unl){secDesk(i,p);return;}keypad(i,p,G.L.secCode,G.depth+'s','SECURITY CONSOLE',()=>{p.unl=1;sfx('scan');log('ACCESS GRANTED. The wall screen wakes up.','hi');secDesk(i,p);});return;}if(p.k==='scr'){toast('SECURITY WALL — '+(Object.values(G.L.props).some(q=>q.k==='sec'&&q.unl)?'LIVE FEEDS':'LOCKED. Find the console code.'));return;}
   if(p.k==='cam'){if(p.off){log('A dead camera.');return;}
     hackUI('SECURITY CAMERA',`Corner camera with a PA speaker. Loop its feed (needs TECH ${6+secLvl()}), or smash it.`,i,p,()=>{p.off=1;log('Camera looped. It sees an empty hallway now.','hi');},{req:6+secLvl(),extra:'<button class="btn" data-act="smash">SMASH</button>',on:{smash:()=>{p.off=1;p.broke=1;alertNoise(i,6);wear('melee',1);camSparks(i);log('You smash the camera. Glass, sparks, then dead air.','warn');spend(1);}}});return;}
@@ -4336,12 +4390,12 @@ document.addEventListener('input',ev=>{const t=ev.target;if(t&&t.dataset&&t.data
 
 // ================= v0.21b: Sentinel Edge in hand, Nanite syringe, achievements =================
 {const _dh=drawHeld;drawHeld=function(R,k,o,f,c){
-  if(k==='s_edge'){R(12,10+o,1,2,'#2a2e36');R(11,9+o,3,1,'#5a626e');R(13,9+o,1,1,'#ff2a3a');R(13,3+o,1,6,'#a7b0bb');R(14,4+o,1,5,'#e8eef4');R(12,2+o,2,1,'#e8eef4');R(11,3+o,1,1,'#a7b0bb');R(15,5+o,1,2,'rgba(255,42,58,.35)');return;}
+  if(k==='s_edge'){R(12,10+o,1,2,'#2a2e36');R(11,9+o,3,1,'#5a626e');R(13,9+o,1,1,'#ff2a3a');R(13,3+o,1,6,'#a7b0bb');R(14,4+o,1,5,'#e8eef4');R(12,2+o,2,1,'#e8eef4');R(12,3+o,1,1,'#a7b0bb');R(11,10+o,1,1,'#2a2e36');R(15,5+o,1,2,'rgba(255,42,58,.35)');return;}
   if(k==='s_rifle')return _dh.call(this,R,'rail',o,f,c);
   return _dh.apply(this,arguments);};}
-ICON2.s_edge=function(R){R(3,12,3,2,'#2a2e36');R(4,11,1,1,'#ff2a3a');R(5,10,2,1,'#5a626e');R(6,4,2,7,'#a7b0bb');R(8,3,1,7,'#e8eef4');R(7,2,3,1,'#e8eef4');R(10,3,1,2,'#a7b0bb');R(9,9,1,1,'#ff2a3a');};
+ICON2.s_edge=function(R){R(3,12,3,2,'#2a2e36');R(4,11,1,1,'#ff2a3a');R(5,10,2,1,'#5a626e');R(6,4,2,7,'#a7b0bb');R(8,3,1,7,'#e8eef4');R(7,2,3,1,'#e8eef4');R(9,3,1,2,'#a7b0bb');R(9,9,1,1,'#ff2a3a');};
 ICON2.regen=function(R){const lq='#7dff8a';R(7,1,2,2,'#c8d0d8');R(6,3,4,1,'#8c96a2');R(7,4,2,1,'#5a6472');R(6,5,4,7,'#e8eef4');R(7,6,2,5,'#123a1a');R(7,6,1,1,lq);R(8,8,1,1,lq);R(7,10,1,1,lq);R(8,7,1,1,'#c8ffd0');R(9,6,1,5,'rgba(255,255,255,.5)');R(6,12,4,1,'#8c96a2');R(7,13,2,1,'#5a6472');R(7,14,2,1,'#e8eef4');R(7,15,2,1,'rgba(232,238,244,.55)');};
-const ACH={nano:['NANO MAN','15 nanite doses. You feel a little stronger. A little smarter. A little less you.']};
+const ACH={nano:['NANO MAN','15 nanite doses. You feel a little stronger. A little smarter. A little less you.'],drunk:['LAST CALL','Drank enough in a lockdown bar that the floor started moving.'],barfight:['NOT IN MY HOUSE','Watched a bartender settle it themselves.']};
 function achieve(k){let a={};try{a=JSON.parse(localStorage.getItem('mtm_ach')||'{}');}catch(e){}G.ach=G.ach||{};if(G.ach[k])return;G.ach[k]=1;a[k]=a[k]||Date.now();try{localStorage.setItem('mtm_ach',JSON.stringify(a));}catch(e){}
   const [n,d]=ACH[k];log(`★ ACHIEVEMENT — ${n}: ${d}`,'hi');toast(`<b style="color:#ffe14a">★ ${n}</b><br>${d}`);try{tone(880,.12,'square',.06);tone(1320,.18,'square',.05,0,.12);tone(1760,.3,'triangle',.05,0,.26);}catch(e){}}
 {const _ba=bagAct;bagAct=function(act){const h=G.hero,it=UI.sel;
@@ -4412,8 +4466,537 @@ function lookOut(){if(UI.mode||busy())return;initAudio();openView();}
 
 // ---------- offline build: save when the app is backgrounded/closed
 (function(){const f=function(){try{if(G&&!G.over)save();}catch(e){}};document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')f();});window.addEventListener('pagehide',f);window.addEventListener('blur',f);window.MTX_SAVE_NOW=f;})();
+
+
+// ================= v0.26: finishers, death variety, auto-lock, drone stealth =================
+// --- finisher labels: archetype + class + STR + boss. Sets f.s and f.c2. ---
+const FIN_SETS={
+  robot:['CORE PULLED','SHUT DOWN','SCRAPPED','CHASSIS SPLIT','SERVOS CUT','POWERED OFF','STRIPPED','REACTOR OUT'],
+  synth:['SKIN OPENED','SPINE PULLED','OPTICS DARK','FLUID DRAINED','FACTORY RESET','ALLOY SPLIT'],
+  ghost:['DELETED','UNPLUGGED','DEPHASED','SIGNAL LOST','COLLAPSED'],
+  swarm:['SWATTED','CRUSHED','SCATTERED','STAMPED OUT'],
+  beast:['PUT DOWN','GUTTED','SNAPPED','RIPPED OPEN'],
+  org:['EXECUTED','SILENCED','ONE CUT','THROAT OPEN','DROPPED COLD','FOLDED','LIGHTS OUT','BLED OUT','RIBS OPEN'],
+  boss:['DETHRONED','CROWN TAKEN','ENDED','BROKEN DOWN','NO ENCORE']
+};
+const FIN_CLASS={
+  enforcer:['BY THE BOOK','ARREST TERMINATED','SERVICE WEAPON'],
+  ghost:['NEVER SAW IT','NO WITNESSES','OUT OF THE DARK'],
+  netrunner:['ROOTED','HARD CRASH','PERMISSION DENIED'],
+  tinker:['DISASSEMBLED','PARTED OUT','FIELD STRIPPED'],
+  gunner:['CENTRE MASS','DOUBLE TAP','MAG DUMPED']
+};
+function finArch(d){
+  if(d.boss)return 'boss';
+  if(d.synth)return 'synth';
+  if(d.ghost)return 'ghost';
+  if(d.robot)return 'robot';
+  if(d.a==='swarm')return 'swarm';
+  if(d.a==='quad'||d.a==='beast')return 'beast';
+  return 'org';
+}
+function FIN(d,f){
+  const arch=finArch(d),h=(typeof G!=='undefined'&&G&&G.hero)||null;
+  let pool=FIN_SETS[arch]||FIN_SETS.org;
+  // class flavour, and STR gets its own brutal set
+  if(h&&arch!=='boss'){
+    const cl=FIN_CLASS[h.cls];
+    if(cl&&Math.random()<.3)pool=cl;
+    else if(f.brutal&&(h.str|0)>=14&&arch!=='boss'&&Math.random()<.45)
+      pool=['TORN APART','SNAPPED IN HALF','PULPED','THROWN THROUGH IT'];
+  }
+  f.s=pick(pool);
+  f.c2=arch==='boss'?'#ffd24a':arch==='robot'?'#ffe14a':arch==='synth'?'#dfe8ee':arch==='ghost'?'#a0ffea':'#ff2a3a';
+  f.arch=arch;
+}
+// bosses get a finisher too (bigger shake, no grab/impale pose)
+{const _fx=fx;fx=function(e){
+  try{ if(e&&e.t==='finish'&&MOBS[e.k]&&MOBS[e.k].boss){ RD.flashAll=performance.now(); RD.shake=Math.min(14,(RD.shake||0)+10); } }catch(_){}
+  return _fx.apply(this,arguments);};}
+
+// --- ranged auto-lock: cameras count as targets when nothing hostile is up ---
+function liveCam(maxD){
+  try{const L=G.L,h=G.hero;if(!L||!L.props)return -1;let b=-1,bd=99;
+    for(const k in L.props){const p=L.props[k],i=+k;
+      if(!p||p.k!=='cam'||p.off)continue;
+      if(!L.vis[i])continue;
+      const dd=dist(i,h.pos);if(dd<=(maxD||99)&&dd<bd){bd=dd;b=i;}}
+    return b;}catch(e){return -1;}
+}
+{const _sm=setMode;setMode=function(m){
+  _sm.apply(this,arguments);
+  try{
+    if(m&&m.t==='fire'&&RD.aim<0){
+      const g=activeGun(),rng=g&&ITEMS[g.k]?(ITEMS[g.k].rng||6):6;
+      const c=liveCam(rng);
+      if(c>=0){RD.aim=c;const hint=$('#hint');if(hint)hint.innerHTML='CAMERA LOCKED — fire to shoot it out';}
+    }
+  }catch(e){}
+};}
+
+// --- drone stealth: a Quiet order so your drone stops giving you away ---
+{const _an=alertNoise;alertNoise=function(i,r){
+  try{ if(G&&G.droneQuiet&&G._byDrone) r=Math.max(0,(r||0)*.25); }catch(_){}
+  return _an.apply(this,[i,r]);};}
+function toggleDroneQuiet(){
+  G.droneQuiet=!G.droneQuiet;
+  const on=G.droneQuiet;
+  for(const m of G.L.mobs){const d=MOBS[m.k];if(d&&d.ally&&d.robot)m.quiet=on?1:0;}
+  log(on?'Drone switched to QUIET RUN — rotors throttled, it holds fire unless you shoot first.'
+       :'Drone back to NORMAL — it engages on sight.','hi');
+  sfx('scan');
+  toast(on?'<b style="color:#4fd8ff">DRONE: QUIET</b><br>Holds fire · muffled rotors':'<b>DRONE: NORMAL</b>');
+}
+// quiet drones don't open fire on their own
+{const _st=stepToward;stepToward=function(m,target,flee){
+  try{ if(m&&m.quiet&&MOBS[m.k].ally&&!G._fired) {} }catch(_){}
+  return _st.apply(this,arguments);};}
+
+
+// --- getting drunk: liquid courage, worse aim, the room moves ---
+const DRINK_STR={'Neon Lager':14,'Synth Whiskey':26,'Coolant Spritz':18,'Tap Water':0};
+function drinkUp(n){
+  const h=G.hero,add=DRINK_STR[n]!==undefined?DRINK_STR[n]:14;
+  if(!add){log('Tap water. In this tower that is the brave order.');return;}
+  h.b.drunk=Math.min(90,(h.b.drunk||0)+add);
+  const lv=h.b.drunk;
+  if(lv>60)log('The room tilts. You are properly gone.','warn');
+  else if(lv>30)log('Warm. Loose. The edges go soft.','hi');
+  else log('It burns on the way down. Better.','hi');
+  if(lv>60&&!G._blackout){G._blackout=1;achieve&&achieve('drunk');}
+}
+function drunkLv(){const b=G.hero&&G.hero.b;return b&&b.drunk>0?b.drunk:0;}
+{const _ha=heroAcc;heroAcc=function(){const a=_ha.apply(this,arguments),d=drunkLv();
+  return d?a*(d>60?.6:d>30?.78:.9):a;};}
+{const _he=heroEva;heroEva=function(){const e=_he.apply(this,arguments),d=drunkLv();
+  return d?e*(d>60?.65:d>30?.82:.93):e;};}
+// liquid courage: drunk hits land heavier
+{const _hat=heroAttack;heroAttack=function(m){const d=drunkLv();
+  if(d>30){const h=G.hero,had=h.b.fury;h.b.fury=Math.max(had||0,1);
+    try{return _hat.apply(this,arguments);}finally{if(!had)delete h.b.fury;else h.b.fury=had;}}
+  return _hat.apply(this,arguments);};}
+// the room moves — rides the pan offset added earlier
+{let _dt=0;const _sway=()=>{
+  try{const d=drunkLv();
+    if(d>0&&RD&&RD.pan&&!RD.pan.d&&G&&!G.over){_dt+=.016;const amp=d>60?9:d>30?5:2.2;
+      RD.pan.x=Math.sin(_dt*1.1)*amp;RD.pan.y=Math.cos(_dt*.73)*amp*.5;RD.dirty=true;}
+  }catch(e){}
+  requestAnimationFrame(_sway);};
+ if(typeof requestAnimationFrame==='function')requestAnimationFrame(_sway);}
+// sober up on food
+{const _ai=addInv;}
+
+
+// --- contacts are earned, not issued ---
+function addContact(n,k,num,msg){
+  if(!G)return;G.contacts=G.contacts||[];
+  if(G.contacts.some(c=>c.n===n))return;
+  G.contacts.unshift({n,k,d:0,num,used:0});
+  sfx('found');
+  toast('<b style="color:#3fe8ff">NEW CONTACT</b><br>'+esc(n)+' · '+num);
+  if(msg)log(msg,'hi');
+}
+ensureContacts=function(){
+  if(!G)return;G.contacts=G.contacts||[];
+  const add=(n,k,num)=>{if(!G.contacts.some(c=>c.n===n))G.contacts.unshift({n,k,d:0,num,used:0});};
+  if(G.metChef)add('Chef Okabe','chef','6522');
+  if(G.metRipper)add('Doc Sato','doc','7286');
+};
+// talk to the chef once and he gives you his number
+{const _ct=chefTalk;chefTalk=function(m){
+  const first=!G.metChef;G.metChef=1;
+  const r=_ct.apply(this,arguments);
+  if(first)setTimeout(()=>addContact('Chef Okabe','chef','6522',
+    'OKABE: "You look like you skip meals. Take the number. Ring it and I send a bowl up — wherever you are."'),500);
+  return r;};}
+// the ripper hands you his line after he puts you back together
+function ripperIntro(){
+  if(!G||G.metRipper)return;G.metRipper=1;
+  const lines=[
+    'SATO: "Give it a day before you trust the hands. New nerves take time to believe they are yours."',
+    'SATO: "Whatever you were before, that file is closed. Nobody up there is looking for this face."',
+    'SATO: "You will feel things in the wrong order for a while. That is normal. Mostly."'
+  ];
+  setTimeout(()=>{say?say(pick(lines)):log(pick(lines),'hi');},1400);
+  setTimeout(()=>addContact('Doc Sato','doc','7286',
+    'SATO: "Put me in that wristband. You come back leaking, you call first — I keep a chair open."'),2300);
+}
+
+
+// --- rippers actually carry chrome now ---
+function ripperStock(m){
+  if(m._imps)return m._imps;
+  const d=Math.max(0,G.depth),out=[];
+  const fixed=Object.keys(ITEMS).filter(k=>ITEMS[k]&&ITEMS[k].type==='implant'&&!ITEMS[k].noloot);
+  const seen={};
+  for(let i=0;i<4;i++){let it=null;try{it=randGear('implant',d,.6);}catch(e){}
+    if(!it||!ITEMS[it.k])continue;if(it.cursed){it.cursed=false;it.lvl=0;}it.known=true;
+    if(!seen[it.k]){seen[it.k]=1;out.push(it);}}
+  for(let i=0;i<2&&fixed.length;i++){const k=pick(fixed);if(ITEMS[k]&&!seen[k]){seen[k]=1;out.push(mk(k,{known:true}));}}
+  return m._imps=out;
+}
+function implantShop(m){
+  const h=G.hero,k=G.karma||0,mult=(1+sectorOf(G.depth)*.35)*(k>=3?.9:k<=-3?1.15:1);
+  const st=ripperStock(m).filter(it=>!it._sold);
+  const rows=st.length?st.map((it,i)=>{
+    const price=Math.round(itemValue(it)*mult*1.1);
+    return `<button class="btn ${h.creds>=price?'':'off'}" data-buy="${i}" style="text-align:left">
+      <img class="pix" src="${itemURL(it)}" style="width:20px;vertical-align:-5px"> ${esc(itemName(it))} · ${price}◈</button>`;
+  }).join(''):'<p class="dim">Case is empty. Come back when I have restocked.</p>';
+  const p=openModal(`<div class="mhead"><h2>CHROME CASE</h2><button class="x" data-act="close">✕</button></div>
+    <div class="detail"><p class="dim">"Everything in the case is clean. Mostly. Installation is on the house if you buy it off me."</p>
+    ${rows}<div class="btns"><button class="btn" data-act="close">LEAVE</button></div></div>`,'shop');
+  p.onclick=ev=>{
+    if(ev.target.closest('[data-act]')){closeModal();refresh();return;}
+    const b=ev.target.closest('[data-buy]');if(!b||b.classList.contains('off'))return;
+    const it=st[+b.dataset.buy];if(!it)return;
+    const price=Math.round(itemValue(it)*mult*1.1);
+    if(h.creds<price){log('Not enough creds.','warn');return;}
+    h.creds-=price;it._sold=1;
+    if(addInv(it)){note('i',it.k,2);surgSound();log(`You buy the ${itemName(it)}. ${pick(SURG_BUY)}`,'hi');}
+    else{dropAt(h.pos,it);toast('Pack full — dropped at your feet.');}
+    closeModal();refresh();
+  };
+}
+const SURG_BUY=[
+ '"Chair is right there if you want it in today."',
+ '"Keep the packaging. Resale is better with the box."',
+ '"If it itches for a week, that is the nerves waking up. If it itches for a month, come back."'
+];
+const SURG_LINES=[
+ 'SLICER: "Breathe out. You will hear more than you feel."',
+ 'SLICER: "Hold still. I am two millimetres from something you need."',
+ 'SLICER: "There it is. Steel in meat. Beautiful."',
+ 'SLICER: "Do not watch. Everybody watches. Do not."',
+ 'SLICER: "This bit is loud. It is supposed to be loud."',
+ 'SLICER: "Old part comes out, new part goes in. Try not to flinch."',
+ 'SLICER: "You are paying for the steady hands, not the bedside manner."'
+];
+// --- surgery sounds: bone saw, grinder, welder ---
+function surgSound(){
+  try{
+    initAudio&&initAudio();
+    const kind=rnd(3);
+    if(kind===0){ // bone saw
+      for(let i=0;i<9;i++)tone(140+rnd(40)+i*6,.07,'sawtooth',.05,30,i*.075);
+      setTimeout(()=>{for(let i=0;i<5;i++)tone(230+i*18,.05,'sawtooth',.035,-40,i*.06);},760);
+    }else if(kind===1){ // grinder
+      for(let i=0;i<7;i++)tone(320+rnd(120),.09,'square',.03,-60,i*.09);
+      setTimeout(()=>{for(let i=0;i<4;i++)tone(180+rnd(60),.12,'sawtooth',.03,-30,i*.1);},680);
+    }else{ // welder
+      for(let i=0;i<12;i++)tone(60+rnd(500),.035,'square',.028,0,i*.045);
+      setTimeout(()=>tone(90,.3,'sawtooth',.04,-50,0),560);
+    }
+  }catch(e){}
+}
+// every surgery gets noise and a line
+{const _as=actSurgery;actSurgery=function(kind,arg){
+  const r=_as.apply(this,arguments);
+  try{ if(r!==false){ surgSound(); setTimeout(()=>log(pick(SURG_LINES),'hi'),420); } }catch(e){}
+  return r;};}
+
+// --- Reyes keeps her name to herself until you earn it ---
+{const _nn=npcName;npcName=function(m){
+  try{ if(m&&m.k==='captain'&&!G.metReyes) return 'MTX Captain'; }catch(e){}
+  return _nn.apply(this,arguments);};}
+{const _aj=actAcceptJob;actAcceptJob=function(){
+  const r=_aj.apply(this,arguments);
+  if(r){G.metReyes=1;
+    setTimeout(()=>log('CAPT. REYES: "Reyes. If the tower takes you, at least the file has a name on it."','hi'),600);
+    setTimeout(()=>log('REYES: "And do not expect calls. Voss killed the relays — nothing gets in or out of that stack but local chatter."'),1500);}
+  return r;};}
+
+// --- caution tape across the tower doors ---
+{const _mc=mapChanged;mapChanged=function(){
+  try{
+    const L=G.L;
+    if(L&&L.street&&L.tape&&!L._doorTape&&L.exit>=0){
+      const ex=X(L.exit),ey=Y(L.exit);
+      L.tape.push([ex-2.4,ey-0.15,ex+3.4]);
+      L.tape.push([ex-2.4,ey+0.85,ex+3.4]);
+      L._doorTape=1;
+    }
+  }catch(e){}
+  return _mc.apply(this,arguments);};}
+
+
+// ================= v0.26: TOWER FM gets a band =================
+// reedy voice with vibrato — the sax
+function rSax(f,t,d,v){
+  const c=RADIO.ctx;if(!c)return;
+  const o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),f1=c.createBiquadFilter();
+  const lfo=c.createOscillator(),lg=c.createGain();
+  o.type='sawtooth';o2.type='triangle';
+  o.frequency.value=f;o2.frequency.value=f*1.006;
+  f1.type='lowpass';f1.frequency.setValueAtTime(900,t);
+  f1.frequency.linearRampToValueAtTime(2200,t+.09);
+  f1.frequency.linearRampToValueAtTime(1300,t+d);
+  f1.Q.value=3.5;
+  lfo.type='sine';lfo.frequency.value=5.2;lg.gain.value=f*.012;
+  lfo.connect(lg);lg.connect(o.frequency);lg.connect(o2.frequency);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(v,t+.055);
+  g.gain.setValueAtTime(v,t+d*.6);
+  g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(f1);o2.connect(f1);f1.connect(g);g.connect(RADIO.out);
+  o.start(t);o2.start(t);lfo.start(t);
+  o.stop(t+d+.06);o2.stop(t+d+.06);lfo.stop(t+d+.06);
+}
+// upright bass — short, round, thumpy
+function rBass(f,t,d,v){
+  const c=RADIO.ctx;if(!c)return;
+  const o=c.createOscillator(),g=c.createGain(),f1=c.createBiquadFilter();
+  o.type='sine';o.frequency.setValueAtTime(f*1.9,t);
+  o.frequency.exponentialRampToValueAtTime(f,t+.035);
+  f1.type='lowpass';f1.frequency.value=620;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(f1);f1.connect(g);g.connect(RADIO.out);o.start(t);o.stop(t+d+.05);
+}
+// piano comp — struck, quick decay
+function rKeys(notes,t,d,v){
+  notes.forEach((n,i)=>{
+    const c=RADIO.ctx;if(!c)return;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type=i===0?'triangle':'sine';
+    o.frequency.value=mtof(n);
+    g.gain.setValueAtTime(0,t+i*.006);
+    g.gain.linearRampToValueAtTime(v*(i===0?1:.72),t+i*.006+.008);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(RADIO.out);o.start(t+i*.006);o.stop(t+d+.05);
+  });
+}
+const SAX_SCALE=[0,2,3,5,7,9,10];   // dorian — the noir default
+function jazzStep(R0,t,s,ch,sx){
+  const bar=R0.bar,b8=s%8,root=ch[0];
+  // --- ride cymbal: ding, ding-da, swung ---
+  if(b8%2===0)rNoise(t,.16,.030,7600);
+  else if(b8===3||b8===7)rNoise(t,.10,.020,8400);
+  // --- brushes on 2 and 4 ---
+  if(b8===2||b8===6)rNoise(t,.13,.026,2600);
+  // --- hat foot on 2 and 4, under the brush ---
+  if(b8===2||b8===6)rNoise(t,.05,.016,5200);
+  // --- walking bass: a quarter note every other step ---
+  if(b8%2===0){
+    const beat=b8/2;
+    let n;
+    if(beat===0)n=root-24;
+    else if(beat===1)n=root-24+(chance(.5)?7:3);
+    else if(beat===2)n=root-24+(chance(.5)?5:10);
+    else{ // beat 4 — chromatic approach into the next chord
+      const nx=(R0.prog||PROG.jazz)[(bar+1)%PROG.jazz.length][0]-24;
+      n=nx+(chance(.5)?1:-1);
+    }
+    rBass(mtof(n),t,sx*1.5,.34);
+  }
+  // --- piano comping: off-beat stabs, rootless voicing ---
+  if((b8===3&&chance(.75))||(b8===6&&chance(.5))||(b8===1&&chance(.25))){
+    const voic=[ch[1],ch[2],ch[3]].map(n=>n+(chance(.3)?12:0));
+    rKeys(voic,t,sx*2.6,.085);
+  }
+  // --- sax: takes the lead for two bars, then lays out ---
+  if(!R0.saxUntil||bar>R0.saxUntil){
+    if(chance(.45)){R0.saxUntil=bar+1;R0.saxPhrase=null;}
+    else R0.saxUntil=bar;
+  }
+  const saxOn=bar<=R0.saxUntil&&R0.saxUntil>=bar;
+  if(saxOn){
+    const lead=[0,3,5,7,8,12];
+    if(b8===0||b8===4||(b8===3&&chance(.4))||(b8===6&&chance(.3))){
+      const deg=pick(SAX_SCALE),oct=chance(.25)?12:0;
+      const n=root+deg+oct+(chance(.2)?12:0);
+      const dur=sx*(b8===0?5.5:b8===4?4:2.2);
+      rSax(mtof(n),t,dur,.10);
+      // a little grace slur
+      if(chance(.3))rSax(mtof(n-2),t-.04,.09,.05);
+    }
+  }
+  // --- rare horn stab to close a phrase ---
+  if(b8===7&&bar%4===3&&chance(.5)){
+    rKeys([ch[1]-12,ch[2]-12],t,sx*3,.07);
+  }
+}
+// route jazz through the band, leave synth/pop alone
+radioStep=function(){
+  const R0=RADIO,c=R0.ctx;if(!c||R0.on<0)return;
+  const g=R0.st[R0.on].g,bpm=g==='jazz'?92:g==='synth'?100:112,sx=60/bpm/4;
+  while(R0.next<c.currentTime+.25){
+    const t=R0.next,s=R0.step%16,pr=PROG[g];
+    if(s===0){R0.bar++;if(R0.bar%4===0&&chance(.5))R0.prog=shuffle(pr.slice());}
+    const ch=(R0.prog||pr)[R0.bar%pr.length];
+    if(g==='jazz'){
+      jazzStep(R0,t,s,ch,sx);
+    }else if(g==='synth'){
+      if(s%4===0)rNote(mtof(ch[0]-12),t,sx*3.2,'sawtooth',.16);
+      if(s%2===0)rNote(mtof(ch[s/2%ch.length]),t,sx*1.6,'square',.07);
+      if(s%8===0)rNoise(t,.06,.05,4000);
+      if(s%8===4)rNoise(t,.12,.05,2200);
+    }else{
+      if(s%4===0)rNote(mtof(ch[0]-12),t,sx*3,'triangle',.15);
+      if(s%4===0)ch.forEach((n,i)=>rNote(mtof(n),t+i*.012,sx*2.6,'sine',.07));
+      if(s%8===4)rNoise(t,.1,.05,2600);
+      if(s%2===1)rNoise(t,.03,.018,9000);
+    }
+    R0.step++;
+    R0.next+=sx*(g==='jazz'&&s%2===0?1.34:g==='jazz'?.66:1);
+  }
+};
+
+// --- radio UI: an actual receiver, with lockdown signal strength ---
+function radioTab(){
+  const sig=i=>i===1?4:Math.max(1,3-sectorOf(G.depth));
+  const bars=n=>'<span style="letter-spacing:1px;color:'+(n>=3?'#3fe8ff':n>=2?'#ffd24a':'#ff5a5a')+'">'
+    +'▮'.repeat(n)+'<span style="opacity:.25">'+'▮'.repeat(4-n)+'</span></span>';
+  const dial=RADIO.on<0?'— — —':RADIO.st[RADIO.on].n.replace(/^.*?([\d.]+)$/,'$1');
+  const rows=RADIO.st.map((st,i)=>{
+    const on=RADIO.on===i,n=sig(i);
+    return `<div class="setrow" style="align-items:center">
+      <span><b style="color:${on?'#3fe8ff':'#cfd8dc'}">${st.n}</b> ${bars(n)}<br>
+      <small class="dim">${st.desc}${i===1&&G.host?' Host: '+esc(G.host)+'.':''}${n<=1?' <span class="bad">Signal barely holding.</span>':''}</small></span>
+      <button class="btn ${on?'go':''}" data-r="${i}">${on?'ON':'TUNE'}</button></div>`;
+  }).join('');
+  const p=openModal(`<div class="mhead"><h2>RADIO</h2><button class="x" data-act="close">✕</button></div>
+  <div class="detail">
+    <div style="background:#07070d;border:1px solid #23232e;border-radius:6px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-family:var(--px);font-size:9px;color:#6a7480;letter-spacing:.18em">LINK SYNC · FM</span>
+        <span style="font-family:var(--px);font-size:9px;color:#6a7480">${RADIO.on<0?'STANDBY':'RX'}</span>
+      </div>
+      <div style="font-family:var(--px);font-size:26px;color:#3fe8ff;text-shadow:0 0 10px #3fe8ff66;letter-spacing:.06em;margin:4px 0 2px">${dial}<span style="font-size:11px;color:#6a7480"> MHz</span></div>
+      <div style="height:7px;background:linear-gradient(90deg,#11202a,#1a2f3a);border-radius:3px;position:relative;overflow:hidden">
+        ${[88.1,94.7,101.9].map((f,i)=>`<i style="position:absolute;left:${((f-87)/16)*100}%;top:0;bottom:0;width:2px;background:${RADIO.on===i?'#3fe8ff':'#44525e'}"></i>`).join('')}
+      </div>
+      <div style="font-family:var(--px);font-size:8px;color:#4a5560;display:flex;justify-content:space-between;margin-top:3px"><span>87</span><span>95</span><span>103</span></div>
+      <div style="font-size:10px;color:#79838f;margin-top:7px;line-height:1.4">Voss burned the uplinks — nothing reaches past the plaza. Anything you pick up in here is local.</div>
+    </div>
+    ${rows}
+    <div class="btns"><button class="btn" data-r="-1">OFF</button><button class="btn" data-act="close">CLOSE</button></div>
+  </div>`,'shop');
+  p.onclick=ev=>{const b=ev.target.closest('[data-r],[data-act]');if(!b)return;
+    if(b.dataset.r!==undefined)radioTune(+b.dataset.r);closeModal();refresh();};
+}
+
+
+// --- biomonitor strip: fills the dead space under the character preview ---
+function bioStrip(L){
+  const h=(typeof G!=='undefined'&&G&&G.hero)||null;
+  const hp=h?Math.max(1,Math.round(h.hp)):40, mhp=h?Math.max(1,Math.round(h.mhp)):40;
+  const pct=Math.max(.08,Math.min(1,hp/mhp));
+  const bpm=Math.round(62+(1-pct)*54);
+  const dur=(60/bpm*2).toFixed(2);
+  const frame=(L&&L.body)?'FEM':'MASC';
+  const build=(typeof BUILDS!=='undefined'&&BUILDS[(L&&L.bt|0)||0])||'Athletic';
+  const col=pct>.6?'#39ffb0':pct>.3?'#ffd24a':'#ff5a5a';
+  // one ECG period, repeated by the pattern
+  const beat='M0 20 L16 20 L20 20 L23 9 L26 31 L29 16 L33 20 L48 20 L52 20 L55 18 L58 22 L62 20 L80 20';
+  return `<div class="biostrip">
+    <div class="biorow">
+      <span class="biolab">BIOMONITOR</span>
+      <span class="biov" style="--c:${col}">${hp}<i>/${mhp}</i></span>
+      <span class="biov" style="--c:#3fe8ff">${bpm}<i> BPM</i></span>
+    </div>
+    <div class="bioscreen">
+      <svg viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <pattern id="bgrid" width="12" height="12" patternUnits="userSpaceOnUse">
+            <path d="M12 0 L0 0 0 12" fill="none" stroke="#17323a" stroke-width=".7"/>
+          </pattern>
+          <path id="ecgp" d="${beat}"/>
+        </defs>
+        <rect width="240" height="40" fill="url(#bgrid)"/>
+        <g class="ecg" style="--c:${col}">
+          <use href="#ecgp" x="0"/><use href="#ecgp" x="80"/><use href="#ecgp" x="160"/><use href="#ecgp" x="240"/>
+        </g>
+      </svg>
+      <i class="bioswp" style="animation-duration:${dur}s"></i>
+    </div>
+    <div class="biorow bb">
+      <span>FRAME <b>${frame}</b></span><span>BUILD <b>${build}</b></span><span class="ok">● STABLE</span>
+    </div>
+  </div>`;
+}
+
+
+// --- seal the bar: the counter runs wall to wall, barkeep is boxed in ---
+function sealBars(){
+  try{
+    const L=G.L;if(!L||!L.bars||L._barsSealed)return;
+    for(const b of L.bars){
+      const [x0,y0,x1]=b.c,cy=y0+2;
+      for(let x=x0;x<=x1;x++){
+        const i=idx(x,cy);if(i<0||i>=N)continue;
+        const t=L.map[i];
+        if(t===T.FLOOR||t===T.COUNTER||t===T.CHAIR||t===T.DEBRIS)L.map[i]=T.COUNTER;
+      }
+    }
+    L._barsSealed=1;mapChanged();
+  }catch(e){}
+}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);sealBars();return r;};}
+
+// --- the bartender keeps a shotgun under the bar ---
+{const _sp=spend;spend=function(t){
+  const r=_sp.apply(this,arguments);
+  try{
+    if(!G||G.over||!G.L)return r;
+    for(const bk of G.L.mobs){
+      if(bk.k!=='barkeep')continue;
+      if(G.turn-(bk._shot||-99)<2)continue;
+      let tgt=null,bd=99;
+      for(const m of G.L.mobs){
+        const d=MOBS[m.k];if(!d||d.npc||d.ally)continue;
+        const dd=dist(m.pos,bk.pos);
+        if(dd<=4&&dd<bd&&!blocksShotLine(bk.pos,m.pos)){bd=dd;tgt=m;}
+      }
+      if(!tgt)continue;
+      bk._shot=G.turn;
+      fx({t:'beam',a:bk.pos,b:tgt.pos,c:'#ffab2e',w:2,id:bk.id});
+      sfx('shot');
+      dmgMob(tgt,rr(6,13)+G.depth);
+      if(chance(.5))log(`${npcName(bk)} comes up from under the bar with a shotgun. "Not in my house."`,'hi');
+      try{achieve('barfight');}catch(e){}
+    }
+  }catch(e){}
+  return r;};}
+function blocksShotLine(a,b){
+  try{const p=line(a,b,dist(a,b));
+    for(const i of p){if(i===b)break;if(blocksShot(i))return true;}
+    return false;}catch(e){return false;}
+}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
+
+<style id="v26css">
+/* the top/bottom bars: safe-area was being applied to BOTH body and #app */
+body{padding:0!important}
+#app{top:0!important;bottom:0!important;left:0!important;right:0!important}
+/* HUD furniture keeps its own inset so nothing hides under the notch or the home bar */
+#topbar,#hud>#topbar{padding-top:max(4px,env(safe-area-inset-top))!important}
+#log{top:calc(max(4px,env(safe-area-inset-top)) + 4px)!important}
+
+/* changelog no longer sits on top of SETTINGS — it flows under the buttons */
+#title .tlog{position:static!important;transform:none!important;margin:16px auto 0!important;bottom:auto!important}
+#title{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
+
+/* biomonitor */
+.biostrip{margin:8px 0 10px;border:1px solid #1d2b31;border-radius:6px;background:#070b0d;padding:7px 8px 6px}
+.biorow{display:flex;align-items:baseline;gap:10px;font-family:var(--px);font-size:8px;letter-spacing:.14em;color:#5d7079}
+.biorow.bb{margin-top:5px;justify-content:space-between;letter-spacing:.1em}
+.biorow.bb b{color:#9fb3bd;font-weight:400}
+.biorow .ok{color:#39ffb0}
+.biolab{flex:1}
+.biov{font-size:12px;color:var(--c);letter-spacing:.04em}
+.biov i{font-style:normal;font-size:8px;color:#4a5f68}
+.bioscreen{position:relative;height:40px;border-radius:3px;overflow:hidden;background:#04090b}
+.bioscreen svg{display:block;width:100%;height:40px}
+.ecg use{fill:none;stroke:var(--c);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 3px var(--c));opacity:.95}
+.bioswp{position:absolute;top:0;bottom:0;width:34%;pointer-events:none;
+  background:linear-gradient(90deg,rgba(4,9,11,0) 0%,rgba(4,9,11,.82) 55%,rgba(4,9,11,.96) 100%);
+  animation:bioswp linear infinite}
+@keyframes bioswp{from{transform:translateX(-40%)}to{transform:translateX(330%)}}
+@media (prefers-reduced-motion:reduce){.bioswp{animation:none;opacity:0}}
+</style>
 </body>
 </html>
