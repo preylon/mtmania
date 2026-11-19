@@ -1160,7 +1160,7 @@ function trigger(i){
 function actMove(to){
   const h=G.hero,L=G.L;if(G.over||to<0||to>=N)return false;const t=L.map[to],m=mobAt(to);
   if(m){const d=MOBS[m.k];if(d.npc){const quiet=m.k==='courier'||m.leave||m.k==='civ'&&m.done&&!m.need&&!m.helped||(G.walking&&m.talked);if(quiet){m.pos=h.pos;h.pos=to;afterMove();spend(1);return true;}m.talked=1;if(EV.npc)EV.npc(m);return false;}
-    if(d.ally){m.pos=h.pos;h.pos=to;afterMove();spend(1);return true;}
+    if(d.ally){m.pos=h.pos;h.pos=to;m._yield=G.turn+1;afterMove();spend(1);return true;}
     heroAttack(m);return true;}
   if(t===T.TERM){if(EV.term)EV.term(to);return false;}
   if(t===T.CLONE||t===T.LOCKER){if(EV.clone)EV.clone(to);return false;}
@@ -2556,8 +2556,11 @@ function showMenu(){
 function showHelp(inGame){const p=openModal(`<div class="mhead"><h2>HOW TO PLAY</h2><button class="x" data-act="close">✕</button></div><div class="detail help">${HELP}<div class="btns"><button class="btn go" data-act="close">GOT IT</button></div></div>`);p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();}};}
 function showEnd(){
   if(!G||!G.over)return;const h=G.hero,w=G.over.won,score=(w?30:G.depth)*100+G.stats.kills*10+h.lvl*50+Math.floor(G.stats.creds/5)+(w?5000:0);
-  const p=openModal(`<div class="end ${w?'won':''}"><h1>${w?'TOWER<br>SEIZED':'FLATLINED'}</h1><p>${w?esc(h.name)+' took the Tower Core.'+(G.endk?' Ending: <b>'+G.endk.t+'</b>.':''):esc(h.name)+' was killed by '+esc(G.over.cause)+' on floor '+G.depth+'.'}</p><table class="st"><tr><td>Class</td><td>${CLASSES[h.cls].name}</td></tr><tr><td>Difficulty</td><td>${DIFFS[G.diff].name}</td></tr><tr><td>Floor reached</td><td>${w?30:G.depth}</td></tr><tr><td>Level</td><td>${h.lvl}</td></tr><tr><td>Kills</td><td>${G.stats.kills}</td></tr><tr><td>Creds earned</td><td>${G.stats.creds}</td></tr><tr><td>Score</td><td><b>${score}</b></td></tr></table><div class="btns"><button class="btn go" data-act="again">NEW RUN</button><button class="btn" data-act="title">TITLE</button></div></div>`,'endp');
-  p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;G=null;closeModal();if(a.dataset.act==='again'){show('#create');refreshCreate();}else titleScreen();};
+  const p=openModal(`<div class="end ${w?'won':''}"><h1>${w?'TOWER<br>SEIZED':'FLATLINED'}</h1><p>${w?esc(h.name)+' took the Tower Core.'+(G.endk?' Ending: <b>'+G.endk.t+'</b>.':''):esc(h.name)+' was killed by '+esc(G.over.cause)+' on floor '+G.depth+'.'}</p><table class="st"><tr><td>Class</td><td>${CLASSES[h.cls].name}</td></tr><tr><td>Difficulty</td><td>${DIFFS[G.diff].name}</td></tr><tr><td>Floor reached</td><td>${w?30:G.depth}</td></tr><tr><td>Level</td><td>${h.lvl}</td></tr><tr><td>Kills</td><td>${G.stats.kills}</td></tr><tr><td>Creds earned</td><td>${G.stats.creds}</td></tr><tr><td>Score</td><td><b>${score}</b></td></tr></table><div class="btns">${w?`<button class="btn go" data-act="ngplus">NEW GAME+ ${(ngCycle()+1)}</button>`:''}<button class="btn ${w?'':'go'}" data-act="again">NEW RUN</button><button class="btn" data-act="title">TITLE</button></div></div>`,'endp');
+  p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;
+    if(a.dataset.act==='ngplus'){bankNG(G);G=null;closeModal();startNG();return;}
+    if(a.dataset.act==='again')clearNG();
+    G=null;closeModal();if(a.dataset.act==='again'){show('#create');refreshCreate();}else titleScreen();};
 }
 
 // ---------- boot
@@ -3513,6 +3516,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26d','NEW GAME+ — beat the Core and you can go again. Your installed chrome comes with you at its upgrade level, plus a quarter of your creds and a slice of your levels; weapons and armour do not, so there is still a climb. Every cycle the tower gets meaner: enemies gain health and hit harder, and it stacks. The title screen offers the next cycle once you have earned it. Also: the drone shuffle is actually fixed. The v0.26 fix went into a dead copy of the walk routine and did nothing — the live one already handled allies. The real cause was that after you squeezed past a companion it immediately stepped back in front of you, which in a one-tile corridor is an endless shuffle. Companions now hold for one beat after you push past, unless something is in range to shoot. And belt-and-braces CSS so nothing can pin the message log to the top edge again.'],
  ['v0.26c','The ripperdoc bug, found properly this time. The clinic shop room never had a vendor type set, so the stock generator fell through to its last branch — the drone-parts list. The first ripperdoc you ever meet was standing in a shop selling scout bots, kits and EMPs, with no chrome anywhere. The clinic now stocks as a ripper: three implants and a nanite regenerator on the shelves, priced. For the record, the game already has 15 implants, all with working effects — including Thermal Eyes and Breaker Arms from the old notes. Nothing was missing from the game but the clinic stock.'],
  ['v0.26b','Fixes for v0.26, which I got wrong in two places: the message log had been shoved to the top of the screen by a bad CSS rule of mine — it is back above the tool bar · the BUILD picker and the biomonitor were put in the in-game NEW LOOK screen instead of the NEW RUN character creator, where you actually asked for them; both are now in the creator, with the biomonitor filling the dead space under the preview · iPhone safe-area fix reduced to the one line that was actually wrong, so it stops fighting the existing #mini and #log rules · death animations by enemy type, which v0.26 claimed and did not ship: drones spin down and crash, androids stutter and spray white before dropping, mechs and big frames land hard with a dust ring and a screen shake, four-legged things tumble, turrets topple off their mounts — and people now go down four different ways, picked per corpse, so a room full of bodies no longer looks copy-pasted'],
  ['v0.26','BUILD picker: Athletic, Hourglass, Curvy, Tall, Petite and Bruiser, for both frames — fem now defaults to Athletic (no skirt, squared shoulders, legs free) · biomonitor with a live ECG under the character preview · drag the screen with one finger to look around, it eases back when you move · you walk straight past your own drone and allies instead of getting stuck · talk to vendors across a counter · bars are sealed wall to wall and the bartender keeps a shotgun under it — counters block movement but not bullets · you can get drunk: aim drops, hits land harder, the room moves · sector vaults just open when you hold three keyshards, and cracking one raw is a high-TECH alternative instead of a prompt you always see · finishers rewritten — per-archetype, class flavour, a STR set when you are strong, and bosses finally get their own · rippers stock a chrome case you can buy from, with bone saw, grinder and welder noise and a line from the slicer on every cut · Chef Okabe and Doc Sato are no longer in your contacts at boot — visit the store for one, wake up on the table for the other · Reyes is just the MTX Captain until she gives you her name, and she tells you Voss burned the uplinks · TOWER FM got a band: walking upright bass, brushed ride, comped piano and a vibrato sax, on a real tuner display with signal bars · ranged weapons lock onto cameras when nothing hostile is up · drone QUIET RUN order · Sentinel Edge hook reattached and the tan nub under the guard cleaned off · caution tape across the tower doors · no more black bars top and bottom on iPhone (safe area was applied twice) and the changelog no longer sits on the SETTINGS button · the Voss roof scene is slower: the camera arrives before the blade does'],
@@ -3587,7 +3591,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26c · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26d · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -5068,6 +5072,104 @@ function stockClinic(){
   }catch(e){}
 }
 {const _ef2=enterFloor;enterFloor=function(d){const r=_ef2.apply(this,arguments);try{stockClinic();}catch(e){}return r;};}
+
+
+// ================= NEW GAME PLUS =================
+const NGK='mtm_ng';
+function ngData(){try{return JSON.parse(localStorage.getItem(NGK)||'null')||null;}catch(e){return null;}}
+function ngCycle(){const d=ngData();return d&&d.cycle?d.cycle:0;}
+function clearNG(){try{localStorage.removeItem(NGK);}catch(e){}}
+// what survives the Core: the chrome in your body, your face, a quarter of your creds
+function bankNG(g){
+  try{
+    const h=g.hero,prev=ngCycle();
+    const imps=(h.eq.imp||[]).filter(Boolean).map(it=>({k:it.k,lvl:it.lvl|0}));
+    localStorage.setItem(NGK,JSON.stringify({
+      cycle:prev+1,
+      cls:h.cls,name:h.name,look:h.look,diff:g.diff,
+      imps,creds:Math.round((h.creds||0)*.25),
+      lvl:Math.max(1,Math.floor(h.lvl/3))
+    }));
+  }catch(e){}
+}
+function startNG(){
+  const d=ngData();
+  if(!d){show('#create');refreshCreate();return;}
+  newGame({cls:d.cls,name:d.name,diff:d.diff,look:d.look});
+  const h=G.hero;
+  G.ng=d.cycle;
+  // reinstall the chrome you walked out with
+  let n=0;
+  for(const r of (d.imps||[])){
+    if(!ITEMS[r.k])continue;
+    const slot=(h.eq.imp||[]).findIndex(x=>!x);
+    if(slot<0)break;
+    const it=mk(r.k,{known:true});it.lvl=r.lvl|0;
+    h.eq.imp[slot]=it;n++;
+    if(r.k==='heart2'){it.hb=Math.round(h.mhp*.25);h.mhp+=it.hb;h.hp+=it.hb;}
+  }
+  h.creds=(h.creds||0)+(d.creds||0);
+  // a few levels of muscle memory, not the whole build — applied quietly, no level-up spam
+  const carry=Math.max(0,(d.lvl||1)-1);
+  if(carry){const up=(h.cls==='enforcer'?6:5)*carry;h.lvl+=carry;h.mhp+=up;h.hp=h.mhp;}
+  log(`NEW GAME+${d.cycle} — you woke up in the chair again. The tower does not remember you.`,'hi');
+  if(n)log(`${n} implant${n>1?'s':''} came through with you. Sato did not ask.`,'hi');
+  if(d.creds)log(`You kept ${d.creds}◈ of what you earned.`,'hi');
+  setTimeout(()=>toast(`<b style="color:#ffd24a">NEW GAME+${d.cycle}</b><br>Tougher floors · your chrome carried over`),1200);
+  refresh();
+}
+// every cycle makes the tower meaner
+function ngMul(){const c=(G&&G.ng)||0;return c?1+Math.min(.9,c*.22):1;}
+{const _mk=mkMob;mkMob=function(k,pos,st){
+  const m=_mk.apply(this,arguments);
+  try{const d=MOBS[k];
+    if(G&&G.ng&&d&&!d.ally&&!d.npc){
+      const mul=ngMul();
+      m.mhp=Math.round(m.mhp*mul);m.hp=m.mhp;
+      m.ng=1;
+    }
+  }catch(e){}
+  return m;};}
+{const _dh2=dmgHero;dmgHero=function(n,cause){
+  try{if(G&&G.ng&&typeof n==='number')n=Math.round(n*(1+Math.min(.5,G.ng*.12)));}catch(e){}
+  return _dh2.apply(this,[n,cause]);};}
+// title screen tells you which cycle you are on
+{const _ts=titleScreen;titleScreen=function(){
+  const r=_ts.apply(this,arguments);
+  try{
+    const c=ngCycle();const tl=document.querySelector('#title .tlog');
+    if(c&&tl&&!tl.dataset.ng){tl.dataset.ng='1';
+      const b=document.createElement('div');
+      b.style.cssText='font-family:var(--px);font-size:9px;letter-spacing:.16em;color:#ffd24a;margin-top:6px';
+      b.textContent='NEW GAME+'+c+' AVAILABLE';
+      tl.parentNode.insertBefore(b,tl);
+      const btn=document.querySelector('#btnNew');
+      if(btn&&!document.querySelector('#btnNG')){
+        const g=document.createElement('button');
+        g.className='btn go';g.id='btnNG';g.textContent='CONTINUE NEW GAME+'+c;
+        g.onclick=()=>{show(null);startNG();};
+        btn.parentNode.insertBefore(g,btn);
+      }
+    }
+  }catch(e){}
+  return r;};}
+
+
+// --- after you squeeze past a companion it holds for a beat, instead of stepping
+//     straight back into your path. In a one-tile corridor that shuffle read as
+//     being stuck behind your own drone. ---
+{const _ma2=mobAct;mobAct=function(m){
+  try{
+    if(m&&m._yield&&G&&G.turn<m._yield){
+      const d=MOBS[m.k];
+      if(d&&d.ally){
+        // only hold if there is nothing to shoot at — never freeze it mid-fight
+        const foe=G.L.mobs.some(x=>{const dd=MOBS[x.k];return dd&&!dd.ally&&!dd.npc&&dist(x.pos,m.pos)<=(d.rng||1)+1;});
+        if(!foe)return;
+      }
+    }
+  }catch(e){}
+  return _ma2.apply(this,arguments);};}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
@@ -5078,6 +5180,8 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
    removes the remaining doubling; #app's own top/left/right insets still keep content
    clear of the notch, and #tools/#mini/#log already carry their own insets. */
 body{padding:0!important}
+/* belt and braces: nothing may pin the message log to the top edge */
+#log{top:auto!important}
 
 /* changelog no longer sits on top of SETTINGS — it flows under the buttons */
 #title .tlog{position:static!important;transform:none!important;margin:16px auto 0!important;bottom:auto!important}
