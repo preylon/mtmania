@@ -2316,7 +2316,7 @@ function refreshCreate(){
   $('#crHair').textContent=HAIRS[c.look.hs];$('#crFace').textContent=FACES[c.look.face];
   $('#crBody').innerHTML=['MASC','FEM'].map((n,i)=>`<button class="chip ${c.look.body===i?'on':''}" data-body="${i}">${n}</button>`).join('');
   $('#crBuild').innerHTML=BUILDS.map((n,i)=>`<button class="chip ${(c.look.bld|0)===i?'on':''}" data-bld="${i}">${n.toUpperCase()}</button>`).join('');
-  {const bio=$('#crBio');if(bio)bio.innerHTML=bioStrip(c.look,{hp:CLASSES[c.cls].hp||20,compact:1});}
+  {const bio=$('#crBio');if(bio)bio.innerHTML=bioStrip(c.look,{hp:CLASSES[c.cls].hp||20,compact:1,cls:c.cls});}
   $('#crDiff').innerHTML=DIFFS.map((d,i)=>`<button class="chip ${c.diff===i?'on':''}" data-diff="${i}">${d.name}</button>`).join('');
   $('#crDiffInfo').textContent=DIFFS[c.diff].desc;
   if($('#crName').value!==c.name)$('#crName').value=c.name;
@@ -3516,6 +3516,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26f','Biomonitor rebuilt. The old one was an SVG stretched to fill its box, which squashed it in both directions — that is why it looked bad. It is a canvas now at a fixed aspect, with a trace that genuinely scrolls: P wave, QRS spike, T wave, drawn per frame, and the rate climbs as your health drops. Under it, a readout of frame, build, trade and status. · Tapping a vendor across their counter now talks instead of walking you round the long way — the ramen spot outside and the bars inside. Tapping went straight to the pathfinder, which routed around; only a manual bump was working. · Bars are properly sealed now. The previous pass only walled the counter row, and a flood-fill test showed 9 of 12 barkeeps were still reachable round the ends or through a door. The whole staff side is enclosed — 0 of 12 reachable, verified. · Creator column no longer stretches its contents.'],
  ['v0.26e','The fem body is finally the Athletic one. Two reasons it never applied: the build index was stored in L.bt, which was ALREADY the clothing bottom (skirt/shorts), and a later override repainted the old curvy silhouette straight over whatever the build drew. Builds now live in L.bld and the curvy overlay only runs for Hourglass and Curvy. All six builds verified rendering differently. · ENDING CINEMATICS — each of the four endings now plays a short sequence of drawn panels before the epilogue: rain-slick street, the doors staying open, the badge, the horizon, the tower lit up by its own residents. Tap to advance. · Street traffic rebuilt: five vehicles instead of three, with shaded bodies, spinning spoked wheels, ground shadows, speed lines, neon underglow and a hover sedan that actually floats. · Character creator: the left column now stretches so the biomonitor fills the dead space instead of leaving a gap. · Reyes\u2019 name is off the title tagline — just the quote now. · Also audited every feature claimed in v0.26 at runtime rather than trusting that the code was there: 15 of 15 confirmed working.'],
  ['v0.26d','NEW GAME+ — beat the Core and you can go again. Your installed chrome comes with you at its upgrade level, plus a quarter of your creds and a slice of your levels; weapons and armour do not, so there is still a climb. Every cycle the tower gets meaner: enemies gain health and hit harder, and it stacks. The title screen offers the next cycle once you have earned it. Also: the drone shuffle is actually fixed. The v0.26 fix went into a dead copy of the walk routine and did nothing — the live one already handled allies. The real cause was that after you squeezed past a companion it immediately stepped back in front of you, which in a one-tile corridor is an endless shuffle. Companions now hold for one beat after you push past, unless something is in range to shoot. And belt-and-braces CSS so nothing can pin the message log to the top edge again.'],
  ['v0.26c','The ripperdoc bug, found properly this time. The clinic shop room never had a vendor type set, so the stock generator fell through to its last branch — the drone-parts list. The first ripperdoc you ever meet was standing in a shop selling scout bots, kits and EMPs, with no chrome anywhere. The clinic now stocks as a ripper: three implants and a nanite regenerator on the shelves, priced. For the record, the game already has 15 implants, all with working effects — including Thermal Eyes and Breaker Arms from the old notes. Nothing was missing from the game but the clinic stock.'],
@@ -3592,7 +3593,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26e · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26f · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -5029,38 +5030,80 @@ function bioStrip(L,o){
   const hp=h?Math.max(1,Math.round(h.hp)):(o.hp||40), mhp=h?Math.max(1,Math.round(h.mhp)):(o.hp||40);
   const pct=Math.max(.08,Math.min(1,hp/mhp));
   const bpm=Math.round(62+(1-pct)*54);
-  const dur=(60/bpm*2).toFixed(2);
   const frame=(L&&L.body)?'FEM':'MASC';
   const build=(typeof BUILDS!=='undefined'&&BUILDS[(L&&L.bld|0)||0])||'Athletic';
   const col=pct>.6?'#39ffb0':pct>.3?'#ffd24a':'#ff5a5a';
-  // one ECG period, repeated by the pattern
-  const beat='M0 20 L16 20 L20 20 L23 9 L26 31 L29 16 L33 20 L48 20 L52 20 L55 18 L58 22 L62 20 L80 20';
-  return `<div class="biostrip${o.compact?' cmp':''}">
+  const cls=(o.cls&&CLASSES[o.cls])?CLASSES[o.cls].name:'—';
+  return `<div class="biostrip${o.compact?' cmp':''}" data-bpm="${bpm}" data-col="${col}">
     <div class="biorow">
-      <span class="biolab">BIOMONITOR</span>
+      <span class="biolab">VITALS</span>
       <span class="biov" style="--c:${col}">${hp}<i>/${mhp}</i></span>
-      <span class="biov" style="--c:#3fe8ff">${bpm}<i> BPM</i></span>
+      <span class="biov bpm" style="--c:#3fe8ff">${bpm}<i>BPM</i></span>
     </div>
-    <div class="bioscreen">
-      <svg viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-          <pattern id="bgrid" width="12" height="12" patternUnits="userSpaceOnUse">
-            <path d="M12 0 L0 0 0 12" fill="none" stroke="#17323a" stroke-width=".7"/>
-          </pattern>
-          <path id="ecgp" d="${beat}"/>
-        </defs>
-        <rect width="240" height="40" fill="url(#bgrid)"/>
-        <g class="ecg" style="--c:${col}">
-          <use href="#ecgp" x="0"/><use href="#ecgp" x="80"/><use href="#ecgp" x="160"/><use href="#ecgp" x="240"/>
-        </g>
-      </svg>
-      <i class="bioswp" style="animation-duration:${dur}s"></i>
-    </div>
-    <div class="biorow bb">
-      <span>FRAME <b>${frame}</b></span><span>BUILD <b>${build}</b></span><span class="ok">● STABLE</span>
+    <canvas class="bioecg" width="276" height="62"></canvas>
+    <div class="biogrid">
+      <span>FRAME</span><b>${frame}</b>
+      <span>BUILD</span><b>${build.toUpperCase()}</b>
+      <span>TRADE</span><b>${esc(cls)}</b>
+      <span>STATUS</span><b class="ok">STABLE</b>
     </div>
   </div>`;
 }
+// --- the ECG actually runs: one rAF per visible strip, scrolling trace ---
+function bioPulse(){
+  const strips=[...document.querySelectorAll('.biostrip')].filter(el=>{
+    if(!el.isConnected)return false;
+    const hid=el.closest('.hide');if(hid)return false;          // screen not showing
+    const m=el.closest('#modal');if(m&&m.classList.contains('hide'))return false;
+    return true;});
+  for(const el of strips){
+    const cv=el.querySelector('.bioecg');if(!cv)continue;
+    if(!cv._st){
+      const w=cv.width,hh=cv.height;
+      cv._st={x:0,buf:new Float32Array(w).fill(hh/2),g:cv.getContext('2d'),w,h:hh,t:0};
+    }
+    const st=cv._st,g=st.g,w=st.w,hh=st.h;
+    const bpm=+el.dataset.bpm||72, col=el.dataset.col||'#39ffb0';
+    // one full beat every (60/bpm) seconds; advance ~2px per frame
+    const perBeat=Math.max(26,Math.round((60/bpm)*60*2.2));
+    for(let k=0;k<2;k++){
+      const ph=st.t%perBeat, u=ph/perBeat;
+      let y=hh/2;
+      // P wave, QRS spike, T wave — sized to the strip
+      if(u>.06&&u<.13)       y=hh/2-Math.sin((u-.06)/.07*Math.PI)*hh*.10;
+      else if(u>.17&&u<.20)  y=hh/2+Math.sin((u-.17)/.03*Math.PI)*hh*.12;
+      else if(u>.20&&u<.245) y=hh/2-Math.sin((u-.20)/.045*Math.PI)*hh*.46;
+      else if(u>.245&&u<.30) y=hh/2+Math.sin((u-.245)/.055*Math.PI)*hh*.22;
+      else if(u>.38&&u<.50)  y=hh/2-Math.sin((u-.38)/.12*Math.PI)*hh*.15;
+      else y=hh/2+(Math.random()-.5)*1.2;
+      st.buf[st.x]=y;st.x=(st.x+1)%w;st.t++;
+    }
+    // redraw
+    g.clearRect(0,0,w,hh);
+    g.fillStyle='#04090b';g.fillRect(0,0,w,hh);
+    g.strokeStyle='#15323a';g.lineWidth=1;g.beginPath();
+    for(let x=0;x<w;x+=12){g.moveTo(x+.5,0);g.lineTo(x+.5,hh);}
+    for(let y=0;y<hh;y+=12){g.moveTo(0,y+.5);g.lineTo(w,y+.5);}
+    g.stroke();
+    g.strokeStyle=col;g.lineWidth=1.6;g.lineJoin='round';g.lineCap='round';
+    g.shadowColor=col;g.shadowBlur=5;
+    g.beginPath();
+    for(let i=0;i<w;i++){
+      const idx2=(st.x+i)%w, yy=st.buf[idx2];
+      if(i===0)g.moveTo(0,yy);else g.lineTo(i,yy);
+    }
+    g.stroke();g.shadowBlur=0;
+    // bright head
+    g.fillStyle='#ffffff';g.fillRect(w-2,st.buf[(st.x+w-1)%w]-1,2,2);
+    // fade the oldest end so the wrap seam is invisible
+    const gr=g.createLinearGradient(0,0,26,0);
+    gr.addColorStop(0,'#04090b');gr.addColorStop(1,'rgba(4,9,11,0)');
+    g.fillStyle=gr;g.fillRect(0,0,26,hh);
+  }
+  requestAnimationFrame(bioPulse);
+}
+if(typeof requestAnimationFrame==='function')requestAnimationFrame(bioPulse);
+
 
 
 // --- seal the bar: the counter runs wall to wall, barkeep is boxed in ---
@@ -5068,11 +5111,37 @@ function sealBars(){
   try{
     const L=G.L;if(!L||!L.bars||L._barsSealed)return;
     for(const b of L.bars){
-      const [x0,y0,x1]=b.c,cy=y0+2;
+      const c=b.c,x0=c[0],y0=c[1],x1=c[2],cy=y0+2;
+      // 1. counter runs the full width (doors in this row are a way IN behind the bar)
       for(let x=x0;x<=x1;x++){
         const i=idx(x,cy);if(i<0||i>=N)continue;
         const t=L.map[i];
-        if(t===T.FLOOR||t===T.COUNTER||t===T.CHAIR||t===T.DEBRIS)L.map[i]=T.COUNTER;
+        if(t===T.FLOOR||t===T.COUNTER||t===T.CHAIR||t===T.DEBRIS||t===T.DOOR)L.map[i]=T.COUNTER;
+      }
+      // 2. seal every remaining way into the staff side.
+      //    Flood the strip behind the counter, then wall any opening off it.
+      const bk=L.mobs.find(m=>m.k==='barkeep'&&Y(m.pos)<cy&&X(m.pos)>=x0&&X(m.pos)<=x1);
+      const seed=bk?bk.pos:idx(x0+1,y0+1);
+      if(seed<0||seed>=N||!pass(seed))continue;
+      const strip=new Set([seed]),q=[seed];
+      while(q.length&&strip.size<80){
+        const cur=q.shift();
+        for(const d of DIRS){
+          const n=cur+d;
+          if(n<0||n>=N||strip.has(n))continue;
+          if(Y(n)>=cy)continue;                  // never cross to the customer side
+          if(!pass(n))continue;
+          strip.add(n);q.push(n);
+        }
+      }
+      for(const t2 of strip){
+        for(const d of DIRS){
+          const n=t2+d;
+          if(n<0||n>=N||strip.has(n))continue;
+          if(!pass(n))continue;                  // an opening out of the staff side
+          const tt=L.map[n];
+          if(tt===T.FLOOR||tt===T.CHAIR||tt===T.DEBRIS||tt===T.DOOR)L.map[n]=T.COUNTER;
+        }
       }
     }
     L._barsSealed=1;mapChanged();
@@ -5386,6 +5455,29 @@ const ENDING_CINE={
     {s:'coop', t:'The first co-op megatower in the city.',d:4200},
     {s:'coop', t:'They vote on everything now. Including your door.',d:3800}]}
 };
+
+
+// --- tapping a vendor across their counter should talk, not walk you round the long way.
+//     onTap() went straight to go(), which pathfinds around. ---
+{const _ot=onTap;onTap=function(i){
+  try{
+    if(G&&!G.over&&!busy()&&i>=0&&G.L.seen[i]&&!UI.mode){
+      const h=G.hero,mb=mobAt(i),d=mb&&MOBS[mb.k];
+      if(mb&&d&&d.npc&&!mb.leave&&mb.pos!==h.pos){
+        const dd=dist(mb.pos,h.pos);
+        if(dd===1){stopWalk();mb.talked=1;if(EV.npc)EV.npc(mb);refresh();return;}
+        if(dd===2){
+          // one tile between us — if it is solid (a counter, a bar, a rail) just lean over it
+          const dx=Math.sign(X(mb.pos)-X(h.pos)),dy=Math.sign(Y(mb.pos)-Y(h.pos));
+          const mid=h.pos+dx+dy*W;
+          if(mid>=0&&mid<N&&!pass(mid)&&G.L.map[mid]!==T.WALL&&G.L.map[mid]!==T.LOCKED){
+            stopWalk();mb.talked=1;if(EV.npc)EV.npc(mb);refresh();return;
+          }
+        }
+      }
+    }
+  }catch(e){}
+  return _ot.apply(this,arguments);};}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
@@ -5403,40 +5495,29 @@ body{padding:0!important}
 #title .tlog{position:static!important;transform:none!important;margin:16px auto 0!important;bottom:auto!important}
 #title{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
 
-/* biomonitor */
-.biostrip.cmp{margin:0}
-.biostrip.cmp .biorow{gap:5px;font-size:7px;letter-spacing:.08em}
-.biostrip.cmp .biov{font-size:10px}
-.biostrip.cmp .bioscreen{height:30px}
-.biostrip.cmp .bioscreen svg{height:30px}
-.biostrip.cmp .biorow.bb{font-size:6.5px}
-.crleft{display:flex;flex-direction:column;gap:8px;width:144px;flex:none;align-self:stretch}
-#crBio{flex:1 1 auto;display:flex;min-height:84px}
-.biostrip.cmp{flex:1;display:flex;flex-direction:column}
-.biostrip.cmp .bioscreen{flex:1 1 auto;min-height:30px}
-.biostrip.cmp .bioscreen svg{height:100%}
-.crtop{align-items:stretch}
-/* the right column was leaving a gap above SCRAMBLE */
-.crtop .f{display:flex;flex-direction:column;gap:7px}
-.crtop .f #crCard{margin-top:2px}
+/* creator: preview column sits at its natural height, no stretching */
+.crleft{display:flex;flex-direction:column;gap:8px;width:144px;flex:0 0 144px;align-self:flex-start}
+.crleft .prevbox{width:144px;flex:0 0 auto}
+#crBio{display:block;width:100%}
+.crtop{align-items:flex-start!important}
 
-.biostrip{margin:8px 0 10px;border:1px solid #1d2b31;border-radius:6px;background:#070b0d;padding:7px 8px 6px}
-.biorow{display:flex;align-items:baseline;gap:10px;font-family:var(--px);font-size:8px;letter-spacing:.14em;color:#5d7079}
-.biorow.bb{margin-top:5px;justify-content:space-between;letter-spacing:.1em}
-.biorow.bb b{color:#9fb3bd;font-weight:400}
-.biorow .ok{color:#39ffb0}
+/* biomonitor — fixed aspect, nothing stretches */
+.biostrip{margin:8px 0 10px;border:1px solid #1d2b31;border-radius:6px;background:#070b0d;padding:6px 7px 5px;
+  display:flex;flex-direction:column;gap:5px}
+.biorow{display:flex;align-items:baseline;gap:8px;font-family:var(--px);font-size:8px;letter-spacing:.14em;color:#5d7079}
 .biolab{flex:1}
-.biov{font-size:12px;color:var(--c);letter-spacing:.04em}
-.biov i{font-style:normal;font-size:8px;color:#4a5f68}
-.bioscreen{position:relative;height:40px;border-radius:3px;overflow:hidden;background:#04090b}
-.bioscreen svg{display:block;width:100%;height:40px}
-.ecg use{fill:none;stroke:var(--c);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 0 3px var(--c));opacity:.95}
-.bioswp{position:absolute;top:0;bottom:0;width:34%;pointer-events:none;
-  background:linear-gradient(90deg,rgba(4,9,11,0) 0%,rgba(4,9,11,.82) 55%,rgba(4,9,11,.96) 100%);
-  animation:bioswp linear infinite}
-@keyframes bioswp{from{transform:translateX(-40%)}to{transform:translateX(330%)}}
-@media (prefers-reduced-motion:reduce){.bioswp{animation:none;opacity:0}}
+.biov{font-size:12px;color:var(--c);letter-spacing:.04em;white-space:nowrap}
+.biov i{font-style:normal;font-size:7px;color:#4a5f68;margin-left:2px}
+.bioecg{display:block;width:100%;height:auto;border-radius:3px;background:#04090b;image-rendering:auto}
+.biogrid{display:grid;grid-template-columns:auto 1fr;gap:1px 7px;font-family:var(--px);font-size:7px;
+  letter-spacing:.1em;color:#4a5f68;align-content:start}
+.biogrid b{color:#9fb3bd;font-weight:400;text-align:right;letter-spacing:.06em}
+.biogrid b.ok{color:#39ffb0}
+/* compact variant for the 144px creator column */
+.biostrip.cmp{margin:0;padding:5px 6px 4px}
+.biostrip.cmp .biorow{font-size:7px;letter-spacing:.08em;gap:5px}
+.biostrip.cmp .biov{font-size:10px}
+.biostrip.cmp .biogrid{font-size:6.5px}
 
 /* ---- ending cinematics ---- */
 #cineScene{position:fixed;inset:0;z-index:240;background:#05050a;opacity:0;pointer-events:none;
