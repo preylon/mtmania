@@ -204,6 +204,30 @@ body.log-short #log{max-height:66px;overflow:hidden}body.log-off #log{display:no
 .npad{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.npad textarea{min-height:64px;background:#04100a;border:1px solid #1a4a34;color:#39ff7a;font:17px var(--vt);padding:6px}
 .pscr{background:#04100a;border:1px solid #1a4a34;color:#39ff7a;font:28px var(--vt);text-align:center;padding:6px;letter-spacing:6px;margin-bottom:8px}.pkey{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.pkey button{font:20px var(--vt);padding:12px;background:#0a141c;border:1px solid #1e3a4a;color:#cfe8ff;border-radius:6px}
 .stock{max-height:34vh;overflow:auto;margin:0 10px 6px}.srow{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #1a1e2a;font:15px var(--vt)}.srow img{width:28px;height:28px}.srow span{flex:1}.srow b{color:#ffe14a}
+
+/* ===== v0.19 touch & mobile layout ===== */
+*{-webkit-tap-highlight-color:transparent}
+html,body,img,canvas,.slot,button,.tb{-webkit-touch-callout:none}
+button,.slot,.chip,.sw,.tb,[data-act],[data-c],[data-k],[data-d]{touch-action:manipulation}
+#app{top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom);left:env(safe-area-inset-left);right:env(safe-area-inset-right)}
+.screen,.panel,.dbl,.stock,.logfull{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.panel{max-height:calc(100% - 4px)}
+#create{position:absolute!important;inset:0;overflow-y:auto;padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+#create .crfoot{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;background:linear-gradient(#06060b00,#06060bf2 22%,#06060b);padding:16px 12px calc(10px + env(safe-area-inset-bottom))}
+#create .crfoot .btn{padding:16px 8px}
+#create .turn button{font-size:14px;padding:10px 14px;min-width:44px;min-height:40px}
+#create .cyc button{min-width:44px;min-height:40px}
+.chip{min-height:38px;padding:12px 10px}
+.mhead .x{min-width:40px;min-height:40px}
+input,textarea,select{font-size:max(16px,1em)}
+.slot.lp{outline:2px solid #ffe14a;transform:scale(.94);transition:transform .12s}
+.lpsheet{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:70;background:#0b0e18f5;border:1px solid #3fe8ff;box-shadow:0 0 30px #000,0 0 18px #3fe8ff44;padding:10px;border-radius:6px}
+.lpsheet h4{font-family:var(--px);font-size:9px;color:#3fe8ff;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.lpsheet h4 img{width:32px;height:32px;image-rendering:pixelated}
+.lpsheet .btns{display:flex;flex-wrap:wrap;gap:6px}.lpsheet .btn{flex:1 1 30%;min-height:44px}
+#tipbox{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(120px + env(safe-area-inset-bottom));z-index:80;background:#0b0e18f2;border:1px solid #ffe14a;color:#ffe9a8;font:16px var(--vt);padding:6px 12px;border-radius:4px;pointer-events:none;display:none;max-width:86vw;text-align:center}
+.devgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-height:46vh;overflow:auto}.devgrid button{min-height:40px;border:1px solid #2a4a66;background:#0c0d16;font:15px var(--vt)}
+.devgrid.items{grid-template-columns:repeat(5,1fr)}.devgrid.items button{display:flex;flex-direction:column;align-items:center;font-size:11px;padding:3px}.devgrid.items img{width:28px;height:28px;image-rendering:pixelated}
 </style>
 </head>
 <body>
@@ -234,7 +258,7 @@ body.log-short #log{max-height:66px;overflow:hidden}body.log-off #log{display:no
       <div class="gap"></div>
       <button class="tb q" id="tQ0" aria-label="Quick slot 1"><div class="ic"></div><span></span></button>
       <button class="tb q" id="tQ1" aria-label="Quick slot 2"><div class="ic"></div><span></span></button>
-      <button class="tb" id="tFire" aria-label="Fire gun"><div class="ic"></div><span></span></button><button id="tSwap" class="hide" aria-label="Swap guns"></button>
+      <button class="tb" id="tFire" aria-label="Fire / throw (hold: swap ranged)"><div class="ic"></div><span></span></button><button id="tSwap" class="hide" aria-label="Swap guns"></button>
       <button class="tb" id="tBag" aria-label="Backpack"><div class="ic"></div></button>
     </div>
   </div>
@@ -828,7 +852,7 @@ function makeHero(o){
     if(k==='techpistol'){it.lvl=1;it.ch=gunMax(it);}
     if(d.type==='melee')h.eq.melee=it;else if(d.type==='armor')h.eq.armor=it;else if(d.type==='gun')h.eq.gun=it;else h.inv.push(it);
   }
-  if(o.cls==='ghost')h.quick[1]='knife';
+  if(o.cls==='ghost'){h.quick[1]='knife';const kn=h.inv.find(x=>x.k==='knife');if(kn&&!h.eq.gun){h.inv.splice(h.inv.indexOf(kn),1);h.eq.gun=kn;}}
   return h;
 }
 function newGame(o){
@@ -1174,7 +1198,7 @@ function chipEffect(k){
     case 'teleport':{const p=randFloor();if(p>=0){fx({t:'boom',p:h.pos,c:'#c06aff',r:1});h.pos=p;fx({t:'boom',p,c:'#c06aff',r:1.5});}log('You blink across the floor.','hi');break;}
     case 'emp':fx({t:'boom',p:h.pos,c:'#3be8ff',r:6});for(const m of visFoes()){const rb=MOBS[m.k].robot;m.b.stun=MOBS[m.k].boss?1:rb?5:2;dmgMob(m,(rr(4,8)+G.depth)*(rb?2:1));}log('EMP! Everything electronic screams.','hi');break;
     case 'decrypt':{let n=0;for(const it of [h.eq.melee,h.eq.gun,h.eq.gun2,h.eq.armor,...h.eq.imp,...h.inv])if(it&&it.cursed){it.cursed=false;n++;}log(n?`Antivirus purged ${n} infected item${n>1?'s':''}.`:'Antivirus ran. Nothing was infected.','hi');break;}
-    case 'recharge':if(h.eq.gun){h.eq.gun.ch=gunMax(h.eq.gun);log('Your gun hums at full charge.','hi');}else log('Power surges… into nothing. No gun equipped.');break;
+    case 'recharge':if(h.eq.gun&&ITEMS[h.eq.gun.k].type==='gun'){h.eq.gun.ch=gunMax(h.eq.gun);log('Your gun hums at full charge.','hi');}else log('Power surges… into nothing. No gun equipped.');break;
     case 'terror':for(const m of visFoes())if(!MOBS[m.k].boss)m.b.terror=10;log('A subsonic shriek. Hostiles scatter.','hi');fx({t:'boom',p:h.pos,c:'#ff3b4e',r:5});break;
     case 'sleep':for(const m of visFoes())if(!MOBS[m.k].boss){m.st='sleep';}log('A lullaby loop. They slump where they stand.','hi');break;
     case 'alarm':for(const m of L.mobs)if(!MOBS[m.k].ally&&!MOBS[m.k].npc){if(m.st==='sleep'||m.st==='wander')m.st='hunt';m.tg=h.pos;}log('BEACON PING. The whole floor is coming for you.','bad');fx({t:'boom',p:h.pos,c:'#ff3b4e',r:6});break;
@@ -1202,7 +1226,7 @@ function actUse(k){
     for(;n<5&&!G.over;n++){fx({t:'smoke',p:h.pos,d:n*260});world(1);if(G.over)break;const a=Math.max(1,Math.ceil(h.mhp*.06)),w=h.hp;h.hp=Math.min(h.mhp,h.hp+a);got+=h.hp-w;updateFov();if(G.intr){log('You stub it out — trouble.','warn');break;}}
     if(!G.over){h.hunger=Math.min(STARVE,h.hunger+45);if(got)fx({t:'txt',p:h.pos,s:'+'+got,c:'#7dff8a'});if(n>=5){log(`You finish the smoke. +${got} HP. Steadier now — and a little hungrier.`,'hi');gainXp(1+Math.floor(G.depth/3));}updateFov();}
     return true;}
-  if(k==='cell'){const g=h.eq.gun;if(!g){log('No gun equipped.');return false;}if(g.ch>=gunMax(g)){log('Your gun is already full.');return false;}consume(it);g.ch=gunMax(g);log('You slam in a fresh cell.','hi');sfx('chip');spend(1);return true;}
+  if(k==='cell'){const g=[h.eq.gun,h.eq.gun2].find(x=>x&&ITEMS[x.k].type==='gun')||null;if(!g){log('No gun equipped.');return false;}if(g.ch>=gunMax(g)){log('Your gun is already full.');return false;}consume(it);g.ch=gunMax(g);log('You slam in a fresh cell.','hi');sfx('chip');spend(1);return true;}
   if(k==='kit'){let n=0;for(const g of [h.eq.melee,h.eq.armor,...h.inv])if(g&&g.dur!==undefined&&g.dur<100){g.dur=100;n++;}for(const a of allies())if(a.hp<a.mhp){a.hp=a.mhp;n++;}
     if(!n){log('Nothing needs repair.');return false;}consume(it);log('You patch everything up.','hi');sfx('chip');spend(3);return true;}
   if(d.ally){if(allies().length>=allyCap()){log(`You can only run ${allyCap()} companions at once. Keep the beacon as a spare.`,'warn');return false;}
@@ -1217,7 +1241,7 @@ function actApply(ref){
 }
 function stow(it){const h=G.hero;if(h.inv.length<packCap()){h.inv.push(it);return true;}G.L.items.push({pos:h.pos,it});log(`Pack full — you drop the ${itemName(it)} at your feet.`,'warn');return false;}
 function actEquip(it){
-  const h=G.hero,d=ITEMS[it.k];if(G.over)return false;const ii=h.inv.indexOf(it);
+  const h=G.hero,d=ITEMS[it.k];if(G.over)return false;if(d.type==='throw')return equipThrow(it);const ii=h.inv.indexOf(it);
   if(d.type==='implant'){const i=h.eq.imp.indexOf(null);if(i<0){log('All implant ports are full. Remove one first.','warn');return false;}if(ii>=0)h.inv.splice(ii,1);h.eq.imp[i]=it;}
   else if(d.type==='gun'&&h.eq.gun&&!h.eq.gun2){if(ii>=0)h.inv.splice(ii,1);h.eq.gun2=h.eq.gun;h.eq.gun=it;}
   else{const cur=h.eq[d.type];if(cur&&cur.cursed){log(`Malware has your ${ITEMS[cur.k].name} locked on.`,'bad');return false;}if(ii>=0)h.inv.splice(ii,1);h.eq[d.type]=it;if(cur)stow(cur);}
@@ -1229,7 +1253,7 @@ function actEquip(it){
 function actUnequip(slot,i){
   const h=G.hero,it=slot==='imp'?h.eq.imp[i]:h.eq[slot];if(!it||G.over)return false;
   if(it.cursed){log(`Malware has your ${ITEMS[it.k].name} locked on. Find an Antivirus chip.`,'bad');return false;}
-  if(slot==='imp')h.eq.imp[i]=null;else h.eq[slot]=null;if(it.hb){h.mhp-=it.hb;h.hp=Math.max(1,Math.min(h.hp,h.mhp));it.hb=0;}stow(it);spend(1);return true;
+  if(slot==='imp')h.eq.imp[i]=null;else h.eq[slot]=null;if(it.hb){h.mhp-=it.hb;h.hp=Math.max(1,Math.min(h.hp,h.mhp));it.hb=0;}{const sk=stackable(it)&&h.inv.find(x=>x.k===it.k);if(sk)sk.q+=it.q;else stow(it);}spend(1);return true;
 }
 function swapGuns(){const h=G.hero;if(!h.eq.gun2&&!h.eq.gun)return false;const t=h.eq.gun;h.eq.gun=h.eq.gun2;h.eq.gun2=t;sfx('equip');return true;}
 function allyCap(){return 2;}
@@ -1290,7 +1314,7 @@ function shootMob(m,g,mult){
 function activeGun(){const h=G.hero,g=h.eq.gun,gh=h.eq.imp.find(i=>i&&i.k==='gunhand'&&i.lvl>=0);if(gh&&gh.ch===undefined){gh.ch=gunMax(gh);gh.rp=0;}return (!g||g.ch<=0)&&gh?gh:g;}
 function actFire(tg){
   const h=G.hero,g=activeGun(),L=G.L;if(G.over)return false;
-  if(!g){log('No gun equipped.','warn');return false;}const d=ITEMS[g.k];
+  if(!g){log('Nothing in your ranged slot.','warn');return false;}const d=ITEMS[g.k];if(d.type==='throw')return tg>=0?actThrow(g.k,tg):false;
   if(g.ch<=0){log('*click* — empty. '+(d.rc?'It is recharging.':'It needs a Power Cell.'),'warn');sfx('empty');return false;}
   if(tg===h.pos)return false;
   g.ch--;const through=d.fx==='pierce'||d.fx==='flame',D=dist(h.pos,tg),path=line(h.pos,tg,through?d.rng:Math.min(D,d.rng));
@@ -1308,7 +1332,7 @@ function actThrow(k,tg){
   const h=G.hero,L=G.L,it=invFind(k);if(!it||G.over||tg===h.pos)return false;const d=ITEMS[k];
   const path=line(h.pos,tg,Math.min(dist(h.pos,tg),12));let end=h.pos,m=null;
   for(const i of path){if(blocksShot(i))break;end=i;m=mobAt(i);if(m&&MOBS[m.k].npc){m=null;}if(m)break;}
-  const one=Object.assign({},it,{q:1});const others=h.inv.length>=packCap()?L.items.filter(e=>e.pos===h.pos&&!e.price):[];consume(it);for(const e of others)pickUp(e);fx({t:'proj',a:h.pos,b:end,c:itemColor(one)});sfx('throw');
+  const one=Object.assign({},it,{q:1});const others=h.inv.length>=packCap()?L.items.filter(e=>e.pos===h.pos&&!e.price):[];consume(it);for(const e of others)pickUp(e);fx({t:'proj',a:h.pos,b:end,c:itemColor(one),k:k});sfx('throw');
   if(k==='knife'){
     if(m&&!MOBS[m.k].ally){const sure=m.st==='sleep'||m.b.stun>0;if(sure||hitRoll(heroAcc()*(h.cls==='gunner'||h.cls==='ghost'?1.3:1),MOBS[m.k].eva)){let dmg=rr(d.d[0],d.d[1])+Math.floor(h.lvl/2);if(m.st==='sleep')dmg*=h.cls==='ghost'?2.5:1.5;dmgMob(m,Math.max(0,dmg-rr(0,MOBS[m.k].dr)));}else fx({t:'txt',p:m.pos,s:'miss',c:'#9aa7ad'});}
     if(chance(.75))dropAt(end,one);
@@ -1455,7 +1479,7 @@ function worldTick(){
     if(--c.n<=0)delete L.clouds[key];
   }
   if(!L.boss&&G.depth>0&&++G.spawnT>=55){G.spawnT=0;const n=L.mobs.filter(m=>!MOBS[m.k].ally&&!MOBS[m.k].npc).length;if(n<5+sectorOf(G.depth)){const p=randFloor(true);if(p>=0){const m=mkMob(wpick(SPAWN[sectorOf(G.depth)]),p,'wander');L.mobs.push(m);}}}
-  if(G.turn%5===0)save();
+  if(G.turn%2===0)save();else UI.dirty=1;
 }
 function world(t){
   const h=G.hero,L=G.L;
@@ -1542,7 +1566,7 @@ function callContact(c){const h=G.hero,L=G.L;if(c.used>=2){log(`${c.n} doesn't p
   c.used++;const from=dist(L.entry,h.pos)<dist(L.exit,h.pos)?L.entry:L.exit,sp=freeNear(from,2);
   if(allies().length<allyCap()&&chance(.35)&&c.k==='resident'&&sp>=0){const a=scaleAlly(mkMob(chance(.5)?'a_civg':'a_civ',sp,'ally'));a.nm=c.n;a.joined=1;a.hp=Math.round(a.hp*.7);L.mobs.push(a);log(`${c.n}: "Hang tight, I'm coming up." They step out of the elevator and start making their way to you. Keep them alive.`,'hi');return 'join';}
   if(sp<0){const it=mk(pick(['heal','noodle','bar','cola','cell','knife']));dropAt(h.pos,it);log(`${c.n}: "Package dropped at your position."`,'hi');return 'gift';}
-  const cb=mkMob('courier',sp,'npc');cb.deliver=pick(['heal','noodle','bar','cola','cell','knife','heal']);cb.from=c.n;cb.t0=G.turn;L.mobs.push(cb);
+  const cb=mkMob('courier',sp,'npc');cb.deliver=c.k==='doc'?pick(['heal','heal','kit']):c.k==='chef'?pick(['noodle','noodle','skewer']):pick(['heal','noodle','bar','cola','cell','knife','heal']);cb.from=c.n;cb.t0=G.turn;L.mobs.push(cb);
   log(`${c.n}: "Sending my courier bot up with something. Little blue guy, can't miss him."`,'hi');return 'gift';}
 function courierAct(m){const h=G.hero,L=G.L;if(G.turn-m.t0>80){m.deliver=null;m.leave=G.turn;return;}
   if(dist(m.pos,h.pos)<=1){const it=mk(m.deliver);dropAt(h.pos,it);for(const e of L.items.slice())if(e.pos===h.pos&&!e.price)pickUp(e);fx({t:'txt',p:m.pos,s:'♪ DELIVERY',c:'#7ae0ff'});if(EV.sfx)EV.sfx('beep2');
@@ -1678,7 +1702,7 @@ function mobSprite(m,f){
 function heroLook(){
   const h=G.hero,L=Object.assign({},h.look),a=h.eq.armor,w=h.eq.melee,g=h.eq.gun;
   L.outfit=a?(ITEMS[a.k].t===1?CLASSES[h.cls].outfit:ITEMS[a.k].c):shade(L.skin,-.1);L.trim=a?(ITEMS[a.k].c2||null):null;L.coat=a?ITEMS[a.k].st:'';L.pants=L.pants||'#22222a';
-  if(w){L.wc=ITEMS[w.k].c;L.wk=w.k;}else if(g){L.wc=ITEMS[g.k].c;L.wk='_'+ITEMS[g.k].icon;}else{L.wc=null;L.wk=null;}
+  if(w){L.wc=ITEMS[w.k].c;L.wk=w.k;}else if(g&&ITEMS[g.k].type==='gun'){L.wc=ITEMS[g.k].c;L.wk='_'+ITEMS[g.k].icon;}else{L.wc=null;L.wk=null;}
   const ks=h.eq.imp.filter(Boolean).map(i=>i.k);if(ks.includes('gunhand'))L.gh=1;if(ks.includes('mantis'))L.mt=1;if(ks.length)L.cy={port:['#3fe8ff','#ff3fa4','#39ffb0'][ks.length-1]};
   return L;
 }
@@ -2017,7 +2041,7 @@ function rdFrame(now){
     const a=(now-f.t0);if(a<0)return true;
     if(f.t==='txt'){if(a>800)return false;if(!L.vis[f.p])return true;const [px,py]=C(f.p),p=a/800;g.font=`${f.s.length>5?5*S:6*S}px "Press Start 2P",monospace`;g.textAlign='center';g.globalAlpha=p>.7?1-(p-.7)/.3:1;const yy=py-8*S-p*14*S-f.off*7*S;g.fillStyle='#040407';g.fillText(f.s,px+S,yy+S);g.fillStyle=f.c;g.fillText(f.s,px,yy);g.globalAlpha=1;return true;}
     if(f.t==='beam'){if(a>170)return false;const [ax,ay]=C(f.a),[bx,by]=C(f.b),p=1-a/170;g.globalCompositeOperation='lighter';g.strokeStyle=f.c;g.lineCap='round';g.globalAlpha=p*.5;g.lineWidth=(2+(f.w||1))*S*1.6;g.beginPath();g.moveTo(ax,ay-4*S);g.lineTo(bx,by-4*S);g.stroke();g.globalAlpha=p;g.strokeStyle='#ffffff';g.lineWidth=S;g.beginPath();g.moveTo(ax,ay-4*S);g.lineTo(bx,by-4*S);g.stroke();g.globalAlpha=1;g.globalCompositeOperation='source-over';return true;}
-    if(f.t==='proj'){if(a>150)return false;const [ax,ay]=C(f.a),[bx,by]=C(f.b),p=a/150;g.fillStyle=f.c;g.fillRect(ax+(bx-ax)*p-S*1.5,ay+(by-ay)*p-4*S-Math.sin(p*Math.PI)*6*S,3*S,3*S);return true;}
+    if(f.t==='proj'){if(a>150)return false;const [ax,ay]=C(f.a),[bx,by]=C(f.b),p=a/150,px=ax+(bx-ax)*p,py=ay+(by-ay)*p-4*S-Math.sin(p*Math.PI)*6*S;if(f.k==='knife'){const ic=itemIcon({k:'knife',q:1}),sz=9*S;g.save();g.translate(px,py);g.rotate(Math.atan2(by-ay,bx-ax)+Math.PI/4+a/14);g.imageSmoothingEnabled=false;g.drawImage(ic,-sz/2,-sz/2,sz,sz);g.restore();return true;}g.fillStyle=f.c;g.fillRect(px-S*1.5,py,3*S,3*S);return true;}
     if(f.t==='boom'){if(a>380)return false;const [px,py]=C(f.p),p=a/380,r=f.r*TS*(.3+.7*p);g.globalCompositeOperation='lighter';g.globalAlpha=(1-p)*.8;g.drawImage(glow(f.c),px-r*1.5,py-r*1.5,r*3,r*3);g.strokeStyle=f.c;g.lineWidth=2*S;g.beginPath();g.arc(px,py,r,0,7);g.stroke();g.globalAlpha=1;g.globalCompositeOperation='source-over';return true;}
     if(f.t==='use'){if(a>650)return false;const [px,py]=C(f.p),p=a/650,ic=itemIcon({k:f.k,q:1,known:true}),z=SZ*S*(1-p*.5);g.globalAlpha=p>.6?1-(p-.6)/.4:1;g.drawImage(ic,px-z/2+8*S*(1-p),py-18*S-p*4*S+Math.sin(p*18)*S,z,z);g.globalAlpha=1;if(a<420&&((a/70|0)%2===0)){g.fillStyle=itemColor({k:f.k});g.fillRect(px+(Math.random()*8-2)*S,py-(9+Math.random()*3)*S,S,S);}return true;}
     if(f.t==='zap'){if(a>240)return false;const [px,py]=C(f.p);g.globalCompositeOperation='lighter';g.strokeStyle=a%80<40?'#ffffff':'#7ae0ff';g.lineWidth=S;for(let n=0;n<3;n++){g.beginPath();let x=px+(Math.random()-.5)*10*S,y=py-12*S;g.moveTo(x,y);for(let q=0;q<4;q++){x+=(Math.random()-.5)*8*S;y+=4*S;g.lineTo(x,y);}g.stroke();}g.globalAlpha=.35*(1-a/240);g.drawImage(glow('#7ae0ff'),px-TS,py-TS*1.2,TS*2,TS*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';return true;}
@@ -2063,7 +2087,7 @@ function heavyFin(c,a,d,px,py,sw,sp,g,ox,oy,TS,S,now){
   if(d.robot){if(!c.fin){c.fin=1;RD.fx.push({t:'boom',p:c.p,c:'#ffb03c',r:1.6,t0:now});RD.shake=Math.min(8,RD.shake+4);sfx('boom');burst(X(c.p)+.5,Y(c.p)+.4,['#ffe14a','#8a9098','#ff7a2a'],16,9);RD.decals.push({x:X(c.p)+.5,y:Y(c.p)+.7,r:.9,n:12,c:'#0c0c12',s:c.p*3});}return false;}
   if(a>3000)return false;const p=Math.min(1,(a-1150)/300);dr(x,y,c.dx*(.35+p*1.2),.72+p*.1,0,a>2300?1-(a-2300)/700:1);return true;}
 
-function gunLook(){const L=heroLook(),g=activeGun();if(g){L.wk=ITEMS[g.k].icon==='gun2'?'_gun2':ITEMS[g.k].icon==='gun3'?'_gun3':'_gun2';L.wc=ITEMS[g.k].c;}return L;}
+function gunLook(){const L=heroLook(),g=activeGun();if(g&&ITEMS[g.k].type==='gun'){L.wk=ITEMS[g.k].icon==='gun2'?'_gun2':ITEMS[g.k].icon==='gun3'?'_gun3':'_gun2';L.wc=ITEMS[g.k].c;}return L;}
 
 function carHit(dir){const now=performance.now();if(!G||G.over||G.depth!==0||busy())return;if(RD.carT&&now-RD.carT<1600)return;RD.carT=now;
   const h=G.hero;dmgHero(2,'a passing car');RD.shake=Math.min(10,RD.shake+6);fx({t:'txt',p:h.pos,s:'BEEP!',c:'#ffe14a'});
@@ -2197,7 +2221,7 @@ function refresh(){
   const pc=$('#portrait canvas'),pg=pc.getContext('2d');pg.imageSmoothingEnabled=false;pg.clearRect(0,0,pc.width,pc.height);pg.drawImage(lookSprite(heroLook(),0),PAD+2,PAD-1,12,9,0,0,pc.width,pc.height);
   // tools
   const c=CLASSES[h.cls],ab=$('#tAbil');ab.classList.toggle('cd',h.acd>0);ab.querySelector('span').textContent=h.acd>0?h.acd:'';
-  const g=activeGun(),tf=$('#tFire');tf.querySelector('.ic').innerHTML=g?`<img class="pix" src="${itemURL(g)}">`:uicon('gun','#4a545a');tf.querySelector('span').textContent=g?g.ch+'/'+gunMax(g):'';tf.classList.toggle('empty',!g||g.ch<=0);tf.classList.toggle('on',!!(UI.mode&&UI.mode.t==='fire'));
+  const g=activeGun(),tf=$('#tFire');tf.querySelector('.ic').innerHTML=g?`<img class="pix" src="${itemURL(g)}">`:uicon('gun','#4a545a');tf.querySelector('span').textContent=g?(ITEMS[g.k].type==='throw'?'×'+g.q:g.ch+'/'+gunMax(g)):'';tf.classList.toggle('empty',!g||(ITEMS[g.k].type!=='throw'&&g.ch<=0));tf.classList.toggle('on',!!(UI.mode&&UI.mode.t==='fire'));
   [0,1].forEach(i=>{const b=$('#tQ'+i),k=h.quick[i],it=k&&invFind(k);b.querySelector('.ic').innerHTML=it?`<img class="pix" src="${itemURL(it)}">`:'<em>+</em>';b.querySelector('span').textContent=it?(it.q>1?it.q:''):'';b.classList.toggle('on',!!(UI.mode&&UI.mode.t==='throw'&&UI.mode.k===k));});
   $('#tLook').classList.toggle('on',!!(UI.mode&&UI.mode.t==='look'));
   // boss
@@ -2279,7 +2303,7 @@ function useItemUI(it){
 }
 
 // ---------- modal & inventory
-function openModal(html,cls){const m=$('#modal');m.querySelector('.panel').className='panel '+(cls||'');m.querySelector('.panel').innerHTML=html;m.classList.remove('hide');stopWalk();return m.querySelector('.panel');}
+function openModal(html,cls){const m=$('#modal'),pn=m.querySelector('.panel'),keep=cls&&!m.classList.contains('hide')&&pn.className==='panel '+cls?pn.scrollTop:0;pn.className='panel '+(cls||'');pn.innerHTML=html;m.classList.remove('hide');pn.scrollTop=keep;stopWalk();return pn;}
 function closeModal(){$('#modal').classList.add('hide');UI.bag=null;if(G&&G.pend)G.pend=null;}
 function slotHTML(it,ref,extra){
   if(!it)return `<div class="slot empty ${extra||''}" data-ref="${ref}"><small>${extra||''}</small></div>`;
@@ -2314,7 +2338,7 @@ function detailHTML(it,ref){
       if(d.type==='stim')btn+=`<button class="btn go" data-act="use">INJECT</button><button class="btn" data-act="throw">THROW</button>`;
       if(d.type==='chip')btn+=`<button class="btn go" data-act="use">RUN</button>`;
       if(d.type==='food')btn+=`<button class="btn go" data-act="use">EAT</button>`;
-      if(d.type==='throw')btn+=`<button class="btn go" data-act="throw">THROW</button>`;
+      if(d.type==='throw')btn+=`<button class="btn go" data-act="throw">THROW</button><button class="btn" data-act="equip">EQUIP TO RANGED</button>`;
       if(d.use)btn+=`<button class="btn go" data-act="use">USE</button>`;
       if(['stim','chip','food','throw'].includes(d.type)||d.use)btn+=`<button class="btn sm" data-act="q0">Q1</button><button class="btn sm" data-act="q1">Q2</button>`;
       btn+=`<button class="btn sm" data-act="drop">DROP</button>`;
@@ -2328,7 +2352,7 @@ function renderBag(){
   let cand=null;if(B.pick)cand=new Set(pickList(B.pick));
   const title=B.pick?(B.pick==='gear'?'PATCH WHICH GEAR?':'SCAN WHICH ITEM?'):B.sell?'SELL TO '+VENDORS[B.sell].n.toUpperCase():'BACKPACK';
   let s=`<div class="mhead"><h2>${title}</h2><span class="cr">◈ ${h.creds}</span><button class="x" data-act="close">✕</button></div>`;
-  s+=`<div class="eqrow">${slotHTML(h.eq.melee,'melee','WPN')}${slotHTML(h.eq.gun,'gun','GUN')}${slotHTML(h.eq.armor,'armor','ARM')}${h.eq.imp.map((it,i)=>slotHTML(it,'m'+i,'IMP')).join('')}</div>`;
+  s+=`<div class="eqrow">${slotHTML(h.eq.melee,'melee','WPN')}${slotHTML(h.eq.gun,'gun','RNG 1')}${slotHTML(h.eq.armor,'armor','ARM')}${h.eq.imp.map((it,i)=>slotHTML(it,'m'+i,'IMP')).join('')}</div>`;
   s+='<div class="grid">';for(let i=0;i<24;i++)s+=slotHTML(h.inv[i],'i'+i);s+='</div>';
   const sel=UI.sel,ref=sel?(['melee','gun','armor'].find(k=>h.eq[k]===sel)||(h.eq.imp.indexOf(sel)>=0?'m'+h.eq.imp.indexOf(sel):'i'+h.inv.indexOf(sel))):null;
   s+=`<div class="detail">${sel&&ref!=='i-1'?detailHTML(sel,ref):`<p class="dim">${B.pick?'Pick an item.':B.sell?'Tap an item to sell it.':'Tap an item. '+h.inv.length+'/24 slots used.'}</p>`}</div>`;
@@ -2337,7 +2361,7 @@ function renderBag(){
   p.onclick=ev=>{
     const a=ev.target.closest('[data-act]'),sl=ev.target.closest('.slot');
     if(a){bagAct(a.dataset.act);return;}
-    if(sl){const it=refItem(sl.dataset.ref);if(it&&(!cand||cand.has(it))){UI.sel=it;renderBag();}}
+    if(sl){const it=refItem(sl.dataset.ref);if(it&&(!cand||cand.has(it))){UI.sel=it;renderBag();lpReveal();}}
   };
 }
 function bagAct(act){
@@ -2405,9 +2429,9 @@ function boot(){
   rdInit($('#cv'));drawTitleArt();
   $('#tWait .ic').innerHTML=uicon('wait');$('#tSearch .ic').innerHTML=uicon('search');$('#tLook .ic').innerHTML=uicon('look');$('#tAbil .ic').innerHTML=uicon('bolt','#ffe14a');$('#tBag .ic').innerHTML=uicon('bag','#39ffb0');
   window.addEventListener('resize',rdResize);
-  const cv=$('#cv');let down=null;
-  cv.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});
-  cv.addEventListener('pointerup',e=>{if(!down)return;const d=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(d>14)return;const r=cv.getBoundingClientRect();onTap(tileAtPx(e.clientX-r.left,e.clientY-r.top));});
+  const cv=$('#cv');let down=null,cvLT=0;
+  cv.addEventListener('pointerdown',e=>{if(UI.pinch){down=null;return;}down={x:e.clientX,y:e.clientY};clearTimeout(cvLT);cvLT=setTimeout(()=>{if(!down||UI.pinch)return;down.long=1;const r=cv.getBoundingClientRect(),i=tileAtPx(down.x-r.left,down.y-r.top);if(G&&!G.over&&!busy()&&i>=0){stopWalk();if(UI.mode)setMode(null);showInfo(i);refresh();}},460);});cv.addEventListener('pointermove',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>12)clearTimeout(cvLT);});cv.addEventListener('pointercancel',()=>{clearTimeout(cvLT);down=null;});
+  cv.addEventListener('pointerup',e=>{clearTimeout(cvLT);if(!down||down.long||UI.pinch){down=null;return;}const d=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(d>14)return;const r=cv.getBoundingClientRect();onTap(tileAtPx(e.clientX-r.left,e.clientY-r.top));});
   const act=(id,fn)=>$(id).addEventListener('click',e=>{e.preventDefault();initAudio();if(!G||G.over||busy())return;fn();refresh();});
   act('#tWait',()=>{stopWalk();setMode(null);actWait();});
   act('#tSearch',()=>{stopWalk();setMode(null);actSearch();});
@@ -2552,7 +2576,7 @@ function detailHTML(it,ref){
       if(d.type==='chip')btn+=`<button class="btn go" data-act="use">RUN</button>`;
       if(d.type==='food')btn+=`<button class="btn go" data-act="use">${d.drink?'DRINK':'EAT'}</button>`;
       if(d.use)btn+=`<button class="btn go" data-act="use">USE</button>`;
-      btn+=`<button class="btn ${d.type==='throw'?'go':''}" data-act="throw">THROW</button>`;
+      btn+=`<button class="btn ${d.type==='throw'?'go':''}" data-act="throw">THROW</button>`;if(d.type==='throw')btn+=`<button class="btn go" data-act="equip">EQUIP TO RANGED</button>`;
       if(['stim','chip','food','throw'].includes(d.type)||d.use)btn+=`<button class="btn sm" data-act="q0">Q1</button><button class="btn sm" data-act="q1">Q2</button>`;
       btn+=`<button class="btn sm" data-act="drop">DROP</button>`;
     }
@@ -2565,14 +2589,14 @@ function renderBag(){
   const title=B.pick?(B.pick==='gear'?'PATCH WHICH GEAR?':'SCAN WHICH ITEM?'):B.sell?VENDORS[B.sell].n.toUpperCase()+' · TRADE':'BACKPACK';
   let s=`<div class="mhead"><h2>${title}</h2><span class="cr">◈ ${h.creds}</span>${B.pick||B.sell?'':'<button class="x db" data-act="db">DB</button>'}<button class="x" data-act="close">✕</button></div>`;
   if(B.sell){const st=G.L.items.filter(e=>e.price&&dist(e.pos,h.pos)<=9);s+=`<div class="stock"><h5 class="h5">FOR SALE (${st.length})</h5>${st.length?st.map((e,j)=>`<div class="srow"><img class="pix" src="${itemURL(e.it)}"><span>${esc(itemName(e.it))}</span>${cmpHTML(e.it).replace(/<[^>]*class="cmp[^>]*>/,'').slice(0,0)}<b>${priceOf(e)}◈</b><button class="btn sm ${h.creds>=priceOf(e)?'':'off'}" data-buy="${G.L.items.indexOf(e)}">BUY</button></div>`).join(''):'<p class="dim">Sold out.</p>'}<h5 class="h5">YOUR PACK — tap an item to sell</h5></div>`;}
-  s+=`<div class="eqrow e7">${slotHTML(h.eq.melee,'melee','WPN')}${slotHTML(h.eq.gun,'gun','GUN')}${slotHTML(h.eq.gun2,'gun2','GUN2')}${slotHTML(h.eq.armor,'armor','ARM')}${h.eq.imp.map((it,i)=>slotHTML(it,'m'+i,'IMP')).join('')}</div>`;
+  s+=`<div class="eqrow e7">${slotHTML(h.eq.melee,'melee','WPN')}${slotHTML(h.eq.gun,'gun','RNG 1')}${slotHTML(h.eq.gun2,'gun2','RNG 2')}${slotHTML(h.eq.armor,'armor','ARM')}${h.eq.imp.map((it,i)=>slotHTML(it,'m'+i,'IMP')).join('')}</div>`;
   s+='<div class="grid">';for(let i=0;i<packCap();i++)s+=slotHTML(h.inv[i],'i'+i);s+='</div>';
   const sel=UI.sel,ref=sel?(['melee','gun','gun2','armor'].find(k=>h.eq[k]===sel)||(h.eq.imp.indexOf(sel)>=0?'m'+h.eq.imp.indexOf(sel):'i'+h.inv.indexOf(sel))):null;
   s+=`<div class="detail">${sel&&ref!=='i-1'?detailHTML(sel,ref):`<p class="dim">${B.pick?'Pick an item.':B.sell?'Tap an item to sell it.':'Tap an item. ▲ means better than what you have on, ▼ worse. '+h.inv.length+'/'+packCap()+' slots used.'}</p>`}</div>`;
   const p=openModal(s,'bag');UI.bag=B;
   p.addEventListener('click',ev=>{const b=ev.target.closest('[data-buy]');if(!b||b.classList.contains('off'))return;ev.stopPropagation();const e=G.L.items[+b.dataset.buy];if(e&&actBuy(e)){refresh();renderBag();}},true);
   if(cand)p.querySelectorAll('.slot').forEach(e=>{const it=refItem(e.dataset.ref);if(!it||!cand.has(it))e.classList.add('dimmed');});
-  p.onclick=ev=>{const a=ev.target.closest('[data-act]'),sl=ev.target.closest('.slot');if(a){bagAct(a.dataset.act);return;}if(sl){const it=refItem(sl.dataset.ref);if(it&&(!cand||cand.has(it))){UI.sel=it;renderBag();}}};
+  p.onclick=ev=>{const a=ev.target.closest('[data-act]'),sl=ev.target.closest('.slot');if(a){bagAct(a.dataset.act);return;}if(sl){const it=refItem(sl.dataset.ref);if(it&&(!cand||cand.has(it))){UI.sel=it;renderBag();lpReveal();}}};
 }
 function bagAct(act){
   const h=G.hero,it=UI.sel;
@@ -2721,7 +2745,7 @@ function onTap(i){
   UI.tapLift=G.L.map[i]===T.EXIT;go(i);
 }
 function refresh2(){
-  const h=G.hero,sw=$('#tSwap');if(sw){const g2=h.eq.gun2;sw.classList.toggle('hide',!g2);sw.style.left=$('#tFire').offsetLeft+'px';if(g2)sw.innerHTML=`<img class="pix" src="${itemURL(g2)}"><span>${g2.ch}</span>`;}
+  const h=G.hero,sw=$('#tSwap');if(sw){const g2=h.eq.gun2;sw.classList.toggle('hide',!g2);sw.style.left=$('#tFire').offsetLeft+'px';if(g2)sw.innerHTML=`<img class="pix" src="${itemURL(g2)}"><span>${ITEMS[g2.k].type==='throw'?'×'+g2.q:g2.ch}</span>`;}
   if(typeof refresh3==='function')refresh3();
   const f=visFoes().length;
   if(f){if(!UI.fight)UI.fight={hp:h.hp,n:0,mx:0,boss:0};UI.fight.n++;UI.fight.mx=Math.max(UI.fight.mx,f);if(visFoes().some(m=>MOBS[m.k].boss))UI.fight.boss=1;}
@@ -3326,6 +3350,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.19','TOUCH UPDATE: character creator scrolls on phones and WAKE UP is pinned to the bottom · every screen checked for touch on an iPhone-size display · hold an item in the pack for a quick action menu, tapping an item jumps to its buttons, and the pack no longer jumps back to the top · hold a map tile to inspect it · pinch to zoom the map · hold any toolbar button for its name; hold FIRE to swap ranged slots · bigger buttons in the creator and tabs · RANGED SLOTS: GUN/GUN2 are now RNG 1/RNG 2 and take throwing knives and grenades as well as guns — FIRE throws them, pickups refill the stack · Ghost starts with knives loaded · throwing knife redrawn as a black-steel kunai (cord grip, ring pommel) that spins in flight · phone: Doc Sato (7286) and Chef Okabe (6522) in contacts; Doc sends med kits, Okabe sends food · keypad codes: *NN jumps to floor NN, ## spawns items, #0 patches you up; dev mode gets JUMP TO FLOOR and SPAWN ITEM · saves every 2 turns, when you switch apps, and every 10 s · sound comes back after the app returns from the background · offline cache now pulls updates when online'],
  ['v0.18.1','OFFLINE STABLE BUILD: autosave every 5 turns (was 30), on every floor change, and whenever the app is closed or sent to the background · backup save slot — if the main save is ever damaged, Continue loads the backup · warning if a save ever fails · runs fully offline'],
  ['v0.18','HOME: tower no longer turns into a black box as it climbs (floors below the old cut-off now draw), circuits mirrored on both sides · WORLD: capsule pods and vending machines are built into the walls (never on the floor or in doorways); pods are silver hatches with blinking red/green buttons and POD BAY signs; new room types — closets with lockers and loot, bathrooms with showers and sinks, living quarters with bunks and TVs, mini-bars with a bartender, bottle shelves and hologram dancers; animated wall TVs (static, ads, music bars, news ticker) · Scuttle Bots are now green crab robots · NPCs: helped people actually walk to the elevator and leave; friendly NPCs no longer block corridors (you walk through them once you\'ve talked); calling a contact sends a little blue courier bot that rolls to you, opens its chest hatch and tells you what it brought; called recruits arrive by elevator and walk to you · random encounters: elevator patrols, misdelivered courier bots, survivors asking for help, glitching wall vending machines · bars: sit and drink (heals), then meet a recruit, get a tip on where the floor key is, receive a gift, or just soak in the atmosphere · SETTINGS: collision for auto-walk (stop at enemies/traps/locked doors, on by default); arriving at an elevator by tap opens the panel, walking past never does · UX: first-person hand sits at the bottom of the screen (~20% max) and lifts a little to drink/smoke; shop TRADE screen shows the shop stock with BUY buttons above your pack (sell from the same screen); throw anything up to 12 tiles; crunchier eating and slurpier drinking sounds; faces get eyebrows, nose shading and a mouth; full beards with sideburns and moustache; only one phone button when the data device is on · ENDING: walk out of MTX with everyone you saved, police, security drones, the mayor and Reyes; choose your ending (Superintendent, Head of Security, Take the Payout, or Hand it to the Residents with good karma); epilogue sets up MTX: UNDERGROUND'],
  ['v0.17','Legend: notes section removed · Databank NOTES tab is now a player NOTEPAD — write your own notes, auto-tagged with the floor and in-game time, delete any · PHONE (☏ button on the HUD, and in the data device): contacts from people you help — call them for a courier-drone delivery or, rarely, backup if you have a free companion slot; each picks up twice · KEYPAD: dial any number; unknown numbers are "not in service" · developer mode via keypad: god mode, ◈ 999,999, STR 30, plus dev controls (creds, strength, level, unlock all floors, reveal map, heal)'],
@@ -3390,7 +3415,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.18.1 iPHONE OFFLINE · tap for LEGEND & full changelog';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.19 TOUCH · tap for LEGEND & full changelog';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -3501,18 +3526,18 @@ termShow=function(i){const L=G.L;L.termC=L.termC||{};let c=L.termC[i];
 DEVNOTES.push('Inbox messages (MAIL_T) and senders (MAIL_FROM) in ui5.js are yours to rewrite too.');
 
 // ---------- v0.17 PHONE: contacts + keypad (0000 = developer mode)
-function phone(tab){tab=tab||'contacts';const cs=G.contacts||[];let num='';
+function phone(tab){tab=tab||'contacts';ensureContacts();const cs=G.contacts||[];let num='';
   const draw=()=>{let body='';
     if(tab==='contacts')body=cs.length?cs.map((c,i)=>`<div class="dbr lv2"><div style="flex:1"><h4>${esc(c.n)} <em>${c.num}</em></h4><p class="dim">Met on ${c.d<=0?'the street':'floor '+c.d}${c.used>=2?' · not answering':''}</p></div><button class="btn sm ${c.used>=2?'off':''}" data-c="${i}">CALL</button></div>`).join(''):'<p class="dim">No contacts yet. People you help may give you their number.</p>';
     else body=`<div class="pscr">${num||'&nbsp;'}</div><div class="pkey">${['1','2','3','4','5','6','7','8','9','*','0','#'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="btns"><button class="btn go" data-k="call">☏ CALL</button><button class="btn" data-k="clr">CLEAR</button></div>`;
-    if(G.dev)body+=`<h5 class="h5">DEVELOPER</h5><div class="btns"><button class="btn sm" data-d="god">GOD: ${G.god?'ON':'OFF'}</button><button class="btn sm" data-d="cr">+100k ◈</button><button class="btn sm" data-d="str">STR +5</button><button class="btn sm" data-d="lvl">LEVEL +1</button><button class="btn sm" data-d="unl">UNLOCK ALL FLOORS</button><button class="btn sm" data-d="map">REVEAL MAP</button><button class="btn sm" data-d="heal">FULL HEAL</button><button class="btn sm" data-d="off">DEV OFF</button></div>`;
+    if(G.dev)body+=`<h5 class="h5">DEVELOPER</h5><div class="btns"><button class="btn sm" data-d="god">GOD: ${G.god?'ON':'OFF'}</button><button class="btn sm" data-d="cr">+100k ◈</button><button class="btn sm" data-d="str">STR +5</button><button class="btn sm" data-d="lvl">LEVEL +1</button><button class="btn sm" data-d="unl">UNLOCK ALL FLOORS</button><button class="btn sm" data-d="map">REVEAL MAP</button><button class="btn sm" data-d="heal">FULL HEAL</button><button class="btn sm" data-d="jump">JUMP TO FLOOR</button><button class="btn sm" data-d="spawn">SPAWN ITEM</button><button class="btn sm" data-d="off">DEV OFF</button></div>`;
     const p=openModal(`<div class="mhead"><h2>☏ PHONE</h2><button class="x" data-act="close">✕</button></div><div class="tabs"><button class="chip ${tab==='contacts'?'on':''}" data-t="contacts">CONTACTS</button><button class="chip ${tab==='keypad'?'on':''}" data-t="keypad">KEYPAD</button></div><div class="detail">${body}</div>`);
     p.onclick=ev=>{const h=G.hero;if(ev.target.closest('[data-act]')){closeModal();refresh();return;}const t=ev.target.closest('[data-t]');if(t){tab=t.dataset.t;draw();return;}
       const c=ev.target.closest('[data-c]');if(c&&!c.classList.contains('off')){if(AC){for(let q=0;q<3;q++)tone(440,.25,'sine',.03,0,q*.6);}closeModal();setTimeout(()=>{callContact(cs[+c.dataset.c]);refresh();},900);return;}
       const k=ev.target.closest('[data-k]');if(k){const v=k.dataset.k;if(v==='clr')num='';else if(v==='call'){dial(num);num='';return;}else if(num.length<10){num+=v;if(AC)tone(700+'123456789*0#'.indexOf(v)*40,.08,'sine',.03,0,0);}draw();return;}
-      const d=ev.target.closest('[data-d]');if(d){const x=d.dataset.d;if(x==='god')G.god=!G.god;else if(x==='cr')h.creds+=100000;else if(x==='str')h.str+=5;else if(x==='lvl'){h.xp=0;h.lvl++;h.mhp+=5;h.hp=h.mhp;}else if(x==='unl')G.unl=30;else if(x==='map'){for(let i=0;i<N;i++)G.L.seen[i]=1;}else if(x==='heal'){h.hp=h.mhp;h.hunger=0;h.b={};}else if(x==='off')setDev(false);refresh();draw();}};};
+      const d=ev.target.closest('[data-d]');if(d){const x=d.dataset.d;if(x==='god')G.god=!G.god;else if(x==='cr')h.creds+=100000;else if(x==='str')h.str+=5;else if(x==='lvl'){h.xp=0;h.lvl++;h.mhp+=5;h.hp=h.mhp;}else if(x==='unl')G.unl=30;else if(x==='map'){for(let i=0;i<N;i++)G.L.seen[i]=1;}else if(x==='heal'){h.hp=h.mhp;h.hunger=0;h.b={};}else if(x==='off')setDev(false);else if(x==='jump'){devJump();return;}else if(x==='spawn'){devSpawn();return;}refresh();draw();}};};
   draw();}
-function dial(num){if(num==='0000'){setDev(!G.dev);toast(G.dev?'<b style="color:#39ff7a">DEVELOPER MODE</b><br>God mode on · ◈ 999,999 · STR 30. Dev controls are in the phone.':'Developer mode off.');if(AC){tone(1200,.1,'square',.03,0,0);tone(1600,.15,'square',.03,0,.12);}refresh();phone('keypad');return;}
+function dial(num){if(cheatCode(num))return;if(num==='0000'){setDev(!G.dev);toast(G.dev?'<b style="color:#39ff7a">DEVELOPER MODE</b><br>God mode on · ◈ 999,999 · STR 30. Dev controls are in the phone.':'Developer mode off.');if(AC){tone(1200,.1,'square',.03,0,0);tone(1600,.15,'square',.03,0,.12);}refresh();phone('keypad');return;}
   const c=(G.contacts||[]).find(x=>x.num===num);if(c){closeModal();setTimeout(()=>{callContact(c);refresh();},900);return;}
   if(AC){tone(950,.3,'sine',.03,0,0);tone(1400,.3,'sine',.03,0,.33);tone(1800,.4,'sine',.03,0,.66);}toast('"The number you have dialed is not in service."');}
 
@@ -3557,10 +3582,76 @@ function epilogue(e){const lines={super:'Six months later, MTX has working eleva
   p.onclick=ev=>{if(!ev.target.closest('[data-act]'))return;closeModal();$('#cineblk')&&($('#cineblk').className='');RD.focus=-1;G.cineAt=-1;G.over={won:true,cause:e.t};clearSave();if(EV.over)EV.over();};}
 
 
+
+// ================= v0.19: touch controls, ranged throwables, kunai, iOS background =================
+ICON2.knife=function(R){const M=['...............w', '..............g.', '............sg..', '..........skgs..', '........sskgd...', '.......skkgds...', '.......kkgds....', '......ddkdds....', '.....ddgdks.....', '....ddgdd.......', '...kdgdd........', '.gggkdd.........', 'gkkkgk..........', 'gk.kg...........', 'gkkkg...........', '.ggg............'],P={k:'#141519',d:'#2c3038',g:'#4a515c',s:'#8c96a2',w:'#e8edf2'};for(let y=0;y<16;y++)for(let x=0;x<16;x++){const c=P[M[y][x]];if(c)R(x,y,1,1,c);}};
+ITEMS.knife.name='Throwing Knife';ITEMS.knife.desc='A black steel kunai: double-edged spike, cord-wrapped grip, ring pommel. Equip a stack to a ranged slot and FIRE to throw. Usually recoverable.';
+function invFind(k){const h=G.hero;return h.inv.find(i=>i.k===k)||[h.eq.gun,h.eq.gun2].find(i=>i&&i.k===k)||null;}
+function consume(it,n){it.q-=(n||1);if(it.q<=0){const h=G.hero,i=h.inv.indexOf(it);if(i>=0)h.inv.splice(i,1);for(const sl of ['gun','gun2'])if(h.eq[sl]===it){h.eq[sl]=null;if(sl==='gun'&&h.eq.gun2){h.eq.gun=h.eq.gun2;h.eq.gun2=null;}log('Ranged slot empty — out of '+ITEMS[it.k].name+'s.','warn');}}}
+function strGap(it){if(!it)return 0;const t=ITEMS[it.k].type;if(t!=='melee'&&t!=='gun'&&t!=='armor')return 0;return Math.max(0,strReq(it)-G.hero.str);}
+function equipThrow(it){const h=G.hero,ii=h.inv.indexOf(it);if(G.over)return false;
+  const same=['gun','gun2'].find(sl=>h.eq[sl]&&h.eq[sl].k===it.k);
+  if(same){if(ii>=0)h.inv.splice(ii,1);h.eq[same].q+=it.q;}
+  else if(!h.eq.gun){if(ii>=0)h.inv.splice(ii,1);h.eq.gun=it;}
+  else if(!h.eq.gun2){if(ii>=0)h.inv.splice(ii,1);h.eq.gun2=h.eq.gun;h.eq.gun=it;}
+  else{const cur=h.eq.gun;if(cur.cursed){log(`Malware has your ${ITEMS[cur.k].name} locked on.`,'bad');return false;}if(ii>=0)h.inv.splice(ii,1);h.eq.gun=it;const sk=stackable(cur)&&h.inv.find(x=>x.k===cur.k);if(sk)sk.q+=cur.q;else stow(cur);}
+  it.known=true;note('i',it.k,2);sfx('equip');log(`${itemName(it)} loaded in your ranged slot — FIRE throws them.`);spend(1);return true;}
+// ---- tooltip
+function tip(txt,ms){let b=$('#tipbox');if(!b){b=document.createElement('div');b.id='tipbox';document.body.appendChild(b);}b.innerHTML=txt;b.style.display='block';clearTimeout(tip.t);tip.t=setTimeout(()=>{b.style.display='none';},ms||1400);}
+// ---- generic long-press
+function onLong(root,sel,cb,ms){if(!root)return;let t=null,sx=0,sy=0,fired=false;
+  root.addEventListener('pointerdown',e=>{const el=e.target.closest(sel);if(!el||!root.contains(el))return;sx=e.clientX;sy=e.clientY;fired=false;clearTimeout(t);t=setTimeout(()=>{t=null;fired=true;el.classList.add('lp');setTimeout(()=>el.classList.remove('lp'),260);try{cb(el,e);}catch(err){}},ms||450);},{passive:true});
+  const cancel=()=>{clearTimeout(t);t=null;};
+  root.addEventListener('pointermove',e=>{if(t&&Math.hypot(e.clientX-sx,e.clientY-sy)>10)cancel();},{passive:true});
+  root.addEventListener('pointerup',cancel);root.addEventListener('pointercancel',cancel);
+  root.addEventListener('click',e=>{if(fired){e.stopPropagation();e.preventDefault();fired=false;}},true);
+  root.addEventListener('contextmenu',e=>{if(e.target.closest(sel))e.preventDefault();});}
+function lpReveal(){const d=document.querySelector('#modal .panel .detail .btns')||document.querySelector('#modal .panel .detail');if(d)try{d.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){d.scrollIntoView(false);}}
+function lpSheet(){const p=document.querySelector('#modal .panel');if(!p||!UI.sel)return;const btns=p.querySelector('.detail .btns');if(!btns)return;const old=p.querySelector('.lpsheet');if(old)old.remove();
+  const sh=document.createElement('div');sh.className='lpsheet';sh.innerHTML=`<h4><img src="${itemURL(UI.sel)}">${esc(itemName(UI.sel)).toUpperCase()}</h4><div class="btns">${btns.innerHTML}<button class="btn" data-lpx="1">CANCEL</button></div>`;
+  sh.addEventListener('click',e=>{if(e.target.closest('[data-lpx]')){e.stopPropagation();sh.remove();}});p.appendChild(sh);}
+// ---- cheat codes on the phone keypad
+function cheatCode(num){if(!G||!num)return false;
+  if(/^\*\d{1,2}$/.test(num)){const f=+num.slice(1);if(f>30){toast('No floor '+f+'.');return true;}closeModal();devGo(f);return true;}
+  if(num==='##'){devSpawn();return true;}
+  if(num==='#0'){G.hero.hp=G.hero.mhp;G.hero.hunger=0;G.hero.b={};toast('Patched up.');refresh();return true;}
+  return false;}
+function devGo(f){if(!G||G.over)return;closeModal();stopWalk();setMode(null);const down=f<G.depth;if((G.unl||0)<f)G.unl=f;enterFloor(f,down);log(`// override: elevator to ${f?'floor '+f:'the street'}.`,'hi');sfx('equip');if(typeof setAmb==='function')setAmb();refresh();save();}
+function devJump(){let b='';for(let f=0;f<=30;f++)b+=`<button data-j="${f}" style="${f===G.depth?'border-color:#39ff7a;color:#39ff7a':''}">${f===0?'ST':f}</button>`;
+  const p=openModal(`<div class="mhead"><h2>JUMP TO FLOOR</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="devgrid">${b}</div><p class="dim">Keypad shortcut: dial *12 to jump to floor 12.</p><div class="btns"><button class="btn" data-back="1">◀ PHONE</button></div></div>`);
+  p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();refresh();return;}if(ev.target.closest('[data-back]')){phone('keypad');return;}const j=ev.target.closest('[data-j]');if(j)devGo(+j.dataset.j);};}
+function devSpawn(){const ks=Object.keys(ITEMS).filter(k=>!['creds','core','lkey'].includes(k)&&!ITEMS[k].noloot);
+  const b=ks.map(k=>`<button data-sp="${k}"><img src="${itemURL(mk(k,{known:true}))}">${esc(ITEMS[k].name).slice(0,12)}</button>`).join('');
+  const p=openModal(`<div class="mhead"><h2>SPAWN ITEM</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="devgrid items">${b}</div><p class="dim">Keypad shortcut: dial ## for this list.</p><div class="btns"><button class="btn" data-back="1">◀ PHONE</button></div></div>`);
+  p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();refresh();return;}if(ev.target.closest('[data-back]')){phone('keypad');return;}const x=ev.target.closest('[data-sp]');if(!x)return;const k=x.dataset.sp,it=mk(k,{known:true});if(stackable(it))it.q=ITEMS[k].type==='throw'?10:3;if(ITEMS[k].type==='gun')it.ch=gunMax(it);if(addInv(it)){note('i',k,2);toast('Spawned '+esc(itemName(it))+'.');sfx('pick');}else{dropAt(G.hero.pos,it);toast('Pack full — dropped at your feet.');}refresh();};}
+function ensureContacts(){if(!G)return;G.contacts=G.contacts||[];const add=(n,k,num)=>{if(!G.contacts.some(c=>c.n===n))G.contacts.unshift({n,k,d:0,num,used:0});};add('Chef Okabe','chef','6522');add('Doc Sato','doc','7286');}
+// ---- iOS background: save on hide, timer save, rebuild audio after resume
+(function(){const flush=()=>{try{if(G&&!G.over){save();UI.dirty=0;}}catch(e){}};
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flush();}else{try{if(AC&&AC.state!=='running'){const old=AC;AC=null;MG=null;AMB=null;try{old.close();}catch(e){}}}catch(e){}}});
+  window.addEventListener('freeze',flush);setInterval(()=>{if(UI.dirty)flush();},10000);
+  window.addEventListener('pageshow',e=>{if(e.persisted&&typeof refresh==='function'&&G)try{refresh();}catch(err){}});})();
+// ---- wire touch gestures once the DOM exists
+window.addEventListener('DOMContentLoaded',()=>{
+  onLong($('#modal'),'.slot',el=>{if(!UI.bag||!G)return;const it=refItem(el.dataset.ref);if(!it)return;UI.sel=it;renderBag();lpSheet();});
+  onLong($('#tools'),'button',el=>{if(!G)return;if(el.id==='tFire'){if(G.hero.eq.gun2&&!busy()){swapGuns();refresh();const g=G.hero.eq.gun;tip('RANGED → '+esc(itemName(g)).toUpperCase());}else tip('FIRE / THROW — hold to swap ranged slots');return;}
+    if(el.id==='tQ0'||el.id==='tQ1'){openBag({});tip('Tap an item, then Q1 / Q2 to assign it');return;}
+    tip(el.getAttribute('aria-label')||el.textContent.trim());});
+  // pinch to zoom the map
+  const cv=$('#cv');const pts=new Map();let d0=0,z0=0;
+  const pd=()=>{const a=[...pts.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
+  cv.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){UI.pinch=1;stopWalk();d0=pd();z0=RD.tiles;}},{passive:true});
+  cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2&&d0>20){RD.tiles=clamp(z0*d0/pd(),6.5,17);try{rdResize();}catch(err){}}},{passive:true});
+  const up=e=>{pts.delete(e.pointerId);if(pts.size===0&&UI.pinch){setTimeout(()=>{UI.pinch=0;},60);try{saveOpts();}catch(err){}}};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('dblclick',e=>e.preventDefault());
+});
+DEEP.knife='2–7 damage plus half your level; sneak throws on sleepers hit far harder. 75% chance to pick it back up. Equip a stack to RNG 1 / RNG 2 and FIRE to throw — tap FIRE twice for the nearest enemy.';
+
 // ---------- offline build: save when the app is backgrounded/closed
 (function(){const f=function(){try{if(G&&!G.over)save();}catch(e){}};document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')f();});window.addEventListener('pagehide',f);window.addEventListener('blur',f);window.MTX_SAVE_NOW=f;})();
 </script>
-<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
 </body>
 </html>
