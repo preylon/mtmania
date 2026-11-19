@@ -3513,6 +3513,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26c','The ripperdoc bug, found properly this time. The clinic shop room never had a vendor type set, so the stock generator fell through to its last branch — the drone-parts list. The first ripperdoc you ever meet was standing in a shop selling scout bots, kits and EMPs, with no chrome anywhere. The clinic now stocks as a ripper: three implants and a nanite regenerator on the shelves, priced. For the record, the game already has 15 implants, all with working effects — including Thermal Eyes and Breaker Arms from the old notes. Nothing was missing from the game but the clinic stock.'],
  ['v0.26b','Fixes for v0.26, which I got wrong in two places: the message log had been shoved to the top of the screen by a bad CSS rule of mine — it is back above the tool bar · the BUILD picker and the biomonitor were put in the in-game NEW LOOK screen instead of the NEW RUN character creator, where you actually asked for them; both are now in the creator, with the biomonitor filling the dead space under the preview · iPhone safe-area fix reduced to the one line that was actually wrong, so it stops fighting the existing #mini and #log rules · death animations by enemy type, which v0.26 claimed and did not ship: drones spin down and crash, androids stutter and spray white before dropping, mechs and big frames land hard with a dust ring and a screen shake, four-legged things tumble, turrets topple off their mounts — and people now go down four different ways, picked per corpse, so a room full of bodies no longer looks copy-pasted'],
  ['v0.26','BUILD picker: Athletic, Hourglass, Curvy, Tall, Petite and Bruiser, for both frames — fem now defaults to Athletic (no skirt, squared shoulders, legs free) · biomonitor with a live ECG under the character preview · drag the screen with one finger to look around, it eases back when you move · you walk straight past your own drone and allies instead of getting stuck · talk to vendors across a counter · bars are sealed wall to wall and the bartender keeps a shotgun under it — counters block movement but not bullets · you can get drunk: aim drops, hits land harder, the room moves · sector vaults just open when you hold three keyshards, and cracking one raw is a high-TECH alternative instead of a prompt you always see · finishers rewritten — per-archetype, class flavour, a STR set when you are strong, and bosses finally get their own · rippers stock a chrome case you can buy from, with bone saw, grinder and welder noise and a line from the slicer on every cut · Chef Okabe and Doc Sato are no longer in your contacts at boot — visit the store for one, wake up on the table for the other · Reyes is just the MTX Captain until she gives you her name, and she tells you Voss burned the uplinks · TOWER FM got a band: walking upright bass, brushed ride, comped piano and a vibrato sax, on a real tuner display with signal bars · ranged weapons lock onto cameras when nothing hostile is up · drone QUIET RUN order · Sentinel Edge hook reattached and the tan nub under the guard cleaned off · caution tape across the tower doors · no more black bars top and bottom on iPhone (safe area was applied twice) and the changelog no longer sits on the SETTINGS button · the Voss roof scene is slower: the camera arrives before the blade does'],
  ['v0.25','Looking out is just tapping a window: next to it you look out, further away you walk over to it. No LOOK OUT button, search button back to normal'],
@@ -3586,7 +3587,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26b · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26c · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -5029,6 +5030,44 @@ function corpseTy(d){
   return 'org';
 }
 function sfxSafe(n){try{if(typeof sfx==='function')sfx(n);}catch(e){}}
+
+
+// --- the clinic shop had no vt, so shopStock() fell through to the DRONE-PARTS branch.
+//     That is why the first ripperdoc you ever meet sold scout bots and zero chrome. ---
+function stockClinic(){
+  try{
+    const L=G.L;
+    if(!L||L._clinicStocked||G.depth!==0||!L.shopR)return;
+    L._clinicStocked=1;
+    const hasRipper=L.mobs.some(m=>m.vt==='ripper');
+    if(!hasRipper)return;
+    if(!L.vt)L.vt='ripper';
+    const [x0,y0,x1,y1]=L.shopR;
+    const spots=[];
+    for(let y=y0+1;y<y1;y++)for(let x=x0+1;x<x1;x++){
+      const i=idx(x,y);
+      if(pass(i)&&!mobAt(i)&&i!==G.hero.pos&&!L.items.some(e=>e.pos===i))spots.push(i);
+    }
+    if(!spots.length)return;
+    const already=L.items.filter(e=>e&&e.it&&ITEMS[e.it.k]&&ITEMS[e.it.k].type==='implant').length;
+    const want=Math.max(0,3-already);
+    const picks=[];
+    for(let n=0;n<want;n++){
+      let it=null;try{it=randGear('implant',1,.6);}catch(e){}
+      if(!it||!ITEMS[it.k])continue;
+      if(it.cursed){it.cursed=false;it.lvl=0;}
+      it.known=true;picks.push(it);
+    }
+    try{picks.push(mk('regen',{known:true}));}catch(e){}
+    for(const it of picks){
+      if(!spots.length)break;
+      const pos=spots.splice((Math.random()*spots.length)|0,1)[0];
+      L.items.push({pos,it,price:Math.max(1,Math.round(itemValue(it)*1.0))});
+    }
+    mapChanged&&mapChanged();
+  }catch(e){}
+}
+{const _ef2=enterFloor;enterFloor=function(d){const r=_ef2.apply(this,arguments);try{stockClinic();}catch(e){}return r;};}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
