@@ -1984,6 +1984,13 @@ function rdFrame(now){
   RD.shake*=.85;const shx=(Math.random()-.5)*RD.shake*S,shy=(Math.random()-.5)*RD.shake*S;
   if(!RD.cam)RD.cam={x:RD.hp.x,y:RD.hp.y,f:0};{const fo=RD.focus!=null&&RD.focus>=0,tx=fo?X(RD.focus):RD.hp.x,ty=fo?Y(RD.focus):RD.hp.y;RD.cam.f+=((fo?1:0)-RD.cam.f)*Math.min(1,dt*2.5);RD.cam.x=RD.hp.x+(tx-RD.hp.x)*RD.cam.f;RD.cam.y=RD.hp.y+(ty-RD.hp.y)*RD.cam.f;if(fo)RD.cam.ftx=tx,RD.cam.fty=ty;else{RD.cam.x=RD.hp.x+((RD.cam.ftx??RD.hp.x)-RD.hp.x)*RD.cam.f;RD.cam.y=RD.hp.y+((RD.cam.fty??RD.hp.y)-RD.hp.y)*RD.cam.f;}}
   if(!RD.pan)RD.pan={x:0,y:0,d:0};if(RD.pan.d){RD.pan.x*=.80;RD.pan.y*=.80;if(Math.abs(RD.pan.x)<.6&&Math.abs(RD.pan.y)<.6){RD.pan.x=RD.pan.y=0;RD.pan.d=0;}RD.dirty=true;}
+  {// keep the viewport inside the map: no black bands at the edges.
+   const vw=RD.w/TS, vh=RD.h/TS;
+   const minX=vw/2-.5, maxX=W-.5-vw/2;
+   const minY=RD.h*.46/TS-.5, maxY=H-.5-RD.h*.54/TS;
+   RD.cam.x = (minX>maxX) ? (W/2-.5) : Math.max(minX,Math.min(maxX,RD.cam.x));
+   RD.cam.y = (minY>maxY) ? (H*.46-.5+ (H/2-H*.46)) : Math.max(minY,Math.min(maxY,RD.cam.y));
+  }
   const ox=RD.ox=Math.round(RD.w/2-(RD.cam.x+.5)*TS+shx+RD.pan.x),oy=RD.oy=Math.round(RD.h*.46-(RD.cam.y+.5)*TS+shy+RD.pan.y);
   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.fillStyle='#040407';g.fillRect(0,0,RD.w,RD.h);
   g.imageSmoothingEnabled=false;
@@ -3516,6 +3523,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.26h','No more black bands. The camera had no bounds at all — stand near the edge of a floor and the view simply ran off the map. It is now clamped so the viewport always stays inside the level, and centres itself on anything smaller than the screen. · Street traffic was driving in the wrong place: the road has two real lanes and the vehicles were straddling the lane markings and the median. They now run in the actual lanes, with the skater on the pavement. · The skater was T-posing with both arms straight out, which is why it read as a scarecrow. One arm is up and back, the other down and forward, like somebody actually balancing.'],
  ['v0.26g','Street traffic redrawn properly. Five vehicles — sport bike, street car, cargo trike, skater, two-up hover bike — now built as cached sprites that go through the same outline pass the people on the street use, so they sit in the same art style instead of looking pasted on. Real wheels with tyre, rim, hub and spokes that turn; a rider folded over the tank with an arm on the bars; a car with wheels under cut arches; a courier pedalling a cargo trike; a skateboard with trucks you can see. · Police line is back to its original look — the rewrite in the last build was worse. The only change is that a length of it now runs across the tower doorway, which it never did: the span was being added, then wiped every time the street rebuilt itself.'],
  ['v0.26f','Biomonitor rebuilt. The old one was an SVG stretched to fill its box, which squashed it in both directions — that is why it looked bad. It is a canvas now at a fixed aspect, with a trace that genuinely scrolls: P wave, QRS spike, T wave, drawn per frame, and the rate climbs as your health drops. Under it, a readout of frame, build, trade and status. · Tapping a vendor across their counter now talks instead of walking you round the long way — the ramen spot outside and the bars inside. Tapping went straight to the pathfinder, which routed around; only a manual bump was working. · Bars are properly sealed now. The previous pass only walled the counter row, and a flood-fill test showed 9 of 12 barkeeps were still reachable round the ends or through a door. The whole staff side is enclosed — 0 of 12 reachable, verified. · Creator column no longer stretches its contents.'],
  ['v0.26e','The fem body is finally the Athletic one. Two reasons it never applied: the build index was stored in L.bt, which was ALREADY the clothing bottom (skirt/shorts), and a later override repainted the old curvy silhouette straight over whatever the build drew. Builds now live in L.bld and the curvy overlay only runs for Hourglass and Curvy. All six builds verified rendering differently. · ENDING CINEMATICS — each of the four endings now plays a short sequence of drawn panels before the epilogue: rain-slick street, the doors staying open, the badge, the horizon, the tower lit up by its own residents. Tap to advance. · Street traffic rebuilt: five vehicles instead of three, with shaded bodies, spinning spoked wheels, ground shadows, speed lines, neon underglow and a hover sedan that actually floats. · Character creator: the left column now stretches so the biomonitor fills the dead space instead of leaving a gap. · Reyes\u2019 name is off the title tagline — just the quote now. · Also audited every feature claimed in v0.26 at runtime rather than trusting that the code was there: 15 of 15 confirmed working.'],
@@ -3594,7 +3602,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26g · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.26h · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4510,11 +4518,14 @@ window.drawTape=drawTape;
     g.drawImage(spr,Math.round(x),Math.round(y),VEH_W*S,VEH_H*S);
   };
   const wf=Math.floor(now/70)%4, bf=Math.floor(now/110)%4, sf=Math.floor(now/150)%4;
-  put('skater',15.6, 34*S,  5000, sf);
-  put('trike', 17.2, 46*S, 11000, bf);
-  put('bike',  18.4, 96*S,     0, wf);
-  put('sedan', 20.0,120*S, 21000, wf);
-  put('hover', 21.3, 74*S, 33000, bf);
+  // L.road holds the two real lanes. Everything on wheels belongs in one of them.
+  const ln=(L.road&&L.road.length===2)?L.road:[19,21];
+  const top=ln[0]-0.65, bot=ln[1]-0.65;          // sprite is 20 tall, sit it on the lane
+  put('skater',16.25, 30*S,  5000, sf);          // sidewalk (walk rows are 15-17)
+  put('bike',  top,   96*S,     0, wf);          // lane 1, left to right
+  put('sedan', top,  118*S, 23000, wf);
+  put('trike', bot,   44*S, 11000, bf);          // lane 2
+  put('hover', bot,   76*S, 33000, bf);
   }catch(e){}};}
 
 // ================= v0.22b: shoot cameras, dev SHADOW OP preset =================
@@ -5528,7 +5539,8 @@ const VEHDRAW={
   R(13,0,10,2,'#1f2630');                             // cap
   R(20,3,1,1,'#15181d');                              // eye
   R(14,5,8,1,vShade(sk2,-.34));
-  R(8,7,6,3,sk2); R(22,5,7,3,sk2);                    // arms out
+  R(10,7,4,2,sk2); R(8,5,3,2,sk2);                    // back arm, angled up
+  R(22,8,4,2,sk2); R(25,9,3,2,sk2);                   // front arm, angled down
   R(13,13,4,3,'#26324a'); R(19,13,4,3,'#26324a');     // legs down to the deck
   R(12,15,5,1,'#15181d'); R(19,15,5,1,'#15181d');     // shoes sitting on the deck
  },
