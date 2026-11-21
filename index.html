@@ -2016,7 +2016,7 @@ function rdFrame(now){
       else if(k==='pod'){g.fillStyle=(now/700+v)%2<1?'#39ff7a':'#1a4a2a';g.fillRect(px+13*S,py+8*S,S,S);g.fillStyle=(now/900+v)%3<.4?'#ff3b4e':'#5a1018';g.fillRect(px+13*S,py+10*S,S,S);}
       else if(k==='vend'){if((now/1600+v)%5<.2){g.fillStyle='rgba(255,255,255,.25)';g.fillRect(px+3*S,py+3*S,10*S,8*S);}}}
     if(t===T.TERM){g.fillStyle='#3fe8ff';const ph=(now/300+v)|0;for(let q=0;q<3;q++)g.fillRect(px+5*S,py+(3+q)*S+q*S*.3,(2+((ph+q*3)%5))*S,Math.max(1,S*.6));if((now/400|0)&1)g.fillRect(px+10*S,py+6*S,S,S);}
-    else if(t===T.COUNTER){if(Math.random()<dt*1.6)smk(x+.3+Math.random()*.4,y+.2,(Math.random()-.5)*.1,-.35);const bx=((now/40+x*16*0)%(16*6))-(x-(L.kitchen?L.kitchen[0]:x))*16;if(bx>=0&&bx<16){g.fillStyle='#f2f0ea';g.fillRect(px+bx*S,py+2*S,4*S,2*S);g.fillStyle='#c87a3a';g.fillRect(px+(bx+1)*S,py+1*S,2*S,S);}}
+    else if(t===T.COUNTER&&L.kitchen&&y===L.kitchen[2]&&x>=L.kitchen[0]&&x<=L.kitchen[1]){if(Math.random()<dt*1.6)smk(x+.3+Math.random()*.4,y+.2,(Math.random()-.5)*.1,-.35);const bx=((now/40+x*16*0)%(16*6))-(x-(L.kitchen?L.kitchen[0]:x))*16;if(bx>=0&&bx<16){g.fillStyle='#f2f0ea';g.fillRect(px+bx*S,py+2*S,4*S,2*S);g.fillStyle='#c87a3a';g.fillRect(px+(bx+1)*S,py+1*S,2*S,S);}}
     else if(t===T.CHAIR){g.globalAlpha=.5+.4*pulse;g.fillStyle='#39ffb0';g.fillRect(px,py+7*S,2*S,S);g.globalAlpha=1;}
     if(t===T.DOOR||t===T.LOCKED){const horiz=wallish(L,i-1)||wallish(L,i+1)?1:0,open=t===T.DOOR&&(h.pos===i||mobAt(i))?1:0;g.drawImage(doorSprite(sec,horiz,open,t===T.LOCKED?1:0),px,py,TS,TS);}
     else if(t===T.WATER&&G.depth<=0){const ph=(now/700+x*1.7+y*2.3)%5;if(ph<1){g.globalAlpha=.6*(1-ph);g.strokeStyle='#cfe8ff';g.lineWidth=Math.max(1,S*.5);g.beginPath();g.arc(px+(5+(x*3+y)%6)*S,py+(7+(x+y*3)%4)*S,(1+ph*3)*S,0,7);g.stroke();g.globalAlpha=1;}}
@@ -2255,9 +2255,83 @@ function wallDeco2(F,k,v){
   else if(k==='shelf'){F(1,3,14,13,'#2a1a14');for(const y of [6,10,14])F(1,y,14,1,'#5a3a24');for(let q=0;q<6;q++){F(2+q*2,3,1,3,['#3fe8ff','#ff3fa4','#ffb03c','#39ff7a','#c06aff','#ffe14a'][(q+v)%6]);F(2+q*2,7+(q%2),1,3,['#8a5a2a','#3a8a3a','#c8c8d0'][(q+v)%3]);}}
 }
 // bar hologram dancers
-function drawBarHolos(g,ox,oy,TS,S,now){const L=G.L;if(!L.holo)return;for(const i of L.holo){if(!L.vis[i])continue;const px=ox+X(i)*TS,py=oy+Y(i)*TS,sw=Math.sin(now/300+i),c=i%2?'#ff3fa4':'#3fe8ff';g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.55+.15*Math.sin(now/90);g.fillStyle=c;
-  g.fillRect(px+7*S,py+1*S,2*S,2*S);g.fillRect(px+6.5*S+sw*S,py+3*S,3*S,5*S);g.fillRect(px+(5+sw*2)*S,py+3*S,1*S,4*S);g.fillRect(px+(10-sw*2)*S,py+2*S,1*S,4*S);g.fillRect(px+6*S,py+8*S,1.5*S,5*S);g.fillRect(px+8.5*S+sw*S,py+8*S,1.5*S,5*S);
-  g.globalAlpha=.25;g.beginPath();g.ellipse(px+8*S,py+14*S,5*S,1.5*S,0,0,7);g.fill();g.restore();}}
+// ===== v0.27 tube dancers: pixel rig, one-piece swimsuits matched to the tube, varied skin + hair =====
+var MTMDancer=(function(){
+const FW=16,FH=30,C=8,NF=16;
+const TORSO=[[-2,2],[-2,2],[-3,2],[-2,2],[-2,1],[-2,2],[-3,3],[-3,3],[-3,3]]; // thick build, rows 8..16
+const K=[
+ {hx:1, la:[[-4,11],[-3,14]], ra:[[4,5],[1,3]],  ll:[[-1,22],[-2,26],[-2,28]], rl:[[1,22],[1,27],[2,28]], hd:0},
+ {hx:0, la:[[-3,4],[-1,1]],   ra:[[3,4],[1,1]],  ll:[[-2,22],[-2,27],[-2,28]], rl:[[1,22],[1,27],[1,28]], hd:0},
+ {hx:-1,la:[[-4,5],[-1,3]],   ra:[[4,11],[3,14]],ll:[[-2,22],[-2,27],[-3,28]], rl:[[0,22],[1,26],[1,28]], hd:0},
+ {hx:0, la:[[-5,9],[-7,7]],   ra:[[5,9],[7,7]],  ll:[[-2,21],[-1,25],[-1,26]], rl:[[1,22],[1,27],[1,28]], hd:-1},
+];
+const HAIR={
+ short:{back:[[-1,3],[0,3],[1,3],[1,4],[2,4],[2,5]],front:[]},
+ afro:{back:[[-1,1],[0,1],[1,1],[-2,2],[-1,2],[0,2],[1,2],[2,2],[-3,3],[-2,3],[-1,3],[0,3],[1,3],[2,3],[3,3],[-3,4],[-2,4],[2,4],[3,4],[-3,5],[-2,5],[2,5],[3,5],[2,6],[3,6],[-2,6]],front:[]},
+ bob:{back:[[-2,3],[-1,3],[0,3],[1,3],[2,3],[-2,4],[2,4],[-2,5],[2,5],[-2,6],[2,6],[2,7],[-2,7],[1,4]],front:[[0,4]]},
+ pixie:{back:[[0,2],[-1,3],[0,3],[1,3],[2,3],[1,4],[2,4],[2,5]],front:[[-1,4]]},
+};
+const SKINS=['#f3c7a8','#d9a07a','#a86a45','#6b3f2a'];
+const HAIRC=['#1a1014','#3a2418','#eef0ff','#ff4fb8','#2fd6c6','#c2262e','#8a5cff','#e8c25a'];
+// tube theme -> [water dark, water mid, water glow, rim, swimsuit, swimsuit trim]
+const THEMES={pink:['#2a0a3a','#7a1670','#ff3fb4','#ffb0e6','#ff3fb4','#ffd0ef'],cyan:['#04202a','#0b5a70','#2fe6ff','#b8fbff','#19c8e6','#dffcff'],violet:['#140a3a','#3a1a8a','#9b5cff','#dcc8ff','#8a4cff','#e6dcff'],amber:['#2a1204','#7a3208','#ff9a2f','#ffe0b0','#ff8a1f','#ffe6c0']};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function pose(t){const n=K.length,T=t*n,i=Math.floor(T)%n,f=T-Math.floor(T),e=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2,A=K[i],B=K[(i+1)%n];
+  const P=(a,b)=>a.map((p,j)=>[Math.round(lerp(p[0],b[j][0],e)),Math.round(lerp(p[1],b[j][1],e))]);
+  return{hx:Math.round(lerp(A.hx,B.hx,e)),hd:Math.round(lerp(A.hd,B.hd,e)),la:P(A.la,B.la),ra:P(A.ra,B.ra),ll:P(A.ll,B.ll),rl:P(A.rl,B.rl)};}
+function frame(look,t){
+  const grid=Array.from({length:FH},()=>Array(FW).fill(0));
+  const set=(x,y,c)=>{x=Math.round(x);y=Math.round(y);if(x>=0&&y>=0&&x<FW&&y<FH)grid[y][x]=c;};
+  const line=(a,b,c,w)=>{const n=Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]),1);for(let k=0;k<=n;k++){const x=lerp(a[0],b[0],k/n),y=lerp(a[1],b[1],k/n);set(x,y,c);if(w>1)set(x+1,y,c);}};
+  const p=pose(t),H=HAIR[look.hair],bob=Math.round(Math.sin(t*Math.PI*4)*.6),hc=C+p.hd,sh=y=>y<12?0:y<14?Math.round(p.hx/2):p.hx;
+  for(const [x,y] of H.back)set(hc+x,y+bob,'h');
+  for(let y=4;y<=6;y++)for(let x=-1;x<=1;x++)set(hc+x,y+bob,'s');
+  set(C,7+bob,'s');
+  TORSO.forEach(([l,r],j)=>{const y=8+j;for(let x=l;x<=r;x++)set(C+x+sh(y),y+bob,'s');});
+  set(C+p.hx,17+bob,'s');
+  for(const [hip,L,ox] of [[[C-2+p.hx,17],p.ll,-1],[[C+1+p.hx,17],p.rl,2]]){const k=[C+L[0][0],L[0][1]],a=[C+L[1][0],L[1][1]],to=[C+L[2][0],L[2][1]];
+    line([hip[0],hip[1]+bob],[k[0],k[1]+bob],'s',2);line([hip[0]+ox,hip[1]+bob],[lerp(hip[0],k[0],.6)+ox*.5,lerp(hip[1],k[1],.6)+bob],'s',1);
+    line([k[0],k[1]+bob],[a[0],a[1]-2+bob],'s',2);line([a[0],a[1]-2+bob],[a[0],a[1]+bob],'s',1);line([a[0],a[1]+bob],[to[0],to[1]+bob],'s',1);}
+  for(const [s,A] of [[[C-3,8+bob],p.la],[[C+3,8+bob],p.ra]]){const el=[C+A[0][0],A[0][1]+bob],hd=[C+A[1][0],A[1][1]+bob];line(s,el,'s',1);line(el,hd,'s',1);}
+  // one-piece swimsuit: straps on the shoulders, full torso, high-cut at the hips
+  const paint=(y,x0,x1,c)=>{const r=grid[y+bob];if(!r)return;for(let x=x0;x<=x1;x++)if(r[x]==='s')r[x]=c;};
+  paint(8,C-2,C-2,'o');paint(8,C+2,C+2,'o');
+  for(let y=9;y<=15;y++)paint(y,0,FW-1,'o');
+  paint(16,C-2+p.hx,C+2+p.hx,'o');paint(17,C-1+p.hx,C+1+p.hx,'o');
+  paint(10,0,FW-1,'o');const tr=grid[12+bob];if(tr)for(let x=0;x<FW;x++)if(tr[x]==='o'&&(x+look.v)%2===0)tr[x]='t';
+  for(const [x,y] of H.front)set(hc+x,y+bob,'h');
+  set(hc-1,5+bob,'e');
+  const out=grid.map(r=>r.slice());
+  for(let y=0;y<FH;y++)for(let x=0;x<FW;x++)if(!grid[y][x])for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const g=grid[y+dy];if(g&&g[x+dx]){out[y][x]='k';break;}}
+  const cv=document.createElement('canvas');cv.width=FW;cv.height=FH;const g=cv.getContext('2d');
+  const pal={s:look.skin,o:look.suit,t:look.trim,h:look.hairC,e:'#1a0d14',k:'rgba(10,4,16,.85)'};
+  for(let y=0;y<FH;y++)for(let x=0;x<FW;x++){const c=out[y][x];if(c){g.fillStyle=pal[c];g.fillRect(x,y,1,1);}}
+  g.globalAlpha=.22;g.fillStyle='#000';for(let y=0;y<FH;y++)for(let x=1;x<FW-1;x++){const c=grid[y][x];if(c&&!grid[y][x+1])g.fillRect(x,y,1,1);}
+  return cv;
+}
+const cache={};
+function frames(look){const k=look.key;if(!cache[k])cache[k]=Array.from({length:NF},(_,i)=>frame(look,i/NF));return cache[k];}
+// one theme per bar; skin + hair vary per dancer
+function lookFor(theme,seed){const T=THEMES[theme],hs=['afro','bob','pixie','short'][seed%4],sk=SKINS[(seed>>2)%4],hcI=(seed*7+3)%HAIRC.length;
+  return{theme,hair:hs,skin:sk,hairC:HAIRC[hcI],suit:T[4],trim:T[5],v:seed&1,key:theme+hs+sk+hcI};}
+function drawTube(g,px,py,S,look,now,seed){
+  const [c0,c1,c2,rim]=THEMES[look.theme],R=(x,y,w,h,c,a)=>{g.globalAlpha=a===undefined?1:a;g.fillStyle=c;g.fillRect(px+x*S,py+y*S,w*S,h*S);};
+  const top=-20,base=12;g.save();
+  g.globalCompositeOperation='lighter';g.globalAlpha=.28;g.fillStyle=c2;g.beginPath();g.ellipse(px+8*S,py+15*S,9*S,2.5*S,0,0,7);g.fill();g.globalCompositeOperation='source-over';
+  for(let y=top+3;y<base;y++){const f=(y-(top+3))/(base-top-3);R(2,y,12,1,f<.55?c0:c1,1);R(2,y,12,1,c2,Math.max(0,f-.35)*.9);}
+  const fr=frames(look),fi=Math.floor((now/120+seed)%NF);g.imageSmoothingEnabled=false;g.globalAlpha=1;g.drawImage(fr[fi],px,py+(top+2)*S,16*S,30*S);
+  for(let b=0;b<4;b++){const sp=40+b*13,y=base-1-((now/sp+b*7+seed*3)%(base-top-4)),x=3+((b*5+seed)%10);R(x,Math.floor(y),1,1,'#ffffff',.55);}
+  R(2,top+3,1,base-top-3,'#ffffff',.22);R(13,top+3,1,base-top-3,'#ffffff',.12);R(4,top+4,1,base-top-6,'#ffffff',.10);
+  R(1,top+3,1,base-top-3,rim,.55);R(14,top+3,1,base-top-3,rim,.55);
+  R(0,top,16,3,'#2a2a36');R(0,top,16,1,'#44445a');R(1,top+2,14,1,'#3af5f5',.9);
+  R(0,base,16,4,'#1c1c26');R(0,base,16,1,'#3a3a4a');R(1,base,14,1,c2,.6+.4*Math.sin(now/300+seed));R(2,base+2,2,1,'#3af5f5',.8);R(11,base+2,3,1,c2,.8);
+  g.restore();
+}
+return{frame,frames,drawTube,lookFor,THEMES,NF};
+})();
+function barThemeOf(L,i){const x=X(i),y=Y(i);if(L.bars)for(let n=0;n<L.bars.length;n++){const c=L.bars[n].c;if(x>=c[0]&&x<=c[2]&&y>=c[1]&&y<=c[3]){const k=(c[0]*31+c[1]*17+(L.depth||0)*7)%4;return['pink','cyan','violet','amber'][k];}}return'pink';}
+function drawBarHolos(g,ox,oy,TS,S,now){const L=G.L;if(!L.holo)return;L.holo.forEach((i,n)=>{if(!L.vis[i])return;
+  const look=MTMDancer.lookFor(barThemeOf(L,i),(i*13+(L.depth||0)*5)%64);MTMDancer.drawTube(g,ox+X(i)*TS,oy+Y(i)*TS,S,look,now,n*3);});}
 
 // ================= UI =================
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -3523,6 +3597,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.27','Bars got their own look: the counter is a polished bar top with glasses and bottles under a pink neon edge. No more ramen bowls sliding along every counter; that only happens at the noodle stand now. · Tube dancers: the stick holograms are replaced by real dancers floating in water tubes. Each bar has one tube colour, and its dancers wear matching one-piece swimsuits. Skin tone and hair (afro, bob, pixie, short crop) change from dancer to dancer. The tubes are solid and never sit in front of a door. · Nothing is out of reach anymore. Loot that landed behind the bar or on a counter is moved out onto the floor. Decor is cleared from in front of every door. If an item, the exit or a patch of floor is still cut off, a path is carved to it. The bar seal no longer leaks out of the bar room and drops counters into the hallways. · Fixed a crash in Doc Sato\'s wake-up line that stopped it from showing.'],
  ['v0.26h','No more black bands. The camera had no bounds at all — stand near the edge of a floor and the view simply ran off the map. It is now clamped so the viewport always stays inside the level, and centres itself on anything smaller than the screen. · Street traffic was driving in the wrong place: the road has two real lanes and the vehicles were straddling the lane markings and the median. They now run in the actual lanes, with the skater on the pavement. · The skater was T-posing with both arms straight out, which is why it read as a scarecrow. One arm is up and back, the other down and forward, like somebody actually balancing.'],
  ['v0.26g','Street traffic redrawn properly. Five vehicles — sport bike, street car, cargo trike, skater, two-up hover bike — now built as cached sprites that go through the same outline pass the people on the street use, so they sit in the same art style instead of looking pasted on. Real wheels with tyre, rim, hub and spokes that turn; a rider folded over the tank with an arm on the bars; a car with wheels under cut arches; a courier pedalling a cargo trike; a skateboard with trucks you can see. · Police line is back to its original look — the rewrite in the last build was worse. The only change is that a length of it now runs across the tower doorway, which it never did: the span was being added, then wiped every time the street rebuilt itself.'],
  ['v0.26f','Biomonitor rebuilt. The old one was an SVG stretched to fill its box, which squashed it in both directions — that is why it looked bad. It is a canvas now at a fixed aspect, with a trace that genuinely scrolls: P wave, QRS spike, T wave, drawn per frame, and the rate climbs as your health drops. Under it, a readout of frame, build, trade and status. · Tapping a vendor across their counter now talks instead of walking you round the long way — the ramen spot outside and the bars inside. Tapping went straight to the pathfinder, which routed around; only a manual bump was working. · Bars are properly sealed now. The previous pass only walled the counter row, and a flood-fill test showed 9 of 12 barkeeps were still reachable round the ends or through a door. The whole staff side is enclosed — 0 of 12 reachable, verified. · Creator column no longer stretches its contents.'],
@@ -3602,7 +3677,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.26h · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.27 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4415,7 +4490,7 @@ const VOSS_CAM=['"I see you."','"Every floor you clear, I watch the replay."','"
   for(const i of (L.cops0||[]))at(i,(px,py,B)=>{const ph=Math.floor(now/220)%2;B(5,4,6,1,ph?'#ff2a3a':'#2a6aff');B(4,4,1,1,ph?'#2a6aff':'#ff2a3a');B(11,4,1,1,ph?'#ff2a3a':'#2a6aff');g.globalAlpha=.18;g.fillStyle=ph?'#ff2a3a':'#2a6aff';g.beginPath();g.arc(px+8*S,py+5*S,9*S,0,7);g.fill();g.globalAlpha=1;B(3,9,10,1,'#e8eef4');});
   if(L.tape&&window.drawTape)drawTape(g,S,TS,L,now);
   if(L.props)for(const k in L.props){const p=L.props[k];if(p.k==='bench')at(+k,(px,py,B)=>{B(1,8,14,3,'#5a4030');B(1,8,14,1,'#7a5a40');B(2,11,2,3,'#2a2e36');B(12,11,2,3,'#2a2e36');B(1,5,14,2,'#4a3428');});else if(p.k==='kiosk')at(+k,(px,py,B)=>{B(5,3,6,11,'#20242c');B(6,4,4,5,(Math.floor(now/600)%2)?'#3fe8ff':'#1a6a7a');B(6,10,4,1,'#ff3b4e');B(4,13,8,2,'#14161a');});}
-  if(L.bars)for(const b of L.bars){for(let x=b.c[0];x<=b.c[2];x++)for(let y=b.c[1];y<=b.c[3];y++){const i=idx(x,y);if(L.map[i]!==T.COUNTER)continue;const gap=x===Math.floor((b.c[0]+b.c[2])/2);at(i,(px,py,B)=>{if(gap){B(4,1,8,1,'#8c96a2');return;}for(let xx=1;xx<16;xx+=3)B(xx,0,1,5,'#6a727e');B(0,0,16,1,'#8c96a2');});}}
+  if(L.bars)for(const b of L.bars){for(let x=b.c[0];x<=b.c[2];x++)for(let y=b.c[1];y<=b.c[3];y++){const i=idx(x,y);if(L.map[i]!==T.COUNTER)continue;const gap=x===Math.floor((b.c[0]+b.c[2])/2);const vv=(x*7+y*3)%4;at(i,(px,py,B)=>{B(0,0,16,6,'#2a1a14');B(0,4,16,2,'#c08a50');B(0,6,16,1,'#ff3fb4');if(gap){B(3,2,10,1,'#8c96a2');return;}if(vv===0){B(3,1,1,3,'#3fe8ff');B(2,0,3,1,'#bfefff');B(10,0,2,4,'#3a8a3a');B(10,0,2,1,'#c8c8d0');}else if(vv===1){B(5,2,3,2,'#ffd23a');B(5,1,3,1,'#fff6d0');B(11,1,1,3,'#c06aff');}else if(vv===2){B(2,1,2,3,'#8a3a2a');B(2,0,2,1,'#c8c8d0');B(8,2,4,1,'#c8ccd4');}else{B(9,1,1,3,'#ff3fa4');B(8,0,3,1,'#ffc0e0');B(3,3,4,1,'#c8ccd4');}});}}
   for(let i=0;i<N;i++){if(L.map[i]!==T.RAIL||!L.seen[i])continue;const vert=L.map[i-W]===T.RAIL||L.map[i+W]===T.RAIL||(L.map[i-1]!==T.RAIL&&L.map[i+1]!==T.RAIL&&(pass(i-1)||pass(i+1)));
     at(i,(px,py,B)=>{const a=.35+.25*Math.sin(now/1800),vis=L.vis[i]?1:.5;
       if(vert){const fr=pass(i+1)?1:0,x0=fr?11:2;B(0,0,16,16,'#070a16');g.globalAlpha=vis*.8;for(let n=0;n<4;n++)B((n*7+i)%14+1,(n*5+i*3)%14+1,1,1,['#fff2c8','#3fe8ff','#ff3fa4'][n%3]);g.globalAlpha=vis;
@@ -4702,7 +4777,7 @@ function ripperIntro(){
     'SATO: "Whatever you were before, that file is closed. Nobody up there is looking for this face."',
     'SATO: "You will feel things in the wrong order for a while. That is normal. Mostly."'
   ];
-  setTimeout(()=>{say?say(pick(lines)):log(pick(lines),'hi');},1400);
+  setTimeout(()=>{log(pick(lines),'hi');try{refresh();}catch(e){}},1400);
   setTimeout(()=>addContact('Doc Sato','doc','7286',
     'SATO: "Put me in that wristband. You come back leaking, you call first — I keep a chair open."'),2300);
 }
@@ -5071,6 +5146,7 @@ function sealBars(){
           const n=cur+d;
           if(n<0||n>=N||strip.has(n))continue;
           if(Y(n)>=cy)continue;                  // never cross to the customer side
+          if(X(n)<=x0||X(n)>=x1||Y(n)<=y0)continue; // v0.27: never leak out of the bar room
           if(!pass(n))continue;
           strip.add(n);q.push(n);
         }
@@ -5081,6 +5157,7 @@ function sealBars(){
           if(n<0||n>=N||strip.has(n))continue;
           if(!pass(n))continue;                  // an opening out of the staff side
           const tt=L.map[n];
+          if(X(n)<=x0||X(n)>=x1||Y(n)<=y0){if(tt===T.DOOR||tt===T.FLOOR)L.map[n]=T.WALL;continue;} // a door in the bar's own wall: brick it up
           if(tt===T.FLOOR||tt===T.CHAIR||tt===T.DEBRIS||tt===T.DOOR)L.map[n]=T.COUNTER;
         }
       }
@@ -5089,6 +5166,57 @@ function sealBars(){
   }catch(e){}
 }
 {const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);sealBars();return r;};}
+
+// v0.27: nothing on a floor may be out of reach. Runs after bars are sealed.
+//  - loot that lands behind a bar moves out to the customer side
+//  - tube dancers are solid, and never sit in front of a door
+//  - decor (counters, lockers, pillars, crates...) is never left in front of a door
+//  - any loot, the exit, or a cut-off chunk of floor gets a path carved to it (decor first, a wall as a last resort)
+function barStaffSet(L){const s=new Set();if(L.bars)for(const b of L.bars){const c=b.c,cy=c[1]+2;for(let x=c[0]+1;x<c[2];x++)for(let y=c[1]+1;y<cy;y++)s.add(idx(x,y));}return s;}
+function fixReach(L){
+  try{
+    if(!L||L.street)return;
+    const staff=barStaffSet(L),kit=L.kitchen,inKit=i=>kit&&Y(i)===kit[2]&&X(i)>=kit[0]&&X(i)<=kit[1];
+    const barFront=new Set();if(L.bars)for(const b of L.bars){for(let x=b.c[0];x<=b.c[2];x++)barFront.add(idx(x,b.c[1]+2));}
+    const tube=i=>L.props&&L.props[i]&&L.props[i].k==='tube';
+    const isDoorish=t=>t===T.DOOR||t===T.LOCKED||t===T.EXIT||t===T.EXITL||t===T.ENTRY;
+    const open=i=>{const t=L.map[i];return isDoorish(t)||t===T.SECRET||(pass(i));};
+    const DEC=new Set([T.COUNTER,T.PILLAR,T.CLONE,T.LOCKER,T.TERM,T.POD,T.CART,T.CHAIR,T.DEBRIS]);
+    const decor=i=>(DEC.has(L.map[i])&&!barFront.has(i)&&!inKit(i))||(L.props&&L.props[i]&&L.props[i].b&&!tube(i));
+    const clear=i=>{if(L.props&&L.props[i]&&!tube(i))delete L.props[i];if(DEC.has(L.map[i]))L.map[i]=T.FLOOR;};
+    const nb=i=>DIRS.map(d=>i+d).filter(j=>j>=0&&j<N&&Math.abs(X(j)-X(i))<=1);
+    // tubes: drop any spot next to a door, make the rest solid
+    if(L.holo){L.holo=L.holo.filter(i=>!nb(i).some(j=>isDoorish(L.map[j])));L.props=L.props||{};for(const i of L.holo){L.props[i]={k:'tube',b:1};for(const it of L.items)if(it.pos===i||it.pos===i-W||it.pos===i-2*W)it.pos=-1;if(L.props&&L.props[i-W])delete L.props[i-W];}}
+    // decor in front of doors
+    for(let i=0;i<N;i++)if(isDoorish(L.map[i]))for(const j of nb(i))if(decor(j)&&!staff.has(j))clear(j);
+    const reach=()=>{const s=new Uint8Array(N),q=[L.entry];s[L.entry]=1;while(q.length){const i=q.pop();for(const j of nb(i))if(!s[j]&&open(j)&&!staff.has(j)){s[j]=1;q.push(j);}}return s;};
+    let seen=reach();
+    // loot behind the bar or on a tube moves to the nearest reachable free tile
+    const taken=new Set(L.items.filter(it=>it.pos>=0).map(it=>it.pos));
+    const nearFree=from=>{const vis=new Set([from<0?L.entry:from]),q=[from<0?L.entry:from];while(q.length){const i=q.shift();if(seen[i]&&L.map[i]===T.FLOOR&&!taken.has(i)&&!tube(i)&&!tube(i+W)&&!tube(i+2*W)&&pass(i))return i;for(const j of nb(i))if(!vis.has(j)){vis.add(j);q.push(j);}}return -1;};
+    for(const it of L.items)if(it.pos<0||staff.has(it.pos)||(!pass(it.pos)&&!isDoorish(L.map[it.pos])&&!(L.props&&L.props[it.pos]&&L.props[it.pos].k!=='tube'))){const p=nearFree(it.pos);if(p>=0){taken.delete(it.pos);it.pos=p;taken.add(p);}}
+    // carve paths to anything still cut off
+    const border=i=>X(i)<=0||Y(i)<=0||X(i)>=W-1||Y(i)>=H-1;
+    const cost=i=>{if(staff.has(i)||tube(i)||border(i))return 1e9;if(open(i))return 0;if(decor(i))return 1;const t=L.map[i];if(t===T.WALL)return 6;return 1e9;};
+    for(let pass_=0;pass_<16;pass_++){
+      let tgt=-1;
+      if(!seen[L.exit])tgt=L.exit;
+      if(tgt<0)for(const it of L.items)if(it.pos>=0&&!seen[it.pos]){tgt=it.pos;break;}
+      if(tgt<0){for(let i=0;i<N;i++)if(L.map[i]===T.FLOOR&&!seen[i]&&!staff.has(i)&&!tube(i)){let sz=0;const v=new Set([i]),q=[i];while(q.length&&sz<6){const c=q.pop();sz++;for(const j of nb(c))if(!v.has(j)&&L.map[j]===T.FLOOR&&!seen[j]){v.add(j);q.push(j);}}if(sz>=4){tgt=i;break;}}}
+      if(tgt<0)break;
+      // Dijkstra (small costs) from target to the reachable set
+      const dist=new Float64Array(N).fill(1e18),prev=new Int32Array(N).fill(-1),buckets=[[tgt]];dist[tgt]=0;let hit=-1;
+      for(let d=0;d<buckets.length&&hit<0;d++){const b=buckets[d];if(!b)continue;for(const i of b){if(dist[i]!==d)continue;if(seen[i]){hit=i;break;}for(const j of nb(i)){const c=cost(j);if(c>=1e9)continue;const nd=d+c;if(nd<dist[j]){dist[j]=nd;prev[j]=i;(buckets[nd]=buckets[nd]||[]).push(j);}}}}
+      if(hit<0)break;
+      for(let i=hit;i>=0;i=prev[i]){if(decor(i))clear(i);else if(L.map[i]===T.WALL){const lr=wallish(L,i-1)&&wallish(L,i+1),ud=wallish(L,i-W)&&wallish(L,i+W);L.map[i]=(lr||ud)?T.DOOR:T.FLOOR;}}
+      seen=reach();
+    }
+    if(L.holo)L.holo=L.holo.filter(i=>{if(nb(i).some(j=>isDoorish(L.map[j]))){if(L.props)delete L.props[i];return false;}return true;});
+    mapChanged();
+  }catch(e){console.warn('fixReach',e);}
+}
+{const _ef2=enterFloor;enterFloor=function(){const r=_ef2.apply(this,arguments);fixReach(G.L);return r;};}
+
 
 // --- the bartender keeps a shotgun under the bar ---
 {const _sp=spend;spend=function(t){
