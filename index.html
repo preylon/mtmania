@@ -3601,7 +3601,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 const FP={dir:1,ang:0,x:0,y:0,init:false,buf:null,img:null,mapVer:-1,mapData:null,tex:{},hits:[],flash:0,lastHp:null,tubeCv:null};
 const FPD=[[0,-1],[1,0],[0,1],[-1,0]]; // N E S W
 try{FP.on=localStorage.getItem('mtm_fp')==='1';}catch(e){FP.on=false;}
-FP.set={ctl:'both',side:'right',fov:'normal',hints:true};try{Object.assign(FP.set,JSON.parse(localStorage.getItem('mtm_fpset')||'{}'));}catch(e){}
+FP.set={ctl:'both',side:'right',fov:'normal',hints:true,padSize:'m',padAlpha:'mid',padPos:null};FP.edit=false;try{Object.assign(FP.set,JSON.parse(localStorage.getItem('mtm_fpset')||'{}'));}catch(e){}
 function fpSave(){try{localStorage.setItem('mtm_fpset',JSON.stringify(FP.set));}catch(e){}}
 {const _rm=rdMap;rdMap=function(){const r=_rm.apply(this,arguments);FP.mapVer++;return r;};}
 function fpSolid(L,i){if(i<0||i>=N)return true;const t=L.map[i];if(wallish(L,i))return true;if((t===T.DOOR||t===T.LOCKED)&&!mobAt(i)&&G.hero.pos!==i)return true;return false;}
@@ -3713,14 +3713,21 @@ function fpToggle(on){FP.on=on===undefined?!FP.on:on;try{localStorage.setItem('m
 // d-pad + settings panel
 function fpUI(){const on=FP.on&&G&&G.L&&!G.L.street&&!G.over,pad=document.getElementById('fpPad'),gear=document.getElementById('fpGear'),pan=document.getElementById('fpSet');
   if(gear)gear.style.display=FP.on?'':'none';if(pan&&!FP.on)pan.style.display='none';
-  if(pad){pad.style.display=on&&FP.set.ctl!=='tap'?'grid':'none';pad.style.left=FP.set.side==='left'?'max(10px,env(safe-area-inset-left))':'';pad.style.right=FP.set.side==='right'?'max(10px,env(safe-area-inset-right))':'';}}
+  if(pad){const sz={s:40,m:52,l:66}[FP.set.padSize]||52;pad.style.gridTemplateColumns=pad.style.gridTemplateRows=`repeat(3,${sz}px)`;pad.style.fontSize=Math.round(sz*.34)+'px';
+    pad.style.opacity={low:.45,mid:.8,high:1}[FP.set.padAlpha]||.8;pad.style.display=on&&(FP.set.ctl!=='tap'||FP.edit)?'grid':'none';pad.classList.toggle('edit',!!FP.edit);
+    const done=document.getElementById('fpDone');if(done)done.style.display=FP.edit&&on?'block':'none';
+    const P=FP.set.padPos;if(P){const w=pad.offsetWidth||sz*3+8,h=pad.offsetHeight||sz*3+8;const x=Math.max(4,Math.min(innerWidth-w-4,P.x*innerWidth)),y=Math.max(4,Math.min(innerHeight-h-4,P.y*innerHeight));pad.style.left=x+'px';pad.style.top=y+'px';pad.style.right='auto';pad.style.bottom='auto';}
+    else{pad.style.top='auto';pad.style.bottom='calc(168px + env(safe-area-inset-bottom))';pad.style.left=FP.set.side==='left'?'max(10px,env(safe-area-inset-left))':'auto';pad.style.right=FP.set.side==='right'?'max(10px,env(safe-area-inset-right))':'auto';}
+    if(done){const r=pad.getBoundingClientRect();done.style.left=Math.max(4,r.left)+'px';done.style.top=Math.max(4,r.top-40)+'px';}}}
 function fpBuildUI(host,b){
   const css=document.createElement('style');css.textContent=`
 #fpGear{position:absolute;z-index:30;min-width:32px;min-height:32px;padding:0;background:rgba(8,10,18,.85);color:#3af5f5;border:1px solid #2a6a7a;border-radius:4px;font:700 15px ui-monospace,Menlo,monospace;cursor:pointer}
-#fpPad{position:fixed;z-index:25;bottom:calc(168px + env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;touch-action:none;user-select:none;-webkit-user-select:none}
-#fpPad button{background:rgba(8,10,18,.62);color:#3af5f5;border:1px solid rgba(58,245,245,.45);border-radius:8px;font:700 18px ui-monospace,Menlo,monospace;padding:0;touch-action:none}
+#fpPad{position:fixed;z-index:25;bottom:calc(168px + env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
+#fpPad button{background:rgba(8,10,18,.62);color:#3af5f5;border:1px solid rgba(58,245,245,.45);border-radius:8px;font:700 1em ui-monospace,Menlo,monospace;padding:0;touch-action:none}
+#fpPad.edit{outline:2px dashed #ffd23a;outline-offset:4px;cursor:move}#fpPad.edit button{pointer-events:none}
+#fpDone{position:fixed;z-index:26;display:none;min-height:32px;padding:4px 12px;background:#ffd23a;color:#14101c;border:0;border-radius:4px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.06em}
 #fpPad button:active{background:rgba(58,245,245,.28)}
-#fpPad .s{font-size:17px;color:#9ad}
+#fpPad .s{font-size:.95em;color:#9ad}
 #fpSet{position:absolute;z-index:40;width:min(250px,calc(100vw - 24px));background:rgba(8,10,18,.96);border:1px solid #2a6a7a;border-radius:6px;padding:10px 12px;color:#cfe;font:13px/1.4 ui-monospace,Menlo,monospace;display:none}
 #fpSet h4{margin:0 0 8px;color:#3af5f5;font-size:13px;letter-spacing:.08em}
 #fpSet .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:7px 0}
@@ -3730,15 +3737,22 @@ function fpBuildUI(host,b){
 #fpSet small{display:block;color:#789;margin-top:8px}`;document.head.appendChild(css);
   const gear=document.createElement('button');gear.id='fpGear';gear.type='button';gear.textContent='⚙';gear.setAttribute('aria-label','First-person settings');host.appendChild(gear);
   const pan=document.createElement('div');pan.id='fpSet';host.appendChild(pan);
-  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]]];
-  const draw=()=>{pan.innerHTML='<h4>FIRST-PERSON</h4>'+opts.map(([k,l,vs])=>`<div class="r"><span>${l}</span><span class="seg">${vs.map(([v,t])=>`<button type="button" data-k="${k}" data-v="${v}" class="${FP.set[k]===v?'on':''}">${t}</button>`).join('')}</span></div>`).join('')+'<small>Tap: middle = step, sides = turn, swipe works too. D-pad: ▲▼ step, ◀▶ turn, «» sidestep, ● wait.</small>';};
-  pan.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;e.stopPropagation();let v=t.dataset.v;if(v==='true')v=true;else if(v==='false')v=false;FP.set[t.dataset.k]=v;fpSave();draw();fpUI();});
+  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]],['padSize','Pad size',[['s','S'],['m','M'],['l','L']]],['padAlpha','Pad opacity',[['low','Low'],['mid','Mid'],['high','Full']]]];
+  const draw=()=>{pan.innerHTML='<h4>FIRST-PERSON</h4>'+opts.map(([k,l,vs])=>`<div class="r"><span>${l}</span><span class="seg">${vs.map(([v,t])=>`<button type="button" data-k="${k}" data-v="${v}" class="${FP.set[k]===v?'on':''}">${t}</button>`).join('')}</span></div>`).join('')+'<div class="r"><span>Pad position</span><span class="seg"><button type="button" data-act="move">Move</button><button type="button" data-act="reset">Reset</button></span></div><small>Tap: middle = step, sides = turn, swipe works too. D-pad: ▲▼ step (hold to walk), ◀▶ turn, «» sidestep, ● wait. Move: drag the pad, then tap Done.</small>';};
+  pan.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;e.stopPropagation();
+    if(t.dataset.act==='move'){FP.edit=true;pan.style.display='none';fpUI();return;}if(t.dataset.act==='reset'){FP.set.padPos=null;fpSave();fpUI();return;}
+    if(t.dataset.k==='side')FP.set.padPos=null;let v=t.dataset.v;if(v==='true')v=true;else if(v==='false')v=false;FP.set[t.dataset.k]=v;fpSave();draw();fpUI();});
   gear.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();draw();pan.style.display=pan.style.display==='block'?'none':'block';place2();});
   const pad=document.createElement('div');pad.id='fpPad';pad.setAttribute('aria-label','First-person movement');
   const keys=[['«','sl','Sidestep left','s'],['▲','f','Step forward'],['»','sr','Sidestep right','s'],['◀','tl','Turn left'],['●','w','Wait a turn','s'],['▶','tr','Turn right'],['','',''],['▼','b','Step back'],['','','']];
   pad.innerHTML=keys.map(([t,a,l,c])=>a?`<button type="button" data-a="${a}" aria-label="${l}" class="${c||''}">${t}</button>`:'<span></span>').join('');
   let rep=null;const fire=a=>{if(!G||G.over||busy())return;initAudio();if(a==='f')fpStep(false);else if(a==='b')fpStep(true);else if(a==='tl')fpTurn(-1);else if(a==='tr')fpTurn(1);else if(a==='sl')fpStrafe(-1);else if(a==='sr')fpStrafe(1);else if(a==='w'){const w=document.getElementById('tWait');if(w)w.click();}};
-  pad.addEventListener('pointerdown',e=>{const t=e.target.closest('button');if(!t)return;e.preventDefault();e.stopPropagation();const a=t.dataset.a;fire(a);clearInterval(rep);if(a==='f'||a==='b')rep=setInterval(()=>fire(a),260);});
+  let drag=null;
+  pad.addEventListener('pointerdown',e=>{if(!FP.edit)return;e.preventDefault();e.stopPropagation();const r=pad.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};try{pad.setPointerCapture(e.pointerId);}catch(_){}},true);
+  pad.addEventListener('pointermove',e=>{if(!FP.edit||!drag)return;e.preventDefault();FP.set.padPos={x:(e.clientX-drag.dx)/innerWidth,y:(e.clientY-drag.dy)/innerHeight};fpUI();},true);
+  pad.addEventListener('pointerup',e=>{if(!FP.edit||!drag)return;drag=null;fpSave();},true);
+  const done=document.createElement('button');done.id='fpDone';done.type='button';done.textContent='DRAG PAD · DONE';done.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();FP.edit=false;fpSave();fpUI();});document.body.appendChild(done);
+  pad.addEventListener('pointerdown',e=>{if(FP.edit)return;const t=e.target.closest('button');if(!t)return;e.preventDefault();e.stopPropagation();const a=t.dataset.a;fire(a);clearInterval(rep);if(a==='f'||a==='b')rep=setInterval(()=>fire(a),260);});
   const stop=()=>{clearInterval(rep);rep=null;};['pointerup','pointercancel','pointerleave'].forEach(ev=>pad.addEventListener(ev,stop));
   document.body.appendChild(pad);
   const place2=()=>{const br=b.getBoundingClientRect(),hr=(b.offsetParent||document.body).getBoundingClientRect();gear.style.top=b.style.top;gear.style.right=`calc(${b.style.right||'6px'} + ${Math.round(br.width)+6}px)`;
@@ -3778,6 +3792,7 @@ function fpInstall(cv){let dn=null,lt=null;
 
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.28b','D-pad settings: Pad size (S, M or L) and Pad opacity (Low, Mid or Full). Pad position: tap Move, drag the pad anywhere on screen, then tap Done. Reset puts it back in the corner. Settings are remembered between sessions.'],
  ['v0.28','First-person mode. Tap 1ST under the minimap to walk the same floor from eye level, and tap MAP to go back. It uses the same map, turns, enemies and loot. The ⚙ button next to it opens the settings: Controls (Tap, D-pad or Both), which side the D-pad sits on, a Normal or Wide view, and hint arrows on or off. The D-pad has step forward and back (hold to keep walking), turn left and right, sidestep, and wait. With tap controls, tap the middle to step, tap the sides or swipe to turn, and tap the bottom to step back. Turning is free. Tap an enemy, NPC or item in view to attack, talk or pick it up, and guns and throws still aim by tapping a target. The floors use the real map art, and mobs, loot, counters and the tube dancers stand up in the view. The crosshair turns red when a hostile is right in front of you. On a keyboard, use arrows or WASD. The street level always uses the top-down view.'],
  ['v0.27','Bars got their own look: the counter is a polished bar top with glasses and bottles under a pink neon edge. No more ramen bowls sliding along every counter; that only happens at the noodle stand now. · Tube dancers: the stick holograms are replaced by real dancers floating in water tubes. Each bar has one tube colour, and its dancers wear matching one-piece swimsuits. Skin tone and hair (afro, bob, pixie, short crop) change from dancer to dancer. The tubes are solid and never sit in front of a door. · Nothing is out of reach anymore. Loot that landed behind the bar or on a counter is moved out onto the floor. Decor is cleared from in front of every door. If an item, the exit or a patch of floor is still cut off, a path is carved to it. The bar seal no longer leaks out of the bar room and drops counters into the hallways. · Fixed a crash in Doc Sato\'s wake-up line that stopped it from showing.'],
  ['v0.26h','No more black bands. The camera had no bounds at all — stand near the edge of a floor and the view simply ran off the map. It is now clamped so the viewport always stays inside the level, and centres itself on anything smaller than the screen. · Street traffic was driving in the wrong place: the road has two real lanes and the vehicles were straddling the lane markings and the median. They now run in the actual lanes, with the skater on the pavement. · The skater was T-posing with both arms straight out, which is why it read as a scarecrow. One arm is up and back, the other down and forward, like somebody actually balancing.'],
@@ -3859,7 +3874,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.28 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.28b · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
