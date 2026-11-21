@@ -3595,8 +3595,190 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 {const _u=actUse;actUse=function(k,...a){const t=k&&ITEMS[k]&&ITEMS[k].type,r=_u.call(this,k,...a);if(r){if(t==='chip')scanFX('RUNNING CHIP…');else if(t==='stim'||k==='heal')injectFX();}return r;};}
 {const _a=actApply;actApply=function(ref,...a){const k=G.pend,r=_a.call(this,ref,...a);if(r)scanFX(k==='upgrade'?'PATCHING FIRMWARE…':'RUNNING CHIP…');return r;};}
 
+// ---------- v0.28 FIRST-PERSON VIEW (toggle). Same floor, same turns: only the camera changes.
+// Walls are raycast on the grid, floors are sampled from the real top-down map art,
+// and mobs, loot, decor and tube dancers stand up as billboards.
+const FP={dir:1,ang:0,x:0,y:0,init:false,buf:null,img:null,mapVer:-1,mapData:null,tex:{},hits:[],flash:0,lastHp:null,tubeCv:null};
+const FPD=[[0,-1],[1,0],[0,1],[-1,0]]; // N E S W
+try{FP.on=localStorage.getItem('mtm_fp')==='1';}catch(e){FP.on=false;}
+FP.set={ctl:'both',side:'right',fov:'normal',hints:true};try{Object.assign(FP.set,JSON.parse(localStorage.getItem('mtm_fpset')||'{}'));}catch(e){}
+function fpSave(){try{localStorage.setItem('mtm_fpset',JSON.stringify(FP.set));}catch(e){}}
+{const _rm=rdMap;rdMap=function(){const r=_rm.apply(this,arguments);FP.mapVer++;return r;};}
+function fpSolid(L,i){if(i<0||i>=N)return true;const t=L.map[i];if(wallish(L,i))return true;if((t===T.DOOR||t===T.LOCKED)&&!mobAt(i)&&G.hero.pos!==i)return true;return false;}
+function fpDecor(L,i){const t=L.map[i];if(wallish(L,i)||t===T.DOOR||t===T.LOCKED)return false;if(L.props&&L.props[i]&&L.props[i].k==='tube')return false;return !pass(i)&&!mobAt(i);}
+function fpWallTex(key,base,acc){ // procedural 16x16 panel, cached as RGBA bytes
+  if(FP.tex[key])return FP.tex[key];const c=cvs(16,16),g=c.getContext('2d');
+  g.fillStyle=base;g.fillRect(0,0,16,16);g.fillStyle=shade(base,-.35);g.fillRect(0,0,16,1);g.fillRect(0,8,16,1);g.fillRect(7,0,1,8);g.fillRect(3,9,1,7);g.fillRect(12,9,1,7);
+  g.fillStyle=shade(base,.18);g.fillRect(0,1,16,1);g.fillRect(0,9,16,1);g.fillStyle=acc;g.fillRect(0,14,16,1);g.globalAlpha=.5;g.fillRect(9,3,4,1);g.globalAlpha=1;
+  return FP.tex[key]=g.getImageData(0,0,16,16).data;}
+function fpDoorTex(locked){const k='door'+(locked?1:0);if(FP.tex[k])return FP.tex[k];const c=cvs(16,16),g=c.getContext('2d');
+  g.fillStyle='#1a1c26';g.fillRect(0,0,16,16);g.fillStyle='#3a4150';g.fillRect(2,1,12,15);g.fillStyle='#2a303c';g.fillRect(7,1,2,15);g.fillStyle=locked?'#ff3f5a':'#3af5f5';g.fillRect(11,7,2,2);g.fillRect(2,0,12,1);
+  return FP.tex[k]=g.getImageData(0,0,16,16).data;}
+function fpWinTex(){if(FP.tex.win)return FP.tex.win;const c=cvs(16,16),g=c.getContext('2d');g.fillStyle='#10202c';g.fillRect(0,0,16,16);g.fillStyle='#0a3a52';g.fillRect(2,2,12,12);
+  g.fillStyle='#3fe8ff';for(const [x,y] of [[4,4],[9,6],[6,10],[11,11],[3,12]])g.fillRect(x,y,1,1);g.fillStyle='#ff3fa4';g.fillRect(8,3,3,1);g.fillStyle='#2a3a4a';g.fillRect(7,2,1,12);g.fillRect(2,8,12,1);return FP.tex.win=g.getImageData(0,0,16,16).data;}
+function fpTubeCanvas(look,now,seed){if(!FP.tubeCv)FP.tubeCv=cvs(16,40);const g=FP.tubeCv.getContext('2d');g.clearRect(0,0,16,40);MTMDancer.drawTube(g,0,22,1,look,now,seed);return FP.tubeCv;}
+function fpFrame(now){
+  const L=G.L,h=G.hero,cv=RD.cv,g=RD.g;if(!L||!h)return;
+  if(RD.lvl!==L){RD.lvl=L;RD.dirty=true;FP.init=false;}
+  if(RD.dirty){rdMap();RD.dirty=false;}
+  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d').getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;}
+  const hx=X(h.pos)+.5,hy=Y(h.pos)+.5,dt=Math.min(.05,(now-(FP.last||now))/1000);FP.last=now;
+  if(!FP.init||Math.hypot(FP.x-hx,FP.y-hy)>2.5){FP.x=hx;FP.y=hy;FP.ang=FP.dir*Math.PI/2;FP.init=true;}
+  const k=Math.min(1,dt*12);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;
+  let ta=FP.dir*Math.PI/2,da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
+  if(FP.lastHp!==null&&h.hp<FP.lastHp)FP.flash=1;FP.lastHp=h.hp;FP.flash*=Math.pow(.02,dt);
+  // low-res buffer for the pixel look
+  const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
+  if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);}
+  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46),fov=FP.set.fov==='wide'?.85:.66,U=RW/(2*fov);
+  const dx=Math.sin(FP.ang),dy=-Math.cos(FP.ang),px=-dy*fov,py=dx*fov;
+  const sec=secOf(G.depth),acc=(sec.neon&&sec.neon[0])||'#3af5f5';
+  const shadeOf=(i,dist)=>{if(!L.seen[i])return 0;let s=L.vis&&L.vis[i]?1:.38;return s/(1+dist*dist*.035);};
+  // floor + ceiling, row by row
+  for(let y=0;y<RH;y++){
+    const floor=y>horizon,p=floor?(y-horizon):(horizon-y);if(p===0)continue;
+    const dist=(U*.5)/p;
+    const rx0=dx-px,ry0=dy-py,rx1=dx+px,ry1=dy+py;
+    const sx=dist*(rx1-rx0)/RW,sy=dist*(ry1-ry0)/RW;let fx=FP.x+dist*rx0,fy=FP.y+dist*ry0;
+    let o=y*RW*4;
+    for(let x=0;x<RW;x++,fx+=sx,fy+=sy,o+=4){
+      const tx=Math.floor(fx),ty=Math.floor(fy);
+      if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
+      const i=ty*W+tx,s=shadeOf(i,dist);
+      if(floor){const u=((fx-tx)*16)|0,v=((fy-ty)*16)|0,m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
+      else{const u=((fx-tx)*16)|0,v=((fy-ty)*16)|0;let r=14,gg=12,b=22;if(L.map[i]===T.SKY||L.street){r=10;gg=8;b=26;}if((v===7||v===8)&&(tx+ty)%3===0&&u>2&&u<13){r=60;gg=200;b=210;}D[o]=r*s+4;D[o+1]=gg*s+4;D[o+2]=b*s+7;}
+      D[o+3]=255;}
+  }
+  // walls (DDA)
+  for(let x=0;x<RW;x++){
+    const cx=2*x/RW-1,rx=dx+px*cx,ry=dy+py*cx;let mx=Math.floor(FP.x),my=Math.floor(FP.y);
+    const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let stx,sty,sdx,sdy,side=0,hit=-1;
+    if(rx<0){stx=-1;sdx=(FP.x-mx)*ddx;}else{stx=1;sdx=(mx+1-FP.x)*ddx;}
+    if(ry<0){sty=-1;sdy=(FP.y-my)*ddy;}else{sty=1;sdy=(my+1-FP.y)*ddy;}
+    for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;if(fpSolid(L,i)){hit=i;break;}}
+    if(hit<0){FP.z[x]=1e9;continue;}
+    const pd=side===0?(sdx-ddx):(sdy-ddy),lh=Math.round(U/pd);FP.z[x]=pd;
+    let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);let tu=(wx*16)|0;if((side===0&&rx>0)||(side===1&&ry<0))tu=15-tu;
+    const t=L.map[hit],faceOpen=!wallish(L,hit+W)&&hit+W<N;
+    let tex=null,useMap=false;
+    if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();else if(faceOpen)useMap=true;else tex=fpWallTex('w'+sectorOf(Math.max(1,G.depth))+(L.vr[hit]%3),shade('#2a2f3e',(L.vr[hit]%3)*.06),acc);
+    const s=shadeOf(hit,pd)*(side?0.78:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1));
+    const hx0=(hit%W)*16,hy0=((hit/W)|0)*16;
+    for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
+      if(useMap){const m=((hy0+Math.min(15,4+tv*12/16|0))*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];}else{const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}
+      D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
+  }
+  FP.buf.getContext('2d').putImageData(FP.img,0,0);
+  // billboards: mobs, loot, decor, tubes
+  const bg=FP.buf.getContext('2d');bg.imageSmoothingEnabled=false;const inv=1/(px*dy-dx*py),list=[];FP.hits=[];
+  const add=(i,kind,o)=>{const ex=X(i)+.5,ey=Y(i)+.5;if(kind!=='mob')list.push({ex,ey,kind,o,i});else list.push({ex:o.vx??ex,ey:o.vy??ey,kind,o,i});};
+  for(const m of L.mobs){if(m===h||!L.vis[m.pos])continue;if(!m.vx){m.vx=X(m.pos)+.5;m.vy=Y(m.pos)+.5;}m.vx+=(X(m.pos)+.5-m.vx)*k;m.vy+=(Y(m.pos)+.5-m.vy)*k;add(m.pos,'mob',m);}
+  for(const e of L.items)if(e.pos>=0&&L.seen[e.pos]&&!mobAt(e.pos))add(e.pos,'item',e);
+  for(let yy=Math.max(0,Math.floor(FP.y)-12);yy<=Math.min(H-1,Math.floor(FP.y)+12);yy++)for(let xx=Math.max(0,Math.floor(FP.x)-12);xx<=Math.min(W-1,Math.floor(FP.x)+12);xx++){const i=yy*W+xx;if(L.seen[i]&&fpDecor(L,i))add(i,'decor',null);}
+  if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])add(i,'tube',n);});
+  for(const b of list){const rx=b.ex-FP.x,ry=b.ey-FP.y;b.tx=inv*(dy*rx-dx*ry);b.ty=inv*(-py*rx+px*ry);}
+  list.sort((a,b)=>b.ty-a.ty);
+  const fr=(now/420|0)&1;
+  for(const b of list){if(b.ty<=.15)continue;const sxc=Math.round(RW/2*(1+b.tx/b.ty)),unit=U/b.ty,floorY=horizon+unit/2;
+    let img,wW,hH,yb=floorY;const s=shadeOf(b.i,b.ty);if(s<=0.02)continue;
+    if(b.kind==='mob'){img=mobSprite(b.o,fr);wW=unit*.95;hH=unit*.95;}
+    else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.42;hH=unit*.42;yb=floorY-unit*.02+Math.sin(now/350+b.i)*unit*.02;}
+    else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
+    else{const c=FP.tex['d'+b.i]||(FP.tex['d'+b.i]=(()=>{const c=cvs(16,16);c.getContext('2d').drawImage(RD.mapCv,X(b.i)*16,Y(b.i)*16,16,16,0,0,16,16);return c;})());img=c;wW=unit*.9;hH=unit*.75;}
+    const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH));
+    const iw=img.width,ih=img.height;
+    bg.globalAlpha=1;for(let x=Math.max(0,x0);x<Math.min(RW,x0+w);x++){if(FP.z[x]<b.ty)continue;const u=Math.floor((x-x0)/w*iw);bg.drawImage(img,u,0,1,ih,x,y0,1,hgt);}
+    if(s<.98){bg.globalAlpha=Math.min(.85,1-s);bg.globalCompositeOperation='source-atop';bg.fillStyle='#04040a';bg.fillRect(x0,y0,w,hgt);bg.globalCompositeOperation='source-over';bg.globalAlpha=1;}
+    if(b.kind==='mob'||b.kind==='item')FP.hits.push({x0:x0/RW,x1:(x0+w)/RW,y0:y0/RH,y1:(y0+hgt)/RH,i:b.i,d:b.ty});
+  }
+  // present
+  g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.imageSmoothingEnabled=false;g.fillStyle='#040407';g.fillRect(0,0,RD.w,RD.h);g.drawImage(FP.buf,0,0,RW,RH,0,0,RD.w,RD.h);
+  // vignette, damage flash, crosshair, compass, control hints
+  const W2=RD.w,H2=RD.h,u=Math.max(1,Math.round(W2/RW));
+  if(FP.flash>.02){g.globalAlpha=FP.flash*.45;g.fillStyle='#ff2040';g.fillRect(0,0,W2,H2);g.globalAlpha=1;}
+  const ahead=h.pos+FPD[FP.dir][0]+FPD[FP.dir][1]*W,mob=mobAt(ahead);
+  g.globalAlpha=.85;g.fillStyle=mob&&!MOBS[mob.k].npc?'#ff3f5a':'#3af5f5';const cxp=W2/2,cyp=H2*.46;g.fillRect(cxp-u*3,cyp,u*2,u);g.fillRect(cxp+u,cyp,u*2,u);g.fillRect(cxp,cyp-u*3,u,u*2);g.fillRect(cxp,cyp+u,u,u*2);
+  g.globalAlpha=.9;g.font=`${7*u}px ui-monospace,monospace`;g.textAlign='center';g.fillStyle='#3af5f5';g.fillText(['N','E','S','W'][FP.dir],W2/2,H2*.17);
+  g.globalAlpha=.22;g.fillStyle='#ffffff';const ar=(x,y,dir)=>{g.beginPath();if(dir==='l'){g.moveTo(x+8*u,y-10*u);g.lineTo(x,y);g.lineTo(x+8*u,y+10*u);}else if(dir==='r'){g.moveTo(x-8*u,y-10*u);g.lineTo(x,y);g.lineTo(x-8*u,y+10*u);}else if(dir==='u'){g.moveTo(x-10*u,y+8*u);g.lineTo(x,y);g.lineTo(x+10*u,y+8*u);}else{g.moveTo(x-10*u,y-8*u);g.lineTo(x,y);g.lineTo(x+10*u,y-8*u);}g.lineWidth=2*u;g.strokeStyle='#ffffff';g.stroke();};
+  if(FP.set.hints&&FP.set.ctl!=='dpad'){ar(W2*.06,H2*.5,'l');ar(W2*.94,H2*.5,'r');ar(W2/2,H2*.62,'u');ar(W2/2,H2*.8,'d');}g.globalAlpha=1;g.textAlign='left';
+}
+{const _rf=rdFrame;rdFrame=function(now){if(FP.on&&RD.on&&G&&G.L&&!G.L.street&&!G.over){requestAnimationFrame(rdFrame);try{fpFrame(now);}catch(e){console.warn('fp',e);FP.on=false;}return;}return _rf.apply(this,arguments);};}
+function fpTurn(d){FP.dir=(FP.dir+d+4)%4;}
+function fpStep(back){const h=G.hero,f=FPD[(FP.dir+(back?2:0))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
+function fpStrafe(d){const h=G.hero,f=FPD[(FP.dir+(d>0?1:3))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
+function fpSetFromFacing(){FP.dir=(RD.face===-1)?3:1;FP.init=false;}
+function fpToggle(on){FP.on=on===undefined?!FP.on:on;try{localStorage.setItem('mtm_fp',FP.on?'1':'0');}catch(e){}if(FP.on)fpSetFromFacing();RD.dirty=true;const b=document.getElementById('fpBtn');if(b){b.textContent=FP.on?'MAP':'1ST';b.setAttribute('aria-pressed',FP.on?'true':'false');}fpUI();}
+// controls: capture taps on the game canvas while first-person is on
+
+// d-pad + settings panel
+function fpUI(){const on=FP.on&&G&&G.L&&!G.L.street&&!G.over,pad=document.getElementById('fpPad'),gear=document.getElementById('fpGear'),pan=document.getElementById('fpSet');
+  if(gear)gear.style.display=FP.on?'':'none';if(pan&&!FP.on)pan.style.display='none';
+  if(pad){pad.style.display=on&&FP.set.ctl!=='tap'?'grid':'none';pad.style.left=FP.set.side==='left'?'max(10px,env(safe-area-inset-left))':'';pad.style.right=FP.set.side==='right'?'max(10px,env(safe-area-inset-right))':'';}}
+function fpBuildUI(host,b){
+  const css=document.createElement('style');css.textContent=`
+#fpGear{position:absolute;z-index:30;min-width:32px;min-height:32px;padding:0;background:rgba(8,10,18,.85);color:#3af5f5;border:1px solid #2a6a7a;border-radius:4px;font:700 15px ui-monospace,Menlo,monospace;cursor:pointer}
+#fpPad{position:fixed;z-index:25;bottom:calc(168px + env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;touch-action:none;user-select:none;-webkit-user-select:none}
+#fpPad button{background:rgba(8,10,18,.62);color:#3af5f5;border:1px solid rgba(58,245,245,.45);border-radius:8px;font:700 18px ui-monospace,Menlo,monospace;padding:0;touch-action:none}
+#fpPad button:active{background:rgba(58,245,245,.28)}
+#fpPad .s{font-size:17px;color:#9ad}
+#fpSet{position:absolute;z-index:40;width:min(250px,calc(100vw - 24px));background:rgba(8,10,18,.96);border:1px solid #2a6a7a;border-radius:6px;padding:10px 12px;color:#cfe;font:13px/1.4 ui-monospace,Menlo,monospace;display:none}
+#fpSet h4{margin:0 0 8px;color:#3af5f5;font-size:13px;letter-spacing:.08em}
+#fpSet .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:7px 0}
+#fpSet .seg{display:flex;gap:4px}
+#fpSet .seg button{min-height:32px;min-width:44px;padding:2px 7px;background:#121624;color:#9ab;border:1px solid #2a3a4a;border-radius:4px;font:12px ui-monospace,Menlo,monospace}
+#fpSet .seg button.on{background:#0e3a44;color:#3af5f5;border-color:#3af5f5}
+#fpSet small{display:block;color:#789;margin-top:8px}`;document.head.appendChild(css);
+  const gear=document.createElement('button');gear.id='fpGear';gear.type='button';gear.textContent='⚙';gear.setAttribute('aria-label','First-person settings');host.appendChild(gear);
+  const pan=document.createElement('div');pan.id='fpSet';host.appendChild(pan);
+  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]]];
+  const draw=()=>{pan.innerHTML='<h4>FIRST-PERSON</h4>'+opts.map(([k,l,vs])=>`<div class="r"><span>${l}</span><span class="seg">${vs.map(([v,t])=>`<button type="button" data-k="${k}" data-v="${v}" class="${FP.set[k]===v?'on':''}">${t}</button>`).join('')}</span></div>`).join('')+'<small>Tap: middle = step, sides = turn, swipe works too. D-pad: ▲▼ step, ◀▶ turn, «» sidestep, ● wait.</small>';};
+  pan.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;e.stopPropagation();let v=t.dataset.v;if(v==='true')v=true;else if(v==='false')v=false;FP.set[t.dataset.k]=v;fpSave();draw();fpUI();});
+  gear.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();draw();pan.style.display=pan.style.display==='block'?'none':'block';place2();});
+  const pad=document.createElement('div');pad.id='fpPad';pad.setAttribute('aria-label','First-person movement');
+  const keys=[['«','sl','Sidestep left','s'],['▲','f','Step forward'],['»','sr','Sidestep right','s'],['◀','tl','Turn left'],['●','w','Wait a turn','s'],['▶','tr','Turn right'],['','',''],['▼','b','Step back'],['','','']];
+  pad.innerHTML=keys.map(([t,a,l,c])=>a?`<button type="button" data-a="${a}" aria-label="${l}" class="${c||''}">${t}</button>`:'<span></span>').join('');
+  let rep=null;const fire=a=>{if(!G||G.over||busy())return;initAudio();if(a==='f')fpStep(false);else if(a==='b')fpStep(true);else if(a==='tl')fpTurn(-1);else if(a==='tr')fpTurn(1);else if(a==='sl')fpStrafe(-1);else if(a==='sr')fpStrafe(1);else if(a==='w'){const w=document.getElementById('tWait');if(w)w.click();}};
+  pad.addEventListener('pointerdown',e=>{const t=e.target.closest('button');if(!t)return;e.preventDefault();e.stopPropagation();const a=t.dataset.a;fire(a);clearInterval(rep);if(a==='f'||a==='b')rep=setInterval(()=>fire(a),260);});
+  const stop=()=>{clearInterval(rep);rep=null;};['pointerup','pointercancel','pointerleave'].forEach(ev=>pad.addEventListener(ev,stop));
+  document.body.appendChild(pad);
+  const place2=()=>{const br=b.getBoundingClientRect(),hr=(b.offsetParent||document.body).getBoundingClientRect();gear.style.top=b.style.top;gear.style.right=`calc(${b.style.right||'6px'} + ${Math.round(br.width)+6}px)`;
+    if(!gear.style.right.includes('calc'))gear.style.right=(Math.round(br.width)+12)+'px';pan.style.top=(parseFloat(b.style.top)+br.height+6)+'px';pan.style.right='max(6px,env(safe-area-inset-right))';};
+  place2();window.addEventListener('resize',place2);setInterval(()=>{place2();fpUI();},1500);fpUI();
+}
+function fpInstall(cv){let dn=null,lt=null;
+  const ok=()=>FP.on&&G&&G.L&&!G.L.street&&!G.over;
+  cv.addEventListener('pointerdown',e=>{if(!ok())return;e.stopImmediatePropagation();dn={x:e.clientX,y:e.clientY,t:performance.now()};clearTimeout(lt);
+    lt=setTimeout(()=>{if(!dn)return;dn.long=1;const h=G.hero,f=FPD[FP.dir];showInfo(h.pos+f[0]+f[1]*W);refresh();},460);},true);
+  cv.addEventListener('pointermove',e=>{if(!ok()||!dn)return;e.stopImmediatePropagation();if(Math.abs(e.clientX-dn.x)>14)clearTimeout(lt);},true);
+  const up=e=>{if(!ok())return;e.stopImmediatePropagation();clearTimeout(lt);if(!dn||dn.long){dn=null;return;}if(busy()){dn=null;return;}initAudio();
+    const r=cv.getBoundingClientRect(),dxp=e.clientX-dn.x,dyp=e.clientY-dn.y;dn=null;
+    if(FP.set.ctl!=='dpad'&&Math.abs(dxp)>40&&Math.abs(dxp)>Math.abs(dyp)){fpTurn(dxp<0?1:-1);return;}
+    if(FP.set.ctl!=='dpad'&&Math.abs(dyp)>40){fpStep(dyp>0);return;}
+    const fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
+    // tapping a mob or item in view acts on it (attack, talk, fire, throw, pick up)
+    const hit=FP.hits.filter(q=>fx>=q.x0&&fx<=q.x1&&fy>=q.y0&&fy<=q.y1).sort((a,b)=>a.d-b.d)[0];
+    if(hit&&(UI.mode||Math.abs(X(hit.i)-X(G.hero.pos))+Math.abs(Y(hit.i)-Y(G.hero.pos))<=1||mobAt(hit.i))){onTap(hit.i);refresh();return;}
+    if(FP.set.ctl==='dpad')return;
+    if(fx<.28){fpTurn(-1);return;}if(fx>.72){fpTurn(1);return;}
+    fpStep(fy>.72);};
+  cv.addEventListener('pointerup',up,true);cv.addEventListener('pointercancel',e=>{if(ok()){e.stopImmediatePropagation();dn=null;clearTimeout(lt);}},true);
+  // keyboard: arrows / WASD
+  window.addEventListener('keydown',e=>{if(!ok()||busy())return;const k=e.key.toLowerCase();
+    if(k==='arrowleft'||k==='a'){fpTurn(-1);e.preventDefault();e.stopImmediatePropagation();}else if(k==='arrowright'||k==='d'){fpTurn(1);e.preventDefault();e.stopImmediatePropagation();}
+    else if(k==='arrowup'||k==='w'){fpStep(false);e.preventDefault();e.stopImmediatePropagation();}else if(k==='arrowdown'||k==='s'){fpStep(true);e.preventDefault();e.stopImmediatePropagation();}},true);
+  // toggle button under the minimap
+  const b=document.createElement('button');b.id='fpBtn';b.type='button';b.textContent=FP.on?'MAP':'1ST';b.setAttribute('aria-label','Toggle first-person view');
+  b.style.cssText='position:absolute;z-index:30;right:max(6px,env(safe-area-inset-right));min-width:46px;min-height:32px;padding:4px 8px;background:rgba(8,10,18,.85);color:#3af5f5;border:1px solid #2a6a7a;border-radius:4px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.08em;cursor:pointer';
+  const place=()=>{const m=document.getElementById('mini');const r=m&&m.getBoundingClientRect();const host=m&&m.offsetParent||document.body;const hr=host.getBoundingClientRect();b.style.top=((r&&r.height?r.bottom-hr.top:100)+6)+'px';};
+  const host=(document.getElementById('mini')||{}).parentNode||document.body;host.appendChild(b);place();window.addEventListener('resize',place);setInterval(place,1500);
+  b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fpToggle();refresh();});
+  fpBuildUI(host,b);
+}
+{const _wait=setInterval(()=>{if(RD&&RD.cv){clearInterval(_wait);fpInstall(RD.cv);}},300);}
+
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.28','First-person mode. Tap 1ST under the minimap to walk the same floor from eye level, and tap MAP to go back. It uses the same map, turns, enemies and loot. The ⚙ button next to it opens the settings: Controls (Tap, D-pad or Both), which side the D-pad sits on, a Normal or Wide view, and hint arrows on or off. The D-pad has step forward and back (hold to keep walking), turn left and right, sidestep, and wait. With tap controls, tap the middle to step, tap the sides or swipe to turn, and tap the bottom to step back. Turning is free. Tap an enemy, NPC or item in view to attack, talk or pick it up, and guns and throws still aim by tapping a target. The floors use the real map art, and mobs, loot, counters and the tube dancers stand up in the view. The crosshair turns red when a hostile is right in front of you. On a keyboard, use arrows or WASD. The street level always uses the top-down view.'],
  ['v0.27','Bars got their own look: the counter is a polished bar top with glasses and bottles under a pink neon edge. No more ramen bowls sliding along every counter; that only happens at the noodle stand now. · Tube dancers: the stick holograms are replaced by real dancers floating in water tubes. Each bar has one tube colour, and its dancers wear matching one-piece swimsuits. Skin tone and hair (afro, bob, pixie, short crop) change from dancer to dancer. The tubes are solid and never sit in front of a door. · Nothing is out of reach anymore. Loot that landed behind the bar or on a counter is moved out onto the floor. Decor is cleared from in front of every door. If an item, the exit or a patch of floor is still cut off, a path is carved to it. The bar seal no longer leaks out of the bar room and drops counters into the hallways. · Fixed a crash in Doc Sato\'s wake-up line that stopped it from showing.'],
  ['v0.26h','No more black bands. The camera had no bounds at all — stand near the edge of a floor and the view simply ran off the map. It is now clamped so the viewport always stays inside the level, and centres itself on anything smaller than the screen. · Street traffic was driving in the wrong place: the road has two real lanes and the vehicles were straddling the lane markings and the median. They now run in the actual lanes, with the skater on the pavement. · The skater was T-posing with both arms straight out, which is why it read as a scarecrow. One arm is up and back, the other down and forward, like somebody actually balancing.'],
  ['v0.26g','Street traffic redrawn properly. Five vehicles — sport bike, street car, cargo trike, skater, two-up hover bike — now built as cached sprites that go through the same outline pass the people on the street use, so they sit in the same art style instead of looking pasted on. Real wheels with tyre, rim, hub and spokes that turn; a rider folded over the tank with an arm on the bars; a car with wheels under cut arches; a courier pedalling a cargo trike; a skateboard with trucks you can see. · Police line is back to its original look — the rewrite in the last build was worse. The only change is that a length of it now runs across the tower doorway, which it never did: the span was being added, then wiped every time the street rebuilt itself.'],
@@ -3677,7 +3859,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.27 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.28 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
