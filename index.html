@@ -3975,6 +3975,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.37','BARTENDER only shoots when you can see the bar (no more off-screen kill spam). VOLT COLA has a lightning bolt on the can. MESSAGE HISTORY: ⚙ HUD settings → MESSAGE HISTORY to read every message this run, grouped by the floor it happened on. NEW art style: rooms less dark.'],
  ['v0.36','FIRST PERSON: LOOK stick opposite the D-pad, drag to look around, push past halfway to turn; standing people and enemies stand on the floor instead of floating. ARCHITECT: two fabricators only, mounted against the north wall. ART STYLE toggle (HUD settings): CLASSIC keeps the old look; NEW darkens rooms and lights them from screens, terminals, pods, signs and exits, adds silver gun trim, a round/charge counter, shells + star flash + recoil on bullet guns (Needler, Scatter, Minigun) and charge arcs on tech guns.'],
  ['v0.35','STREET: new interceptor superbike, neon lightbike, street fighter and two-seat hover pod with a layered blue glow join the traffic. Every vehicle that comes round rolls its own model, colours, trim and rider, and every rider and skater is a different person. Four vehicles per lane. POLICE LINE now runs unbroken across the tower doors. NAMES: far bigger pools for people and handles. CREATOR: SCRAMBLE GENOME now rolls frame, build, skin, hair, face, clothes and name.'],
  ['v0.34','ZOOM: pinch (or the zoom buttons) now goes all the way in, Pixel Dungeon style, about two tiles across. TRAFFIC: riders are drawn like everyone else on the street; the two lanes run opposite ways at one steady speed each, so vehicles stop driving through each other; the leftover tiny car painted into the road is gone; cars in first person are a believable size. SKATER: head no longer clipped, board has a kicktail, smaller shadow.'],
@@ -4065,7 +4066,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.36 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.37 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -5611,7 +5612,7 @@ function fixReach(L){
         const dd=dist(m.pos,bk.pos);
         if(dd<=4&&dd<bd&&!blocksShotLine(bk.pos,m.pos)){bd=dd;tgt=m;}
       }
-      if(!tgt)continue;
+      if(!tgt||!(G.L.vis[bk.pos]&&dist(bk.pos,G.hero.pos)<=8))continue;
       bk._shot=G.turn;
       fx({t:'beam',a:bk.pos,b:tgt.pos,c:'#ffab2e',w:2,id:bk.id});
       sfx('shot');
@@ -6598,7 +6599,7 @@ const LGT={};function lightSpr(c){if(LGT[c])return LGT[c];const cv=document.crea
 const LT_T={[T.TERM]:['#3af5f5',2.2,.5],[T.POD]:['#7ae0ff',1.8,.45],[T.CLONE]:['#9aff8a',1.8,.4],[T.EXIT]:['#ffd24a',2.4,.45],[T.EXITL]:['#ffd24a',2.4,.45],[T.CAR]:['#ff4fd8',1.4,.25],[T.WINDOW]:['#6a8cff',1.3,.18]};
 const LT_P={scr:['#ff4fd8',2.4,.5],kiosk:['#3af5f5',2,.45],tube:['#ff6ad5',2.6,.5],cam:['#ff3b4e',1,.35],vault:['#ffd24a',1.8,.35],sec:['#3af5f5',1.8,.4]};
 function lightPass(now){const L=G.L,g=RD.g,S=RD.S,TS=16*S;if(!L||!g)return;g.save();g.setTransform(1,0,0,1,0,0);
-  g.globalCompositeOperation='source-over';g.fillStyle='rgba(3,4,12,.30)';g.fillRect(0,0,RD.w,RD.h);
+  g.globalCompositeOperation='source-over';g.fillStyle='rgba(3,4,12,.16)';g.fillRect(0,0,RD.w,RD.h);
   g.globalCompositeOperation='lighter';const x0=Math.max(0,Math.floor(-RD.ox/TS)-2),y0=Math.max(0,Math.floor(-RD.oy/TS)-2),x1=Math.min(W-1,x0+Math.ceil(RD.w/TS)+4),y1=Math.min(H-1,y0+Math.ceil(RD.h/TS)+4);
   const fl=.92+.08*Math.sin(now/170);
   const put=(i,d)=>{if(!d||!L.vis[i])return;const r=d[1]*TS,cx=RD.ox+(X(i)+.5)*TS,cy=RD.oy+(Y(i)+.5)*TS;g.globalAlpha=d[2]*fl;g.drawImage(lightSpr(d[0]),cx-r,cy-r,2*r,2*r);};
@@ -6640,6 +6641,22 @@ FP.shells=[];
   if(mxc<=10){const pw=(bw-2*P)/mxc;for(let j=0;j<mxc;j++){g.fillStyle=j<it.ch?(bul?'#e0b040':d.c):'#2a2e38';g.fillRect(bx+P+j*pw,byy+bh-2.6*P,Math.max(1,pw-P*.4),1.4*P);}}
   else{g.fillStyle='#2a2e38';g.fillRect(bx+P,byy+bh-2.6*P,bw-2*P,1.4*P);g.fillStyle='#e0b040';g.fillRect(bx+P,byy+bh-2.6*P,(bw-2*P)*Math.max(0,it.ch)/mxc,1.4*P);}
   g.restore();};}
+
+
+// ===== v0.37 =====
+// Volt Cola: bolt on the label
+ICON2.cola=function(R,c){R(5,3,6,11,c);R(5,3,6,1,'#dfe8f0');R(5,13,6,1,shade(c,-.4));R(5,3,1,11,shade(c,.3));R(8,2,2,1,'#8a9098');
+  R(6,5,4,7,'#14161c');const Y='#ffe14a';R(8,5,2,1,Y);R(7,6,2,1,Y);R(6,7,4,1,Y);R(8,8,1,1,Y);R(7,9,2,1,Y);R(7,10,1,1,Y);};
+// message history, tagged by floor
+{const _lg=log;log=function(m,c){try{if(G){G.hist=G.hist||[];G.hist.push({m:String(m),c:c||'',f:G.depth|0,t:G.turn|0});if(G.hist.length>300)G.hist.splice(0,G.hist.length-300);}}catch(e){}return _lg.apply(this,arguments);};}
+function floorLbl(f){return f<=0?'STREET / CLINIC':'FLOOR '+f;}
+function logHistory(){const H=(G&&G.hist)||[];let html='<h3>MESSAGE HISTORY</h3>',cur=null;
+  for(let j=H.length-1;j>=0;j--){const e=H[j];if(e.f!==cur){if(cur!==null)html+='</div>';cur=e.f;html+=`<h5 style="margin:10px 0 4px">${floorLbl(e.f)}</h5><div>`;}
+    html+=`<p class="${e.c}" style="margin:2px 0;font-size:12px"><span class="dim">T${e.t}</span> ${e.m.replace(/</g,'&lt;')}</p>`;}
+  if(cur!==null)html+='</div>';if(!H.length)html+='<p class="dim">Nothing logged yet this run.</p>';
+  html+='<div class="row"><button class="btn" onclick="closeModal()">CLOSE</button></div>';openModal(html);}
+document.addEventListener('click',ev=>{const t=ev.target;if(t.closest&&t.closest('#log')&&!t.closest('button')){logHistory();}},false);
+{const _hs37=hudSettings;hudSettings=function(){const r=_hs37.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-lh]')){const b=document.createElement('div');b.innerHTML='<button class="chip" data-lh="1">MESSAGE HISTORY ▸</button>';b.firstChild.onclick=e=>{e.stopPropagation();logHistory();};det.insertBefore(b,det.firstChild);}}catch(e){}return r;};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
