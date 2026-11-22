@@ -283,6 +283,9 @@ body:not(.hud-dev) #mini{top:64px!important}
 .tlog{display:inline-block!important;width:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%);padding:9px 16px!important;border:1px solid rgba(63,232,255,.45);border-radius:4px;background:rgba(5,5,10,.65);color:#9adfff!important;letter-spacing:1px;bottom:max(10px,env(safe-area-inset-bottom))!important;white-space:nowrap}
 #lookBtn{display:none!important}
 </style>
+<style id="iosSA">html.ios-sa,html.ios-sa body{height:100vh!important;min-height:calc(100% + env(safe-area-inset-top))}
+html.ios-sa #app{top:0!important;bottom:auto!important;height:100vh!important;min-height:calc(100% + env(safe-area-inset-top))}</style>
+<script>(function(){try{if(navigator.standalone===true||matchMedia('(display-mode: standalone)').matches)document.documentElement.classList.add('ios-sa');}catch(e){}})();</script>
 </head>
 <body>
 <div id="app">
