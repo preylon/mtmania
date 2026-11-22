@@ -1469,7 +1469,7 @@ function bossAct(m,sees,dh){
     if((m.ph||0)<ph){m.ph=ph;summonNear('guard',m.pos,m.id);summonNear('guard',m.pos,m.id);m.sh=1;log('Director Hale calls security. His shield flares while they stand.','bad');return true;}return false;}
   if(m.k==='b5'){
     const fabs=L.mobs.filter(x=>x.k==='node');
-    if(!m.init){m.init=1;const C=[[-7,-5],[7,-5],[-7,5],[7,5]];for(const [dx,dy] of C){const q=freeNear(idx(Math.max(2,Math.min(W-3,X(m.pos)+dx)),Math.max(2,Math.min(H-3,Y(m.pos)+dy))),3);if(q>=0){const n=mkMob('node',q,'hunt');n.own=m.id;L.mobs.push(n);fx({t:'boom',p:q,c:'#ff2a3a',r:1});}}m.inv=1;m.purge=60;
+    if(!m.init){m.init=1;let ny=Y(m.pos);while(ny>2&&!wallish(L,idx(X(m.pos),ny-1)))ny--;for(const dx of [-5,5]){const tx=Math.max(2,Math.min(W-3,X(m.pos)+dx));let q=idx(tx,ny);if(!pass(q)||mobAt(q)){q=-1;for(let dd=1;dd<4&&q<0;dd++)for(const xx of [tx-dd,tx+dd]){const j=idx(Math.max(1,Math.min(W-2,xx)),ny);if(pass(j)&&!mobAt(j)){q=j;break;}}}if(q<0)q=freeNear(idx(tx,ny+1),2);if(q>=0){const n=mkMob('node',q,'hunt');n.own=m.id;L.mobs.push(n);fx({t:'boom',p:q,c:'#ff2a3a',r:1});}}m.inv=1;m.purge=60;
       log('THE ARCHITECT: "I hacked this tower. I will hack you." Four DRONE FABRICATORS (red, in the corners) power its shield. Destroy them all — the shield drops for good.','bad');return true;}
     if(fabs.length){m.inv=1;for(const f of fabs){f.cd=(f.cd||0)+1;if(f.cd%7===0&&L.mobs.filter(x=>x.k==='hdrone').length<4){summonNear('hdrone',f.pos,m.id);}}
       m.purge--;if(m.purge%15===0&&m.purge>0)log(`PURGE in ${m.purge} turns — kill the fabricators.`,'warn');
@@ -3708,7 +3708,7 @@ function fpFrame(now){
   const hx=X(h.pos)+.5,hy=Y(h.pos)+.5,dt=Math.min(.05,(now-(FP.last||now))/1000);FP.last=now;
   if(!FP.init||Math.hypot(FP.x-hx,FP.y-hy)>2.5){FP.x=hx;FP.y=hy;FP.ang=FP.dir*Math.PI/2;FP.init=true;}
   const k=Math.min(1,dt*12),mv=Math.hypot(hx-FP.x,hy-FP.y);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;if(mv>.02)FP.bob+=dt*12;
-  let ta=FP.dir*Math.PI/2+(FP.aim&&now-FP.aim.t<650?FP.aim.off:0),da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
+  let ta=FP.dir*Math.PI/2+(FP.look||0)+(FP.aim&&now-FP.aim.t<650?FP.aim.off:0),da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
   if(FP.lastHp!==null&&h.hp<FP.lastHp){FP.flash=1;RD.shake=Math.max(RD.shake||0,3);}FP.lastHp=h.hp;FP.flash*=Math.pow(.02,dt);
   const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
   if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);FP.sd=new Float32Array(RW);FP.st=new Float32Array(RW);}
@@ -3782,7 +3782,7 @@ function fpFrame(now){
   if(FP.elevOpen){const e=FP.elevOpen,want=dist(e.i,G.hero.pos)<=1&&now-e.t<9000?1:0;e.amt=Math.max(0,Math.min(1,(e.amt||0)+(want?1:-1)*.06));if(!want&&e.amt<=0)FP.elevOpen=null;}
   const fr=(now/420|0)&1;
   for(const b of list){if(b.ty<=.12)continue;const sxc=Math.round(RW/2*(1+b.tx/b.ty)),unit=U/b.ty,floorY=horizon+unit/2;let img,wW,hH,yb=floorY,tint=0;const s=shadeOf(b.i,b.ty);if(s<=.02)continue;
-    if(b.kind==='mob'){const [sc,lift]=fpScale(b.o);img=mobSprite(b.o,fr);wW=unit*sc*1.05;hH=unit*sc*1.05;yb=floorY-unit*lift;const ht=FP.hit[b.o.id];if(ht&&now-ht<140)tint=1;}
+    if(b.kind==='mob'){const [sc,lift]=fpScale(b.o);img=mobSprite(b.o,fr);wW=unit*sc*1.05;hH=unit*sc*1.05;yb=floorY-unit*lift+(lift?0:hH*fpFootPad(img));const ht=FP.hit[b.o.id];if(ht&&now-ht<140)tint=1;}
     else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.38;hH=unit*.38;yb=floorY+Math.sin(now/350+b.i)*unit*.015;}
     else if(b.kind==='dead'){const d=b.o,a=Math.min(1,(now-d.t)/420),[sc]=fpScale(d.m);img=mobSprite(d.m,0);wW=unit*sc*1.05;hH=unit*sc*1.05*(1-.78*a);if(a<1)tint=a<.3?1:0;}
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
@@ -3975,6 +3975,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.36','FIRST PERSON: LOOK stick opposite the D-pad, drag to look around, push past halfway to turn; standing people and enemies stand on the floor instead of floating. ARCHITECT: two fabricators only, mounted against the north wall. ART STYLE toggle (HUD settings): CLASSIC keeps the old look; NEW darkens rooms and lights them from screens, terminals, pods, signs and exits, adds silver gun trim, a round/charge counter, shells + star flash + recoil on bullet guns (Needler, Scatter, Minigun) and charge arcs on tech guns.'],
  ['v0.35','STREET: new interceptor superbike, neon lightbike, street fighter and two-seat hover pod with a layered blue glow join the traffic. Every vehicle that comes round rolls its own model, colours, trim and rider, and every rider and skater is a different person. Four vehicles per lane. POLICE LINE now runs unbroken across the tower doors. NAMES: far bigger pools for people and handles. CREATOR: SCRAMBLE GENOME now rolls frame, build, skin, hair, face, clothes and name.'],
  ['v0.34','ZOOM: pinch (or the zoom buttons) now goes all the way in, Pixel Dungeon style, about two tiles across. TRAFFIC: riders are drawn like everyone else on the street; the two lanes run opposite ways at one steady speed each, so vehicles stop driving through each other; the leftover tiny car painted into the road is gone; cars in first person are a believable size. SKATER: head no longer clipped, board has a kicktail, smaller shadow.'],
  ['v0.33','SCREEN: new SCREEN FIT in HUD settings: AUTO sizes to your phone (fixes controls cut in half on home-screen installs) plus BOTTOM/TOP nudges if your phone still cuts something off. CAMERAS: new wall-bracket cameras hang off the wall in both views, and you can see their sweeping red cone on the floor; they only spot you inside it. In first person they hang at head height. SKATERS: now one of the street people on a small hover board. DEATHS: bodies no longer switch to a different look when they drop. DROPS: dropping items piles them on your tile instead of picking the last one back up. DOORS: every doorway keeps a clear tile on both sides. FIRST PERSON: tap a window twice to look out, so tapping to walk can\'t trigger it.'],
@@ -4064,7 +4065,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.35 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.36 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -6534,6 +6535,111 @@ HANDLES.push('Static','Ghostline','Rivet','Halcyon','Krill','Moth','Neon','Patch
   Object.assign(L,{body:rnd(2),bld:rnd(6),skin:pick(SKINS),hs:rnd(HAIRS.length),hair:pick(HAIRC),face:rnd(FACES.length)});
   try{L.top=pick(['#4a4a5a','#5a3a4a','#3a4a3a','#2a2a36','#6a5a3a','#2e3440','#7a2a3a','#3a5a7a','#c9a227','#e8eef4']);L.bot=pick(['#22222a','#2a2a3a','#3a2e26','#3a3a48','#4a2a2a']);L.bt=pick(['pants','shorts','skirt','pants']);}catch(e){}
   refreshCreate();};}
+
+// ---------- v0.36 tail
+// MICRO CARS: the parked compacts from the lot, now driving (side view, same colours and body types)
+function microCar(seed,fr){const c=document.createElement('canvas');c.width=40;c.height=20;const g=c.getContext('2d'),R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const r=k=>{const x=Math.sin(seed*127.1+k*311.7)*43758.5453;return x-Math.floor(x);};
+  const cc=['#c0303a','#2a6ab0','#d8d8e0','#1a1a22','#e0a020','#3a8a5a','#6a3a8a'][Math.floor(r(1)*7)],md=Math.floor(r(2)*4),lt=shade(cc,.4),dk=shade(cc,-.35),gl='#0a1224',gh='rgba(160,200,255,.55)';
+  const wheel=cx=>{R(cx-3,13,7,6,'#101014');R(cx-2,14,5,4,'#3a3f4a');R(cx-1,15,3,2,'#6a7280');};
+  if(md===0){ // hatch: tall rounded cabin, short nose
+    R(7,9,26,6,cc);R(7,9,26,1,lt);R(7,14,26,1,dk);R(10,3,17,6,cc);R(10,3,17,1,lt);R(27,5,3,4,cc);R(12,4,6,4,gl);R(19,4,7,4,gl);R(20,4,3,1,gh);R(13,4,2,1,gh);}
+  else if(md===1){ // box van: one tall slab, big windscreen
+    R(6,3,28,12,cc);R(6,3,28,1,lt);R(6,14,28,1,dk);R(28,4,5,5,gl);R(29,4,2,1,gh);R(9,5,16,3,gl);R(10,5,3,1,gh);R(6,9,28,1,dk);R(33,10,1,3,dk);}
+  else if(md===2){ // bubble: domed cabin, neon roof strip
+    R(8,10,24,5,cc);R(8,10,24,1,lt);R(8,14,24,1,dk);R(11,5,18,5,cc);R(13,3,14,2,cc);R(13,3,14,1,lt);R(12,5,16,4,gl);R(14,5,3,1,gh);R(16,2,8,1,'#ff3fa4');R(7,12,1,2,cc);R(32,12,1,2,cc);}
+  else{ // cargo: dark tub with a coloured cab
+    R(6,8,18,7,'#2a2e36');R(6,8,18,1,'#4b5260');for(let x=8;x<23;x+=3)R(x,9,1,5,'#1a1e26');R(24,4,10,11,cc);R(24,4,10,1,lt);R(24,14,10,1,dk);R(27,5,6,4,gl);R(28,5,2,1,gh);}
+  R(33,10,1,2,'#fff2c8');R(6,10,1,2,'#ff3b4e');R(5,12,1,1,'#101014');R(34,12,1,1,'#101014');
+  try{if(md!==3){const rc=riderCrop(seed*11+2);g.drawImage(rc,0,0,rc.width,5,md===1?27:md===2?18:19,md===1?4:md===2?4:3,rc.width,5);}else{const rc=riderCrop(seed*11+2);g.drawImage(rc,0,0,rc.width,5,27,5,rc.width,5);}}catch(e){}
+  if(md===0){R(19,4,7,4,'rgba(10,18,36,.45)');}
+  wheel(12);wheel(28);try{vOutline(g,40,20);}catch(e){}return c;}
+
+// FIRST PERSON: standing sprites stand on the floor (their empty bottom rows were making them float)
+function fpFootPad(img){if(img._fp!=null)return img._fp;try{const d=img.getContext('2d').getImageData(0,0,img.width,img.height).data;let b=0;for(let y=img.height-1;y>=0&&!b;y--)for(let x=0;x<img.width;x++)if(d[(y*img.width+x)*4+3]>20){b=y+1;break;}img._fp=b?(img.height-b)/img.height:0;}catch(e){img._fp=0;}return img._fp;}
+
+// FIRST PERSON GUN: chunky blocky gun low on the right, two hands, top/side faces (Pixel Gun 3D style)
+function fpGun(g,W2,H2,u,now,it,skin,k,bob){const col=ITEMS[it.k].c||'#8a8f9a',big=ITEMS[it.k].icon==='gun3'||it.k==='minigun',P=Math.max(2,Math.round(u*3.6)),cx=W2*.5+bob,by=H2*.85+k*3*P;
+  const B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(cx+x*P),Math.round(by+y*P),Math.ceil(w*P),Math.ceil(h*P));};
+  const lt=shade(col,.35),dk=shade(col,-.35),dd=shade(col,-.6),mt='#2a2e36',ml='#4b5260';
+  if(big){B(-6,-21,9,4,ml);B(-6,-21,9,1,'#6e7684');B(3,-20,2,3,mt);B(-5,-25,7,4,mt);B(-5,-25,7,1,ml);B(-4,-27,5,2,'#14161c');
+    B(-7,-17,11,14,col);B(-7,-17,11,1,lt);B(4,-16,3,13,dk);B(4,-16,3,1,col);B(-7,-4,11,1,dk);B(-5,-14,6,2,dd);B(-4,-13,2,1,'#3fe8ff');B(1,-13,2,1,'#ff3b4e');}
+  else{B(-3,-24,5,10,mt);B(-3,-24,5,1,ml);B(2,-23,2,9,'#14161c');B(-2,-26,3,2,'#14161c');B(-2,-25,1,1,'#3a3f48');
+    B(-5,-15,8,11,col);B(-5,-15,8,1,lt);B(3,-14,3,10,dk);B(3,-14,3,1,col);B(-5,-5,8,1,dk);B(-3,-12,4,1,dd);B(-2,-12,2,1,'#3fe8ff');B(-1,-17,2,2,mt);B(-1,-18,2,1,'#ff3b4e');}
+  // hands: left under the barrel, right on the grip
+  B(-9,-14,4,5,skin);B(-9,-14,4,1,shade(skin,.2));B(-9,-10,4,1,shade(skin,-.3));B(-10,-9,3,9,'#1a1c22');
+  B(4,-5,5,5,skin);B(4,-5,5,1,shade(skin,.2));B(5,0,6,4,'#1a1c22');
+  if(k>.55){g.save();g.globalAlpha=(k-.55)*2.2;g.fillStyle='#ffe9a0';g.shadowColor='#ffb03c';g.shadowBlur=18*u;const fx0=cx-.5*P,fy0=by-(big?28:27)*P;g.beginPath();g.arc(fx0,fy0,6*P*k,0,7);g.fill();g.fillStyle='#fff';g.fillRect(fx0-P,fy0-P,2*P,2*P);g.restore();}}
+
+// FIRST PERSON SWIVEL STICK: drag to look around; push past halfway to turn that way
+{const st=document.createElement('div');st.id='fpStick';st.innerHTML='<div class="knob"></div><div class="lab">LOOK</div>';
+  const cs=document.createElement('style');cs.textContent=`#fpStick{position:fixed;z-index:30;width:104px;height:104px;border-radius:50%;border:2px solid rgba(63,232,255,.45);background:radial-gradient(circle,rgba(63,232,255,.10),rgba(8,10,18,.55));display:none;touch-action:none;bottom:calc(150px + env(safe-area-inset-bottom));}
+  #fpStick .knob{position:absolute;left:34px;top:34px;width:36px;height:36px;border-radius:50%;background:rgba(63,232,255,.55);box-shadow:0 0 12px rgba(63,232,255,.6)}#fpStick .lab{position:absolute;bottom:-16px;width:100%;text-align:center;font:9px var(--px,monospace);color:rgba(63,232,255,.8)}`;
+  document.head.appendChild(cs);document.body.appendChild(st);
+  const knob=st.querySelector('.knob');let id=null,x0=0;FP.look=0;
+  const place=()=>{const right=(FP.set&&FP.set.side)==='left';st.style.right=right?'14px':'auto';st.style.left=right?'auto':'14px';};
+  st.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;st.setPointerCapture(id);e.stopPropagation();e.preventDefault();});
+  st.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=Math.max(-40,Math.min(40,e.clientX-x0));knob.style.left=(34+dx)+'px';FP.look=dx/40*0.95;e.stopPropagation();});
+  const end=e=>{if(e.pointerId!==id)return;id=null;knob.style.left='34px';const lk=FP.look;FP.look=0;if(Math.abs(lk)>.5&&typeof fpTurn==='function'){fpTurn(lk>0?1:-1);}e.stopPropagation();};
+  st.addEventListener('pointerup',end);st.addEventListener('pointercancel',end);
+  setInterval(()=>{try{const on=FP.on&&RD.on&&G&&G.L&&!G.over&&!busy()&&document.getElementById('modal').classList.contains('hide');st.style.display=on?'block':'none';if(on)place();}catch(e){}},150);
+  {const _om=openModal;openModal=function(){st.style.display='none';return _om.apply(this,arguments);};}}
+
+// ===== v0.36 ART STYLE: CLASSIC (as before) vs NEW (style bible 2026-11-22) =====
+UI.style=(()=>{try{return localStorage.getItem('mtm_style')||'classic';}catch(e){return 'classic';}})();
+function newStyle(){return UI.style==='new';}
+{const _hs36=hudSettings;hudSettings=function(){const r=_hs36.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-sty]')){const box=document.createElement('div');
+  box.innerHTML=`<h5>ART STYLE</h5><div class="row"><button class="chip ${UI.style!=='new'?'on':''}" data-sty="classic">CLASSIC</button><button class="chip ${UI.style==='new'?'on':''}" data-sty="new">NEW</button></div><p class="dim">NEW: darker rooms lit by screens, terminals, pods and exits · silver gun trim · round/charge counter · shells, flash and recoil on bullet guns · charge arcs on tech guns.</p>`;
+  det.insertBefore(box,det.firstChild);}}catch(e){}return r;};}
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-sty]');if(!b)return;ev.stopPropagation();UI.style=b.dataset.sty;try{localStorage.setItem('mtm_style',UI.style);}catch(e){}RD.dirty=1;hudSettings();},true);
+
+// --- light pools (top-down) ---
+const LGT={};function lightSpr(c){if(LGT[c])return LGT[c];const cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,c);gr.addColorStop(.35,c+'88');gr.addColorStop(1,c+'00');x.fillStyle=gr;x.fillRect(0,0,64,64);return LGT[c]=cv;}
+const LT_T={[T.TERM]:['#3af5f5',2.2,.5],[T.POD]:['#7ae0ff',1.8,.45],[T.CLONE]:['#9aff8a',1.8,.4],[T.EXIT]:['#ffd24a',2.4,.45],[T.EXITL]:['#ffd24a',2.4,.45],[T.CAR]:['#ff4fd8',1.4,.25],[T.WINDOW]:['#6a8cff',1.3,.18]};
+const LT_P={scr:['#ff4fd8',2.4,.5],kiosk:['#3af5f5',2,.45],tube:['#ff6ad5',2.6,.5],cam:['#ff3b4e',1,.35],vault:['#ffd24a',1.8,.35],sec:['#3af5f5',1.8,.4]};
+function lightPass(now){const L=G.L,g=RD.g,S=RD.S,TS=16*S;if(!L||!g)return;g.save();g.setTransform(1,0,0,1,0,0);
+  g.globalCompositeOperation='source-over';g.fillStyle='rgba(3,4,12,.30)';g.fillRect(0,0,RD.w,RD.h);
+  g.globalCompositeOperation='lighter';const x0=Math.max(0,Math.floor(-RD.ox/TS)-2),y0=Math.max(0,Math.floor(-RD.oy/TS)-2),x1=Math.min(W-1,x0+Math.ceil(RD.w/TS)+4),y1=Math.min(H-1,y0+Math.ceil(RD.h/TS)+4);
+  const fl=.92+.08*Math.sin(now/170);
+  const put=(i,d)=>{if(!d||!L.vis[i])return;const r=d[1]*TS,cx=RD.ox+(X(i)+.5)*TS,cy=RD.oy+(Y(i)+.5)*TS;g.globalAlpha=d[2]*fl;g.drawImage(lightSpr(d[0]),cx-r,cy-r,2*r,2*r);};
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=y*W+x;put(i,LT_T[L.map[i]]);const p=L.props&&L.props[i];if(p&&!p.off&&!p.open)put(i,LT_P[p.k]);}
+  if(G.hero){const i=G.hero.pos;if(L.vis[i]){const r=2.2*TS,cx=RD.ox+(X(i)+.5)*TS,cy=RD.oy+(Y(i)+.5)*TS;g.globalAlpha=.16;g.drawImage(lightSpr('#c8d4ff'),cx-r,cy-r,2*r,2*r);}}
+  g.restore();}
+{const _rf36=rdFrame;rdFrame=function(now){const r=_rf36.apply(this,arguments);try{if(newStyle()&&!(FP&&FP.on))lightPass(now);}catch(e){}return r;};}
+
+// --- guns: bullet vs charge, shells, flash, recoil, silver trim, counter ---
+const BULLET={needler:1,scatter:1,minigun:1};
+FP.shells=[];
+{const _af36=actFire;actFire=function(tg){const g0=activeGun(),c0=g0?g0.ch:0;const r=_af36.apply(this,arguments);try{if(g0&&g0.ch<c0&&BULLET[g0.k]){const n=g0.k==='scatter'?1:1;for(let j=0;j<n;j++)FP.shells.push({t:performance.now(),vx:1.2+Math.random()*.8,vy:-2.4-Math.random()});if(FP.shells.length>12)FP.shells.splice(0,FP.shells.length-12);}}catch(e){}return r;};}
+{const _fh36=fpHands;fpHands=function(g,W2,H2,u,now){
+  if(!newStyle())return _fh36.apply(this,arguments);
+  const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');const it=gunMode?(h.eq.gun||h.eq.melee):null;const isGun=it&&ITEMS[it.k]&&ITEMS[it.k].type==='gun';
+  const k=Math.max(0,1-(now-FP.kick)/220),P=Math.max(2,Math.round(u*3.4)),bul=isGun&&BULLET[it.k];
+  g.save();if(isGun&&k>0){const rc=bul?(it.k==='minigun'?1.2:it.k==='scatter'?4:2):1;g.translate(k*rc*P*.8,k*rc*P*1.4);}
+  _fh36.apply(this,arguments);g.restore();
+  if(!isGun)return;const d=ITEMS[it.k],big=d.icon==='gun3'||it.k==='minigun',bob=Math.sin(FP.bob)*3*u,cx=W2*.57+bob,by=H2*.8+2*P+k*3*P,
+    B=(x,y,w,hh,c)=>{g.fillStyle=c;g.fillRect(cx+x*P,by+y*P,w*P,hh*P);};
+  g.save();g.imageSmoothingEnabled=false;
+  // silver trim + seams + glowing grey core
+  if(big){B(-4,-10,8,1,'#14161c');B(-3,-14,6,1,'#cfd6e0');B(-3,-13,6,1,'#7c8594');B(-4,-5,1,3,'#cfd6e0');}
+  else{B(-3,-11,6,1,'#14161c');B(-1,-14,2,1,'#cfd6e0');B(-3,-7,1,3,'#cfd6e0');B(-2,-4,4,1,'#7c8594');}
+  g.shadowColor=bul?'#e6edf6':d.c;g.shadowBlur=6*u*(.7+.3*Math.sin(now/260));g.fillStyle=bul?'#e6edf6':d.c;g.fillRect(cx+(big?2:1)*P,by+(big?-7:-8)*P,P,P);g.shadowBlur=0;
+  // muzzle: bullet = star flash, tech = charge arc
+  const mx=cx,my=by-(big?20:19)*P;
+  if(k>.45){g.globalAlpha=Math.min(1,(k-.45)*2.4);
+    if(bul){g.fillStyle='#fff3c0';for(const [a,l] of [[0,7],[1.57,5],[3.14,7],[4.71,6],[.8,4],[2.4,4],[3.9,4],[5.5,4]]){g.save();g.translate(mx,my);g.rotate(a+now/90);g.fillRect(0,-P/2,l*P*k,P);g.restore();}}
+    else{g.strokeStyle=d.c;g.lineWidth=P*.7;g.shadowColor=d.c;g.shadowBlur=10*u;for(let a=0;a<3;a++){g.beginPath();let px=mx,py=my;g.moveTo(px,py);for(let s=0;s<4;s++){px+=(Math.random()-.5)*6*P;py-=P*1.6;g.lineTo(px,py);}g.stroke();}g.shadowBlur=0;}
+    g.globalAlpha=1;}
+  // shells
+  FP.shells=FP.shells.filter(s=>now-s.t<600);for(const s of FP.shells){const t=(now-s.t)/1000,sx=cx+4*P+s.vx*t*60*P/2,sy=by-12*P+(s.vy*t+9*t*t)*30*P/2;g.save();g.translate(sx,sy);g.rotate(t*18);g.fillStyle='#e0b040';g.fillRect(-P,-P/2,2*P,P);g.fillStyle='#8a6420';g.fillRect(P*.4,-P/2,P*.6,P);g.restore();}
+  // counter box
+  const mxc=Math.max(d.ch||1,it.ch||0),bw=13*P,bh=8*P,bx=cx-bw-4*P,byy=by-26*P;
+  g.fillStyle='rgba(8,10,16,.88)';g.fillRect(bx,byy,bw,bh);g.fillStyle='#cfd6e0';g.fillRect(bx,byy,bw,Math.max(1,P/2));g.fillRect(bx,byy+bh-Math.max(1,P/2),bw,Math.max(1,P/2));
+  g.fillStyle=bul?'#e0b040':d.c;g.font=`bold ${Math.round(2.6*P)}px ui-monospace,monospace`;g.textBaseline='top';g.textAlign='left';g.fillText(bul?'RND':'CHG',bx+P,byy+P);
+  g.textAlign='right';g.fillStyle=it.ch>0?'#f2f6fb':'#ff3b4e';g.fillText(String(Math.max(0,it.ch|0)),bx+bw-P,byy+P);
+  if(mxc<=10){const pw=(bw-2*P)/mxc;for(let j=0;j<mxc;j++){g.fillStyle=j<it.ch?(bul?'#e0b040':d.c):'#2a2e38';g.fillRect(bx+P+j*pw,byy+bh-2.6*P,Math.max(1,pw-P*.4),1.4*P);}}
+  else{g.fillStyle='#2a2e38';g.fillRect(bx+P,byy+bh-2.6*P,bw-2*P,1.4*P);g.fillStyle='#e0b040';g.fillRect(bx+P,byy+bh-2.6*P,(bw-2*P)*Math.max(0,it.ch)/mxc,1.4*P);}
+  g.restore();};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
