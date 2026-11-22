@@ -3728,7 +3728,7 @@ function fpFrame(now){
       if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
       const i=ty*W+tx,s=shadeOf(i,dist),u=((fx_-tx)*16)|0,v=((fy_-ty)*16)|0;
       if(floor){const m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
-      else if(out&&OUT&&OUT[i]){const f=y/horizon,sk=SK[x],bh=BH[x];let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;if(((x*7+y*13)%23===0)&&sk>.4){r=255;gg=210;b=120;}}else if(sk>.985&&y<horizon*.6&&(x+y)%5===0){r=gg=b=200;}D[o]=r;D[o+1]=gg;D[o+2]=b;}
+      else if(out&&OUT&&OUT[i]){const f=y/horizon,sk=SK[x],bh=BH[x];let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;const wq=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*90)*12.9898+Math.floor((horizon-y)/3)*78.233)*43758.5)%1+1)%1;if(wq>.86&&((horizon-y)%3)!==0){r=wq>.95?120:255;gg=wq>.95?220:200;b=wq>.95?235:120;}}else{const st=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*160)*91.7+y*47.3)*43758.5)%1+1)%1;if(st>.997&&y<horizon*.6){r=gg=b=200;}}D[o]=r;D[o+1]=gg;D[o+2]=b;}
       else{let r=22,gg=20,b=30;if(u===0||v===0){r=12;gg=11;b=18;}if(L.map[i]===T.SKY){r=14;gg=12;b=40;}else if((tx*3+ty*5)%7===0&&u>3&&u<12&&v>5&&v<10){r=150;gg=230;b=235;}else if((tx+ty)%11===0&&u>5&&u<10&&v>5&&v<10){r=255;gg=190;b=120;}
         const sc=Math.max(s,.18);D[o]=r*sc+3;D[o+1]=gg*sc+3;D[o+2]=b*sc+5;}
       D[o+3]=255;}
@@ -3975,6 +3975,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.38','VOSS: intro scene on the roof, a karma-based half-HP scene (good / bad / neutral), a phase-2 red aura; he talks over the PA when a camera spots you (any floor 3+, once per floor, banner with his face); a few Voss LOYALISTS (black coats, red bands) on floors 21-29 and with him on the roof; rare DESERTERS (let him go = keycard + floor map, or take his gear) and DEFECTORS (kill a sector\'s cameras, or he joins you); dead guards leave DOG TAGS with their last log. ENDING: the street scene is now a letterboxed cinematic with portraits (the Mayor line no longer sticks in the log, first person turns off first); the 4 ending cinematics redrawn with real sprites, camera push, crowd pouring out, police lights, searchlights, rain, dawn co-op tower, sunset payout. FISTS: unarmed hits scale with STR and level; new GORILLA ARMS and SHOCK KNUCKLES implants (ripper stock), Breaker Arms boosts punches; first person shows two fists that jab left/right (chrome with arm implants). BOSS: Jett "Skyhook" Kaine rides a cargo drone on floor 13; he swoops in, kicks, and peels away; hitting any flyer in melee makes you JUMP; ranged works standing still. ROOK\'S GUNSMITH: the arms dealer has a bench to upgrade weapons and armor up to +9. LIGHTCYCLE arcade cabinet in bars and on the street (◈2 a ride, ◈8 a win). Cameras sweep a spotlight across the floor (you glow red when it lands on you). WINDOW VIEW: flying cars, a police AV with a searchlight, an ad blimp. FIRST PERSON: street sky no longer streaky; hands no longer drawn see-through.'],
  ['v0.37','BARTENDER only shoots when you can see the bar (no more off-screen kill spam). VOLT COLA has a lightning bolt on the can. MESSAGE HISTORY: ⚙ HUD settings → MESSAGE HISTORY to read every message this run, grouped by the floor it happened on. NEW art style: rooms less dark.'],
  ['v0.36','FIRST PERSON: LOOK stick opposite the D-pad, drag to look around, push past halfway to turn; standing people and enemies stand on the floor instead of floating. ARCHITECT: two fabricators only, mounted against the north wall. ART STYLE toggle (HUD settings): CLASSIC keeps the old look; NEW darkens rooms and lights them from screens, terminals, pods, signs and exits, adds silver gun trim, a round/charge counter, shells + star flash + recoil on bullet guns (Needler, Scatter, Minigun) and charge arcs on tech guns.'],
  ['v0.35','STREET: new interceptor superbike, neon lightbike, street fighter and two-seat hover pod with a layered blue glow join the traffic. Every vehicle that comes round rolls its own model, colours, trim and rider, and every rider and skater is a different person. Four vehicles per lane. POLICE LINE now runs unbroken across the tower doors. NAMES: far bigger pools for people and handles. CREATOR: SCRAMBLE GENOME now rolls frame, build, skin, hair, face, clothes and name.'],
@@ -4066,7 +4067,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.37 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.38 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4212,7 +4213,7 @@ const ENDINGS=[
  {k:'pay',t:'TAKE THE PAYOUT',d:'You take the contract money, bound to your DNA, and walk off into the rain. Somebody else can run the tower.'},
  {k:'res',t:'HAND IT TO THE RESIDENTS',d:'You give the Tower Core to the tenant board. MTX becomes the first co-op megatower in the city.',need:k=>k>=4}];
 EV.ending=()=>setTimeout(endingCine,600);
-function endingCine(){const h=G.hero,blk=$('#cineblk')||(()=>{const d=document.createElement('div');d.id='cineblk';document.body.appendChild(d);return d;})();blk.className='on';
+function endingCine(){try{if(FP&&FP.on)fpToggle();}catch(e){}const h=G.hero,blk=$('#cineblk')||(()=>{const d=document.createElement('div');d.id='cineblk';document.body.appendChild(d);return d;})();blk.className='on';
   const al=allies().map(a=>({k:a.k,nm:a.nm,lk:a.lk}));
   blackout(['THE CORE UNLOCKS EVERY DOOR IN MTX.','THE LOCKDOWN LIFTS.','You take the elevator all the way down.'],()=>{G.boomDone=1;enterFloor(0,true);const L=G.L;L.mobs=L.mobs.filter(m=>MOBS[m.k].npc&&m.k!=='civ');h.pos=idx(20,15);
     const P2=(k,x,y)=>{const q=freeNear(idx(x,y),2);if(q<0)return null;const m=mkMob(k,q,'npc');L.mobs.push(m);return m;};
@@ -4220,12 +4221,12 @@ function endingCine(){const h=G.hero,blk=$('#cineblk')||(()=>{const d=document.c
     const saved=Math.min(14,(G.contacts||[]).length+(G.stats.rescued||0)+3);for(let n=0;n<saved;n++){const m=P2('civ',8+((n*5)%26),15+(n%3));if(m){m.lk=n*37+11;m.done=1;m.wild=1;}}
     for(const a of al){const m=P2(a.k,19+rnd(3),16);if(m){m.nm=a.nm;m.lk=a.lk;MOBS[m.k].ally&&(m.st='ally');}}
     RD.focus=idx(20,17);G.cineAt=idx(20,17);updateFov();for(let i=0;i<N;i++)L.seen[i]=1;refresh();
-    const say=(t,d)=>new Promise(r=>setTimeout(()=>{log(t,'hi');toast(esc(t));refresh();r();},d));
+    const say=(t,d)=>new Promise(r=>setTimeout(()=>{refresh();cineLine(Object.assign({keep:1,auto:4200},endSpeaker(t))).then(r);},Math.min(d,900)));
     (async()=>{await say(`You walk out of MTX into the rain. Behind you, the doors stay open. People start coming out after you — ${saved} of them.`,900);
       await say('Sirens. Searchlights. A wall of Metro officers and city security drones. Somebody starts clapping. Then everybody does.',2600);
       await say(`CAPT. REYES: "${h.cls==='enforcer'?'Officer':esc(h.name)}. Thirty floors. I had a pool going on floor six." She almost smiles. "Drinks are on me. Forever."`,2800);
       await say('MAYOR DELACROIX: "On behalf of the city — and the cameras — MTX needs someone to run it. The board has agreed. You choose."',3000);
-      setTimeout(()=>endingChoice(),2600);})();});}
+      setTimeout(()=>endingChoice(),700);})();});}
 function endingChoice(){const k=G.karma||0;try{$('#toast').classList.remove('show');clearTimeout(UI.toastT);}catch(e){}if($('#cineblk'))$('#cineblk').className='';const p=openModal(`<div class="mhead"><h2>WHAT NOW?</h2></div><div class="detail"><p>The Tower Core is warm in your hand. Everyone is looking at you.</p>${ENDINGS.map((e,i)=>{const ok=!e.need||e.need(k);return `<button class="btn ${ok?'go':'off'}" data-e="${i}" style="display:block;width:100%;margin:6px 0;text-align:left">${e.t}<br><small style="opacity:.8">${ok?e.d:'Needs more good karma.'}</small></button>`;}).join('')}</div>`);
   p.onclick=ev=>{const b=ev.target.closest('[data-e]');if(!b||b.classList.contains('off'))return;const e=ENDINGS[+b.dataset.e];G.endk=e;closeModal();epilogue(e);};}
 function epilogue(e){
@@ -6657,6 +6658,251 @@ function logHistory(){const H=(G&&G.hist)||[];let html='<h3>MESSAGE HISTORY</h3>
   html+='<div class="row"><button class="btn" onclick="closeModal()">CLOSE</button></div>';openModal(html);}
 document.addEventListener('click',ev=>{const t=ev.target;if(t.closest&&t.closest('#log')&&!t.closest('button')){logHistory();}},false);
 {const _hs37=hudSettings;hudSettings=function(){const r=_hs37.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-lh]')){const b=document.createElement('div');b.innerHTML='<button class="chip" data-lh="1">MESSAGE HISTORY ▸</button>';b.firstChild.onclick=e=>{e.stopPropagation();logHistory();};det.insertBefore(b,det.firstChild);}}catch(e){}return r;};}
+
+
+// ===================== v0.38 =====================
+// ---------- cinematic dialogue layer (letterbox + portrait + typewriter). Never writes to the message log. ----------
+function c38Layer(){let el=document.getElementById('c38');if(el)return el;el=document.createElement('div');el.id='c38';
+  el.innerHTML='<div class="lb t"></div><div class="lb b"></div><div class="box"><canvas width="22" height="22"></canvas><div class="tx"><b></b><p></p><small>TAP ▸</small></div></div>';document.body.appendChild(el);
+  const st=document.createElement('style');st.textContent=`#c38{position:fixed;inset:0;z-index:9000;display:none}#c38.on{display:block}#c38 .lb{position:absolute;left:0;right:0;height:10vh;background:#000}#c38 .t{top:0}#c38 .b{bottom:0}
+#c38 .box{position:absolute;left:3vw;right:3vw;bottom:calc(10vh + 10px);display:flex;gap:12px;align-items:flex-start;background:rgba(6,8,16,.94);border:1px solid #3af5f5;box-shadow:0 0 18px #3af5f566;padding:10px;font-family:ui-monospace,monospace;color:#e8fbff}
+#c38 canvas{width:88px;height:88px;image-rendering:pixelated;background:radial-gradient(#1a2a40,#070a12);border:1px solid #2a3a50;flex:none}#c38 .tx{flex:1;min-width:0}#c38 b{color:#ffd24a;letter-spacing:1px;font-size:13px}#c38 p{margin:6px 0 4px;font-size:14px;line-height:1.4;min-height:4.2em}#c38 small{opacity:.55;font-size:10px}
+#c38.red .box{border-color:#ff2a3a;box-shadow:0 0 22px #ff2a3a77}#c38.red b{color:#ff4a5a}#c38.red canvas{background:radial-gradient(#3a1014,#0a0406)}
+#pa38{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 92px);transform:translateX(-50%);z-index:8000;display:none;gap:8px;align-items:center;max-width:92vw;background:rgba(14,4,6,.92);border:1px solid #ff2a3a;box-shadow:0 0 16px #ff2a3a66;padding:6px 10px 6px 6px;font:12px ui-monospace,monospace;color:#ffd8da;pointer-events:none}
+#pa38.on{display:flex;animation:pa38 .25s}#pa38 canvas{width:40px;height:40px;image-rendering:pixelated;flex:none}#pa38 b{color:#ff4a5a;display:block;font-size:10px;letter-spacing:1px}@keyframes pa38{from{opacity:0;transform:translate(-50%,-8px)}}`;
+  document.head.appendChild(st);return el;}
+function c38Portrait(cv,spr){const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,22,22);if(spr)g.drawImage(spr,0,0);}
+function heroSpr(f){try{return lookSprite(heroLook(),f||0);}catch(e){return null;}}
+function npcSpr(k,seed,f){try{return mobSprite({k,id:seed||1,lk:seed||1},f||0);}catch(e){return null;}}
+// show one line; resolves on tap (or auto after a while). keepOpen leaves the bars up for the next line.
+function cineLine(o){return new Promise(res=>{const el=c38Layer();el.classList.add('on');el.classList.toggle('red',!!o.red);try{stopWalk();}catch(e){}
+  c38Portrait(el.querySelector('canvas'),o.spr);el.querySelector('b').textContent=o.who||'';const p=el.querySelector('p');p.textContent='';
+  const txt=o.t||'';let n=0,done=false,auto=0;const typer=setInterval(()=>{n+=2;p.textContent=txt.slice(0,n);if(n>=txt.length){clearInterval(typer);done=true;auto=setTimeout(fin,o.auto||5200);}},26);
+  function fin(){clearTimeout(auto);clearInterval(typer);el.removeEventListener('click',tap);if(!o.keep)el.classList.remove('on');res();}
+  function tap(ev){ev.stopPropagation();if(!done){clearInterval(typer);p.textContent=txt;done=true;auto=setTimeout(fin,o.auto||5200);return;}fin();}
+  el.addEventListener('click',tap);});}
+async function cineSay(lines,done){for(let i=0;i<lines.length;i++)await cineLine(Object.assign({keep:i<lines.length-1},lines[i]));try{done&&done();}catch(e){}}
+function c38Close(){const el=document.getElementById('c38');if(el)el.classList.remove('on','red');}
+// small non-blocking PA banner (Voss over the speakers)
+function paBanner(t){c38Layer();let el=document.getElementById('pa38');if(!el){el=document.createElement('div');el.id='pa38';el.innerHTML='<canvas width="22" height="22"></canvas><div><b>PA — VOSS</b><span></span></div>';document.body.appendChild(el);}
+  c38Portrait(el.querySelector('canvas'),npcSpr('b6',1,0));el.querySelector('span').textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),5200);try{sfx('beep2');}catch(e){}}
+
+// ---------- ENDING: street scene now plays as a cinematic, Mayor line can't get stuck in the log ----------
+function endSpeaker(t){let m;if((m=t.match(/^CAPT\. REYES:\s*(.*)$/)))return {who:'CAPT. REYES',spr:npcSpr('captain',1,0),t:m[1]};
+  if((m=t.match(/^MAYOR DELACROIX:\s*(.*)$/)))return {who:'MAYOR DELACROIX',spr:npcSpr('mayor',3,0),t:m[1]};return {who:'',spr:heroSpr(0),t};}
+{const _ec=endingChoice;endingChoice=function(){c38Close();try{if(FP&&FP.on)fpToggle();}catch(e){}const r=_ec.apply(this,arguments);
+  setTimeout(()=>{try{if($('#modal').classList.contains('hide')&&!G.endk)_ec.apply(this,arguments);}catch(e){}},900);return r;};}
+
+// ---------- VOSS: intro, karma half-HP scene, PA, loyalists / deserters / defectors, dead guards ----------
+const VOSS=()=>npcSpr('b6',1,0);
+function vossIntro(){if(G._vIntro)return;G._vIntro=1;try{if(FP&&FP.on)fpToggle();}catch(e){}
+  cineSay([{who:'KAGE "RAZOR" VOSS',red:1,spr:VOSS(),t:'Thirty floors. I watched every one of them on my screens.'},
+    {who:'KAGE "RAZOR" VOSS',red:1,spr:VOSS(),t:'The corp ran. The gangs came in. I locked the doors so the tower could hold. Somebody had to.'},
+    {who:'KAGE "RAZOR" VOSS',red:1,spr:VOSS(),t:'Put the Core down and walk back to the elevator. I will let you leave.'},
+    {who:'',spr:heroSpr(0),t:'His forearm splits open. A hooked steel blade unfolds with a wet click. He is done talking.'}]);}
+EV.vossHalf=function(m){const k=G.karma||0;let L;
+  if(k>=3)L=[{t:'Every floor you stopped. Strays. Nobodies. Why?'},{who:G.hero.name.toUpperCase(),spr:heroSpr(0),t:'Because somebody should have stopped for this tower.'},{t:'...Then show me it was worth it.'}];
+  else if(k<=-3)L=[{t:'You are like me. You did what had to be done and never looked back.'},{t:'So do not look back now.'}];
+  else L=[{t:'Still standing. Good. I hate it when it is quick.'}];
+  L=L.map(x=>Object.assign({who:'KAGE "RAZOR" VOSS',red:1,spr:VOSS()},x));L.push({who:'',spr:heroSpr(0),t:'He tears the plating off his other arm. A second blade. He moves faster now.'});
+  m.ph2=1;cineSay(L);};
+const PA_L=['I see you, {n}. Floor {d}. Keep climbing.','Every camera in this tower answers to me. Smile.','The gangs thought they would take my tower too. Look how that went.','You are bleeding on my floors, {n}.',
+  'Nobody is coming for these people. Not the city. Not you.','My guards died because the corp left them here. Remember that when you find them.','Floor {d}. You are making good time. Slow down.','I locked this tower to save it. What are you saving?'];
+function vossPA(){const L=G.L;if(!L||L.street||L._pa38||G.depth<3||G.depth>=30)return;L._pa38=1;
+  const t=pick(PA_L).replace(/\{n\}/g,G.hero.name).replace(/\{d\}/g,G.depth);paBanner(t);log('PA — VOSS: "'+t+'"','warn');}
+mob('loyal',{n:'Voss Loyalist',a:'hum',look:HUM('#c99a7a','#14141a',0,'#14141a','#0c0c10',2,'#ff2a3a'),hp:66,acc:20,eva:11,d:[9,18],dr:6,xp:16,ml:99,sp:1,rng:5,desc:'Old MTX security. Black coat, red armband. Still takes orders from Voss.'});
+mob('desert',{n:'Deserter',a:'hum',look:HUM('#a8744f','#22222a',3,'#3a4858','#22282e',1,null),hp:30,acc:0,eva:5,d:[0,0],dr:0,xp:0,sp:1,npc:1,desc:'MTX security with the patch torn off. Hiding from Voss.'});
+mob('defect',{n:'Defector',a:'hum',look:HUM('#e0b89a','#7a5a3a',1,'#3a4858','#22282e',2,'#ff2a3a'),hp:40,acc:0,eva:6,d:[0,0],dr:0,xp:0,sp:1,npc:1,desc:'Voss\'s own crew. Red armband, cut in half.'});
+def('dogtag',{type:'misc',name:'Dog Tag',icon:'chip',c:'#cfd6e0',val:6,desc:'Stamped MTX SECURITY. Found on a dead guard. Someone might want it back.'});
+const TAGS=[['Ofc. D. Marsh','Day 3. Voss says hold the line. Hold it against WHO? The Saints have the 12th. Corp lines are dead.'],['Sgt. L. Okoro','He sealed the lifts with our own people on the wrong side. Said it was the only way. I said nothing. That is on me.'],
+  ['Ofc. T. Brandt','If you find this, tell my sister I didn\'t run. Tell her I wanted to.'],['Ofc. R. Ilves','Voss gave the loyal ones red bands. The rest of us got the stairwells.'],['Cpl. A. Vance','Ammo: 4. Water: none. Cameras: still moving. He is watching us die.'],
+  ['Ofc. J. Dumas','Saw a kid with a cat walk right past a turret. Maybe there is a way out. Maybe the tower just likes some people.'],['Lt. S. Park','Voss was a good chief. That is the worst part. He was good, right up until he wasn\'t.'],['Ofc. M. Reyes-Cole','Cap Reyes is my aunt. If she is still out there, she is coming. She always comes.']];
+function farTile(L,minD){const h=G.hero;for(let n=0;n<400;n++){const i=rnd(N);if(pass(i)&&!mobAt(i)&&dist(i,h.pos)>=minD&&L.map[i]!==T.EXIT&&L.map[i]!==T.ENTRY)return i;}return -1;}
+function spawn38(){const L=G.L,d=G.depth;if(!L||L.street||L._s38)return;L._s38=1;
+  try{
+    if(d>=8&&chance(d>=16?.6:.35)){const n=d>=16&&chance(.4)?2:1;for(let j=0;j<n;j++){const p=farTile(L,5);if(p>=0){const tg=rnd(TAGS.length);L.items.push({pos:p,it:mk('dogtag',{tag:tg})});(L.decals38=L.decals38||[]).push(p);}}}
+    if(d>=21&&d<30&&d%5!==0&&chance(.7)){const n=d>=26?2:1;for(let j=0;j<n;j++){const p=farTile(L,9);if(p>=0)L.mobs.push(mkMob('loyal',p,'sleep'));}}
+    if(d>=12&&d<30&&d%5!==0){if(chance(.18)){const p=farTile(L,6);if(p>=0){const m=mkMob('desert',p,'wander');m.lk=rnd(9999);L.mobs.push(m);}}else if(d>=16&&chance(.14)){const p=farTile(L,6);if(p>=0){const m=mkMob('defect',p,'wander');m.lk=rnd(9999);L.mobs.push(m);}}}
+    if(d===30){const v=L.mobs.find(m=>m.k==='b6');if(v)for(let j=0;j<2;j++){const p=freeNear(v.pos,4);if(p>=0)L.mobs.push(mkMob('loyal',p,'hunt'));}setTimeout(vossIntro,700);}
+    if(d===13&&!G.skyDone){const p=farTile(L,7);if(p>=0){const m=mkMob('sky',p,'hunt');L.mobs.push(m);L._sky=m.id;setTimeout(()=>{paBanner('Rotor noise in the halls. Someone is riding a cargo drone through floor 13.');},900);log('Rotor noise. Someone is riding a cargo drone through the halls.','bad');}}
+  }catch(e){console.warn('spawn38',e);}}
+{const _ef38=enterFloor;enterFloor=function(){const r=_ef38.apply(this,arguments);try{spawn38();placeArcade();}catch(e){}return r;};}
+// talk to deserters / defectors
+function npcModal(m,title,line,opts){const p=openModal(`<div class="mhead"><h2>${title}</h2><button class="x" data-o="x">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><p>${line}</p></div></div>${opts.map((o,i)=>`<button class="btn ${o.c||''}" data-o="${i}" style="display:block;width:100%;margin:6px 0;text-align:left">${o.t}</button>`).join('')}</div>`);
+  p.onclick=ev=>{const b=ev.target.closest('[data-o]');if(!b)return;closeModal();if(b.dataset.o!=='x'){try{opts[+b.dataset.o].f();}catch(e){console.warn(e);}}refresh();};}
+function leaveFloor(m,msg){const L=G.L;fx({t:'txt',p:m.pos,s:'...',c:'#9aa7ad'});L.mobs.splice(L.mobs.indexOf(m),1);log(msg);}
+function deserterTalk(m){npcModal(m,'DESERTER','"Don\'t — don\'t shoot. I\'m out. Voss had us hold the stairwells while the Saints came up, then he sealed the doors behind us. I\'m done."',[
+  {t:'"GO. TAKE THE STAIRS." <small>(+karma — he gives you his keycard and a map of the floor)</small>',c:'go',f:()=>{addKarma(1);dropAt(G.hero.pos,mk('keycard'));for(let i=0;i<N;i++)G.L.seen[i]=1;mapChanged();leaveFloor(m,'He presses a keycard into your hand and runs for the stairwell. Your Link Sync pings: floor map received.');}},
+  {t:'"LEAVE THE GEAR." <small>(−karma — his gun and his creds)</small>',f:()=>{addKarma(-1);dropAt(G.hero.pos,randGear('gun',G.depth,.5));dropAt(G.hero.pos,credPile(G.depth,1.5));leaveFloor(m,'He drops everything he has and backs away with his hands up.');}},
+  {t:'"WHERE IS VOSS?"',f:()=>{log('DESERTER: "The roof. Always the roof. He sleeps in the camera room up there — if he sleeps."','hi');m.talked=1;}}]);}
+function defectorTalk(m){npcModal(m,'DEFECTOR','"I still have Voss\'s codes. He doesn\'t know I cut the band yet. Make it count."',[
+  {t:'"SHUT THE CAMERAS DOWN." <small>(every camera in this sector goes dark)</small>',c:'go',f:()=>{G.camOff=G.camOff||{};G.camOff[sectorOf(G.depth)]=1;addKarma(1);leaveFloor(m,`He types a code into his wrist. Every camera in sector ${sectorOf(G.depth)+1} goes dark. "Go."`);}},
+  {t:'"FIGHT WITH ME." <small>(he joins your squad)</small>',f:()=>{const nm=npcName(m);m.k='a_civg';m.st='ally';m.nm=nm;addKarma(1);log(`${nm} racks a slide. "About time somebody gave me a better order."`,'hi');}},
+  {t:'"WHY NOW?"',f:()=>{log('DEFECTOR: "Because he made us watch the camera feeds while the 18th burned. He called it holding the line."','hi');m.talked=1;}}]);}
+{const _npc=EV.npc;EV.npc=function(m){if(m&&m.k==='desert'){setTimeout(()=>deserterTalk(m),30);return;}if(m&&m.k==='defect'){setTimeout(()=>defectorTalk(m),30);return;}return _npc.apply(this,arguments);};}
+{const _pu=pickUp;pickUp=function(e){try{if(e&&e.it&&e.it.k==='dogtag'&&!e.it.read){e.it.read=1;const t=TAGS[e.it.tag|0];setTimeout(()=>openModal(`<div class="mhead"><h2>DOG TAG — ${t[0].toUpperCase()}</h2></div><div class="detail"><p class="dim">A dead guard, slumped against the wall. A cracked log chip on the chain.</p><p>"${t[1]}"</p><button class="btn" onclick="closeModal()">CLOSE</button></div>`),60);}}catch(err){}return _pu.apply(this,arguments);};}
+// PA: when a camera spots you (any floor 3+, once per floor)
+{const _sp38=spend;spend=function(){const L=G&&G.L,before=L&&L.camT;const r=_sp38.apply(this,arguments);try{if(G&&G.L===L&&L&&L.camT!==before&&L.camT!==undefined&&chance(.65))vossPA();
+  if(L&&L._sky&&!G.skyDone){const m=L.mobs.find(x=>x.id===L._sky);if(m)L._skyPos=m.pos;else{G.skyDone=1;const p=L._skyPos||G.hero.pos;dropAt(p,mk('gorilla',{known:true}));dropAt(p,credPile(G.depth,4));dropAt(p,randGear('gun',G.depth+4,.9));log('Skyhook\'s drone spirals into a wall and dies. He doesn\'t get up. Something heavy and chrome rolls out of his saddlebag.','hi');}}}catch(e){}return r;};}
+// phase-2 Voss + loyalists get a red aura in top-down
+function aura38(now){const L=G.L,g=RD.g,TS=16*RD.S;if(!L)return;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='lighter';
+  for(const m of L.mobs){if(!L.vis[m.pos])continue;let c=null,r=0,a=0;if(m.k==='b6'&&(m.ph2||m.b.enr)){c='#ff2a3a';r=1.6;a=.45+.2*Math.sin(now/120);}else if(m.k==='loyal'){c='#ff2a3a';r=.9;a=.22;}else if(m.k==='sky'){c='#ff6a2a';r=1.2;a=.3+.1*Math.sin(now/80);}
+    if(!c)continue;const cx=RD.ox+(X(m.pos)+.5)*TS,cy=RD.oy+(Y(m.pos)+.7)*TS,rr2=r*TS;g.globalAlpha=a;g.drawImage(lightSpr(c),cx-rr2,cy-rr2,2*rr2,2*rr2);}
+  g.restore();}
+
+// ---------- FISTS: real hand-to-hand, scales with STR + arm chrome ----------
+IMP('gorilla','Gorilla Arms','#9aa3b2','Myomer-packed forearms. Unarmed hits land like a car crash. Scales with STR.');
+IMP('knux','Shock Knuckles','#ffe14a','Capacitor knuckles. Unarmed hits can stun people and fry machines.');
+ITEMS.breaker.desc+=' Also turns your fists into rams.';
+{const _mr=meleeRange;meleeRange=function(it){if(it||imp('mantis')>0)return _mr.apply(this,arguments);const h=G.hero,s=h.str||10,b=imp('breaker'),go=imp('gorilla'),kn=imp('knux');
+  return [1+Math.floor(s/6)+b+2*go+kn,3+Math.floor(h.lvl/4)+Math.floor(s/3)+3*b+5*go+kn];};}
+{const _ss=shopStock;shopStock=function(vt){const out=_ss.apply(this,arguments);try{if(vt==='ripper'&&Array.isArray(out)&&chance(.6))out.push(mk(pick(['gorilla','knux']),{known:true}));}catch(e){}return out;};}
+{const _ha=heroAttack;heroAttack=function(m){const h=G.hero,hp0=m.hp,fly=MOBS[m.k]&&(MOBS[m.k].fly||MOBS[m.k].a==='drone');
+  let _f=null;if(fly){_f=fx;fx=function(f){if(f&&f.t==='lunge'&&f.hero){f=Object.assign({},f,{to:f.to-W});}return _f.apply(this,arguments);};}
+  try{_ha.apply(this,arguments);}finally{if(_f)fx=_f;}
+  try{if(fly){fx({t:'txt',p:h.pos,s:'JUMP',c:'#3af5f5'});FP.jump=performance.now();}
+    if(!h.eq.melee&&imp('mantis')<=0){if(FP&&FP.on){FP.kick=performance.now();FP.pn=(FP.pn|0)^1;}
+      if(m.hp>0&&m.hp<hp0&&imp('knux')>0&&chance(.22+.06*imp('knux'))){m.b.stun=2;fx({t:'zap',p:m.pos});log('Your knuckles discharge. It locks up.','hi');}}}catch(e){}};}
+function fpFists(g,W2,H2,u,now){const lk=heroLook(),skin=lk.skin||'#c99a7a',slv=lk.outfit||'#2a2e38',chrome=imp('gorilla')>0||imp('breaker')>0,kn=imp('knux')>0,P=Math.max(2,Math.round(u*4)),bob=Math.sin(FP.bob)*3*u;
+  const pt=Math.min(1,(now-(FP.kick||0))/300),pk=Math.sin(pt*Math.PI);g.save();g.globalAlpha=1;g.imageSmoothingEnabled=false;
+  const fist=(cx,cy,sc,mir)=>{const Q=Math.max(2,Math.round(P*sc)),B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(cx+(mir?-x-w:x)*Q),Math.round(cy+y*Q),w*Q,h*Q);};
+    const sk=chrome?'#9aa3b2':skin,hi=chrome?'#e6edf6':shade(skin,.18),lo=chrome?'#4a5262':shade(skin,-.3);
+    B(-5,-1,12,9,'#0a0b10');B(-4,0,10,7,sk);B(-4,0,10,1,hi);for(const x of [-2,0,2,4])B(x,1,1,3,lo);B(-4,6,10,1,lo);B(5,2,2,4,sk);B(5,2,2,1,hi);
+    if(kn)for(const x of [-3,-1,1,3])B(x,-1,1,1,'#ffe14a');if(chrome){B(-4,3,10,1,'#6a7384');B(1,4,1,1,'#3af5f5');}
+    B(-4,8,9,14,'#0a0b10');B(-3,7,7,3,sk);B(-3,9,7,12,slv);B(-3,9,7,1,shade(slv,.3));B(3,9,1,12,shade(slv,-.35));};
+  const rest=H2*.7,R=FP.pn===1;
+  // left fist
+  {const p=R?0:pk;fist(W2*.27+bob*.5+(W2*.17)*p,rest-H2*.2*p,1+.35*p,false);}
+  {const p=R?pk:0;fist(W2*.73+bob-(W2*.17)*p,rest-H2*.2*p,1+.35*p,true);}
+  g.restore();}
+{const _fh38=fpHands;fpHands=function(g,W2,H2,u,now){g.globalAlpha=1;const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');
+  if((gunMode&&h.eq.gun)||h.eq.melee||imp('mantis')>0)return _fh38.apply(this,arguments);fpFists(g,W2,H2,u,now);};}
+
+// ---------- DRONE-RIDER BOSS: Jett "Skyhook" Kaine, floor 13 ----------
+mob('sky',{n:'JETT "SKYHOOK" KAINE',a:'hum',look:HUM('#a8744f','#ff6a2a',4,'#2a2e38','#14161c',3,'#ff6a2a'),hp:150,acc:20,eva:20,d:[8,15],dr:4,xp:40,ml:99,sp:1.3,rng:6,boss:1,fly:1,desc:'Courier-turned-raider on a stolen cargo drone. Fast, loud, always just out of reach. You have to JUMP to hit him up close — or stay planted and shoot.'});
+{const _ms38=mobSprite;mobSprite=function(m,f){if(!m||m.k!=='sky')return _ms38.apply(this,arguments);return sprite('m_sky38_'+(f|0),R=>{const b=(f|0)%2,R2=(x,y,w,h,c)=>R(x,y-3,w,h,c);try{drawHum(R2,Object.assign({},MOBS.sky.look),f|0);}catch(e){}
+  R(0,13,16,2,'#2a2e38');R(0,13,16,1,'#8a93a6');R(2,15,12,1,'#14161c');R(-2,12+b,5,1,'#cfd6e0');R(13,13-b,5,1,'#cfd6e0');R(1,12,1,1,'#14161c');R(14,12,1,1,'#14161c');
+  R(3,16,2,2,'#3fe8ff');R(11,16,2,2,'#3fe8ff');R(6,15,4,1,'#ff6a2a');R(7,14,2,1,'#ffe14a');});};}
+function awayTile(m,r){const h=G.hero;let best=-1,bd=-1;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const i=m.pos+dx+dy*W;if(i<0||i>=N||!pass(i)||mobAt(i)||i===h.pos)continue;const d=dist(i,h.pos);if(d>=3&&d<=4&&d>bd){bd=d;best=i;}}return best;}
+{const _ba=bossAct;bossAct=function(m,sees,dh){if(m.k!=='sky')return _ba.apply(this,arguments);const h=G.hero;m.cd=(m.cd|0)+1;if(!sees)return false;
+  if(dh<=1){if(m.cd%2===0){fx({t:'slash',p:h.pos,from:m.pos,c:'#ff6a2a'});sfx('shank');if(chance(.75)){dmgHero(rr(7,13)+(G.depth>>1),'Skyhook\'s rotor kick');log('Skyhook swoops low and boots you in the chest.','bad');}else fx({t:'txt',p:h.pos,s:'dodge',c:'#9aa7ad'});}
+    const p=awayTile(m,4);if(p>=0){m.pos=p;fx({t:'txt',p,s:'WHOOSH',c:'#ff6a2a'});}return true;}
+  if(dh<=6&&clearLine(m.pos,h.pos)&&m.cd%2===1){fx({t:'beam',a:m.pos,b:h.pos,c:'#ff6a2a',w:2,id:m.id});sfx('shot');if(chance(.62))dmgHero(rr(5,10),'Skyhook\'s machine pistol');else fx({t:'txt',p:h.pos,s:'miss',c:'#9aa7ad'});return true;}
+  return false;};}
+
+// ---------- GUNSMITH: Rook's bench (weapon + armor upgrades at the arms dealer) ----------
+VENDORS.guns.n="Rook's Gunsmith";VENDORS.guns.line='"Rook. I fix what you break and make it break other people. No refunds."';
+function benchCost(it){const d=ITEMS[it.k];return Math.round((60+(d.t||1)*55)*(1+Math.max(0,it.lvl|0))*.9);}
+function benchMenu(m){const h=G.hero,list=[];for(const s of ['melee','gun','armor'])if(h.eq[s])list.push(h.eq[s]);for(const it of (h.inv||[]))if(it&&ITEMS[it.k]&&['melee','gun','armor'].includes(ITEMS[it.k].type)&&!list.includes(it))list.push(it);
+  const p=openModal(`<div class="mhead"><h2>ROOK'S BENCH</h2><button class="x" data-b="x">✕</button></div><div class="detail"><p class="dim">"Bring it here. One tier at a time. Max +9."  — You have ◈${h.creds}</p>${list.length?list.map((it,i)=>{const c=benchCost(it),mx=(it.lvl|0)>=9;return `<button class="btn ${!mx&&h.creds>=c?'go':'off'}" data-b="${i}" style="display:flex;gap:8px;align-items:center;width:100%;margin:6px 0;text-align:left"><img class="pix" src="${itemURL(it)}" style="width:32px;height:32px"><span>${itemName(it)}<br><small>${mx?'MAXED':'→ +'+((it.lvl|0)+1)+' for ◈'+c}</small></span></button>`;}).join(''):'<p>Nothing to work on. Equip a weapon or armor first.</p>'}<button class="btn" data-b="back">◂ BACK TO SHOP</button></div>`);
+  p.onclick=ev=>{const b=ev.target.closest('[data-b]');if(!b)return;const v=b.dataset.b;if(v==='x'){closeModal();return;}if(v==='back'){closeModal();vendorTalk(m);return;}const it=list[+v];if(!it)return;const c=benchCost(it);
+    if((it.lvl|0)>=9)return;if(h.creds<c){toast('Short ◈'+(c-h.creds));return;}h.creds-=c;it.lvl=Math.max(0,it.lvl|0)+1;if(it.cursed)it.cursed=false;it.known=true;sfx('coin');log(`ROOK: "${itemName(it)}. Don't tell anyone where you got it."`,'hi');refresh();benchMenu(m);};}
+{const _vt38=vendorTalk;vendorTalk=function(m){const r=_vt38.apply(this,arguments);try{if(m&&m.vt==='guns'){const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-bench]')){const b=document.createElement('button');b.className='btn go';b.dataset.bench=1;b.style.cssText='display:block;width:100%;margin:8px 0';b.textContent="ROOK'S BENCH — UPGRADE YOUR GEAR ▸";b.onclick=e=>{e.stopPropagation();benchMenu(m);};det.insertBefore(b,det.children[1]||null);}}}catch(e){}return r;};}
+
+// ---------- ARCADE: LIGHTCYCLE cabinet in bars + on the street ----------
+function placeArcade(){const L=G.L;if(!L||L._arc38!==undefined)return;L._arc38=-1;const dr=t=>t===T.DOOR||t===T.LOCKED||t===T.SECRET;
+  const bk=L.mobs.find(m=>m.k==='barkeep');let anchor=-1;if(bk)anchor=bk.pos;else if(L.street)anchor=G.hero.pos;else if(chance(.25))anchor=farTile(L,4);if(anchor<0)return;L.props=L.props||{};
+  const R=new Uint8Array(N),q=[G.hero.pos];R[G.hero.pos]=1;while(q.length){const c=q.pop();for(const d of [1,-1,W,-W]){const j=c+d;if(j<0||j>=N||R[j])continue;if(pass(j)||dr(L.map[j])){R[j]=1;q.push(j);}}}
+  let best=-1,bd=99;for(let dy=-9;dy<=9;dy++)for(let dx=-9;dx<=9;dx++){const i=anchor+dx+dy*W;if(i<W||i>=N-W)continue;if(!wallish(L,i)||L.map[i]===T.WINDOW||L.props[i])continue;const s=i+W;if(!R[s]||!pass(s)||mobAt(s)||dr(L.map[s])||L.items.some(e=>e.pos===s))continue;if(dr(L.map[s-1])||dr(L.map[s+1])||dr(L.map[i-1])||dr(L.map[i+1]))continue;if(bk&&dist(s,bk.pos)<2)continue;const d=dist(i,anchor);if(d<bd&&d>=2){bd=d;best=i;}}
+  if(best>=0){L.props[best]={k:'arcade'};L._arc38=best;}}
+try{if(typeof PROPN==='object')PROPN.arcade='LIGHTCYCLE arcade cabinet';}catch(e){}
+function drawArcades(now){const L=G.L,g=RD.g,S=RD.S,TS=16*S;if(!L||!L.props)return;g.save();g.setTransform(1,0,0,1,0,0);
+  for(const k in L.props){if(L.props[k].k!=='arcade')continue;const i=+k;if(!L.seen[i])continue;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-TS||py<-TS||px>RD.w||py>RD.h)continue;
+    const B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(px+x*S,py+y*S,w*S,h*S);};const fl=Math.floor(now/180)%8;
+    B(2,1,12,17,'#07080c');B(3,2,10,15,'#1a1430');B(3,2,10,1,'#4a3a7a');B(4,3,8,2,'#ff4fd8');B(5,3,6,1,'#ffd0f4');
+    B(4,6,8,6,'#020306');for(let n=0;n<5;n++)B(4+((fl+n)%8),7+(n%2)*2,1,1,'#3af5f5');for(let n=0;n<4;n++)B(11-((fl+n)%8),10-(n%2)*2,1,1,'#ff9a3c');
+    B(4,13,8,2,'#2a2438');B(6,13,1,1,'#ff3b4e');B(9,13,1,1,'#3fe8ff');B(3,16,10,1,'#4a3a7a');}
+  g.restore();}
+{const _ot38=onTap;onTap=function(i){try{const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.props[i].k==='arcade'&&!UI.mode&&!busy()){if(dist(i,G.hero.pos)<=1){openArcade();return;}return _ot38.call(this,i+W);}}catch(e){}return _ot38.apply(this,arguments);};}
+function openArcade(){const h=G.hero;let best=0;try{best=+localStorage.getItem('mtm_lc')||0;}catch(e){}
+  const p=openModal(`<div class="mhead"><h2>LIGHTCYCLE</h2><button class="x" data-a="x">✕</button></div><div class="detail" style="text-align:center"><p class="dim">Beat the orange rider. Don't hit a wall or a trail. ◈2 a ride, ◈8 a win. Wins: <b id="lcW">${best}</b></p>
+  <canvas id="lcCv" width="240" height="240" style="width:min(78vw,300px);image-rendering:pixelated;background:#020308;border:1px solid #3af5f5;touch-action:none"></canvas>
+  <div class="row" style="justify-content:center;gap:6px;margin-top:8px"><button class="btn" data-d="L">◀</button><button class="btn" data-d="U">▲</button><button class="btn" data-d="D">▼</button><button class="btn" data-d="R">▶</button></div>
+  <button class="btn go" data-a="play" style="width:100%;margin-top:8px">INSERT ◈2</button></div>`);
+  const cv=p.querySelector('#lcCv'),g=cv.getContext('2d'),Gd=24,C=10;let st=null,timer=0;
+  const D={U:[0,-1],D:[0,1],L:[-1,0],R:[1,0]};
+  const draw=()=>{g.fillStyle='#020308';g.fillRect(0,0,240,240);g.strokeStyle='rgba(58,245,245,.08)';for(let n=0;n<=Gd;n++){g.beginPath();g.moveTo(n*C,0);g.lineTo(n*C,240);g.moveTo(0,n*C);g.lineTo(240,n*C);g.stroke();}
+    if(!st)return;for(let y=0;y<Gd;y++)for(let x=0;x<Gd;x++){const v=st.g[y*Gd+x];if(v){g.fillStyle=v===1?'#3af5f5':'#ff9a3c';g.shadowColor=g.fillStyle;g.shadowBlur=6;g.fillRect(x*C+1,y*C+1,C-2,C-2);}}g.shadowBlur=0;
+    for(const c of [st.a,st.b]){g.fillStyle='#fff';g.fillRect(c.x*C+2,c.y*C+2,C-4,C-4);}
+    if(st.msg){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,96,240,48);g.fillStyle='#ffd24a';g.font='bold 16px ui-monospace,monospace';g.textAlign='center';g.fillText(st.msg,120,126);}};
+  const free=(x,y)=>x>=0&&y>=0&&x<Gd&&y<Gd&&!st.g[y*Gd+x];
+  const space=(x,y)=>{if(!free(x,y))return 0;const seen=new Set([y*Gd+x]),q=[[x,y]];let n=0;while(q.length&&n<80){const [cx,cy]=q.pop();n++;for(const [dx,dy] of Object.values(D)){const nx=cx+dx,ny=cy+dy,k=ny*Gd+nx;if(free(nx,ny)&&!seen.has(k)){seen.add(k);q.push([nx,ny]);}}}return n;};
+  const step=()=>{const a=st.a,b=st.b;
+    // AI: keep going unless a turn has more room (with a little randomness)
+    let opts=Object.entries(D).filter(([k,[dx,dy]])=>!(dx===-b.d[0]&&dy===-b.d[1])).map(([k,[dx,dy]])=>({d:[dx,dy],s:space(b.x+dx,b.y+dy)+(dx===b.d[0]&&dy===b.d[1]?3:0)+Math.random()*2}));opts.sort((p,q)=>q.s-p.s);if(opts[0])b.d=opts[0].d;
+    a.x+=a.d[0];a.y+=a.d[1];b.x+=b.d[0];b.y+=b.d[1];const ac=!free(a.x,a.y)||(a.x===b.x&&a.y===b.y),bc=!free(b.x,b.y)||(a.x===b.x&&a.y===b.y);
+    if(ac||bc){clearInterval(timer);timer=0;if(ac&&bc)st.msg='DRAW';else if(bc){st.msg='YOU WIN  +◈8';h.creds+=8;best++;try{localStorage.setItem('mtm_lc',best);}catch(e){}const w=p.querySelector('#lcW');if(w)w.textContent=best;sfx('coin');refresh();}else{st.msg='DEREZZED';sfx('empty');}draw();return;}
+    st.g[a.y*Gd+a.x]=1;st.g[b.y*Gd+b.x]=2;draw();};
+  const start=()=>{if(timer)return;if(h.creds<2){toast('Short ◈'+(2-h.creds));return;}h.creds-=2;refresh();st={g:new Uint8Array(Gd*Gd),a:{x:5,y:12,d:[1,0]},b:{x:18,y:11,d:[-1,0]},msg:''};st.g[12*Gd+5]=1;st.g[11*Gd+18]=2;draw();timer=setInterval(()=>{if($('#modal').classList.contains('hide')){clearInterval(timer);timer=0;return;}step();},115);};
+  const turn=k=>{if(!st||!timer)return;const d=D[k];if(d[0]===-st.a.d[0]&&d[1]===-st.a.d[1])return;st.a.d=d;};
+  let sx=0,sy=0;cv.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;},{passive:true});cv.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<14)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'R':'L'):(dy>0?'D':'U'));});
+  const kd=e=>{const m={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',s:'D',a:'L',d:'R'}[e.key];if(m&&timer){e.preventDefault();turn(m);}};document.addEventListener('keydown',kd);
+  p.onclick=ev=>{const b=ev.target.closest('[data-a],[data-d]');if(!b)return;if(b.dataset.d){turn(b.dataset.d);return;}if(b.dataset.a==='x'){clearInterval(timer);document.removeEventListener('keydown',kd);closeModal();return;}if(b.dataset.a==='play')start();};
+  draw();}
+
+// ---------- CAMERA SPOTLIGHTS: each wall camera sweeps a light pool across the floor ----------
+function camLights(now){const L=G.L,g=RD.g,TS=16*RD.S;if(!L||!L.props)return;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='lighter';
+  const off=G.camOff&&G.camOff[sectorOf(G.depth)];
+  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off||off)continue;const c=+k;if(!L.seen[c]||!wallish(L,c))continue;
+    const a=.55*Math.sin((G.turn||0)*.3+c*.7+Math.sin(now/900+c)*.25),r=3.1,sx=RD.ox+(X(c)+.5+Math.sin(a)*r)*TS,sy=RD.oy+(Y(c)+.6+Math.cos(a)*r)*TS,rad=1.15*TS;
+    g.globalAlpha=newStyle()?.34:.2;g.drawImage(lightSpr('#dff6ff'),sx-rad,sy-rad*.8,2*rad,1.6*rad);
+    const hp=G.hero.pos,hx=RD.ox+(X(hp)+.5)*TS,hy=RD.oy+(Y(hp)+.5)*TS;if(Math.hypot(hx-sx,hy-sy)<rad*.8){g.globalAlpha=.25;g.drawImage(lightSpr('#ff3b4e'),hx-rad*.6,hy-rad*.6,1.2*rad,1.2*rad);}}
+  g.restore();}
+{const _rf38=rdFrame;rdFrame=function(now){const r=_rf38.apply(this,arguments);try{if(G&&G.L&&!(FP&&FP.on)){camLights(now);drawArcades(now);aura38(now);}}catch(e){}return r;};}
+
+// ---------- WINDOW VIEW: flying AVs, a police AV with a searchlight, an ad blimp ----------
+{const _bv38=buildView;buildView=function(){const r=_bv38.apply(this,arguments);try{const w=VW.w,h=VW.h,hor=VW.hor;VW.avs=[];
+  const cols=['#e8eef4','#ff4fd8','#3af5f5','#ffd24a','#ff6a2a','#9aff8a'];for(let n=0;n<7;n++){const z=n%3;VW.avs.push({z,y:hor-h*(.08+Math.random()*.34)+z*h*.05,sp:(18+Math.random()*26)*(1+z*.8)*(Math.random()<.5?-1:1),x:Math.random()*w,c:pick(cols),cop:n===3,s:1+z});}
+  VW.blimp={y:hor-h*(.42+Math.random()*.1),x:Math.random()*w,txt:pick(['VOLT COLA — SLEEP IS FOR BUILDINGS THAT LET YOU LEAVE','RAHMUN — REAL NOODLES, REAL CHAR','SUPER MART CORP — EVERYTHING. ALWAYS.','MTX — LIVE ABOVE IT ALL'])};}catch(e){}return r;};}
+{const _vf38=viewFrame;viewFrame=function(now){const r=_vf38.apply(this,arguments);try{if(!VW.on||!VW.avs)return r;const g=VW.cv.getContext('2d'),w=VW.w,h=VW.h,t=now/1000;g.save();g.imageSmoothingEnabled=false;
+  const bl=VW.blimp;if(bl){const bx=((bl.x+t*6)%(w+260))-130-VW.lx*8,by=bl.y-VW.ly*3;g.fillStyle='#14161e';g.beginPath();g.ellipse(bx,by,62,16,0,0,7);g.fill();g.fillStyle='#22263a';g.fillRect(bx-18,by+12,36,6);
+    g.save();g.beginPath();g.rect(bx-50,by-6,100,12);g.clip();g.fillStyle='#ff4fd8';g.shadowColor='#ff4fd8';g.shadowBlur=8;g.font='bold 9px ui-monospace,monospace';g.textBaseline='middle';const tw=g.measureText(bl.txt).width;g.fillText(bl.txt,bx+50-((t*30)%(tw+100)),by);g.restore();
+    g.fillStyle=Math.sin(t*4)>0?'#ff3b4e':'#300';g.fillRect(bx+60,by-1,2,2);}
+  for(const a of VW.avs.slice().sort((p,q)=>p.z-q.z)){a.x+=a.sp*(1/60);if(a.x>w+60)a.x=-60;if(a.x<-60)a.x=w+60;const s=a.s,x=Math.round(a.x-VW.lx*(6+a.z*10)),y=Math.round(a.y-VW.ly*(2+a.z*3)+Math.sin(t*1.3+a.z)*1.5),dir=a.sp>0?1:-1;
+    const B=(dx,dy,ww,hh,c)=>{g.fillStyle=c;g.fillRect(x+(dir>0?dx:-dx-ww)*s,y+dy*s,ww*s,hh*s);};
+    g.globalAlpha=.35;g.fillStyle=a.cop?'#3fe8ff':a.c;g.fillRect(x-(dir>0?30*s:-2*s),y+1*s,28*s,1*s);g.globalAlpha=1;
+    B(-7,-2,14,4,'#0c0e14');B(-6,-1,12,3,a.cop?'#1a2438':'#22263a');B(-3,-3,6,2,'#3a5a7a');B(-6,-1,12,1,'#5a6378');B(6,0,1,1,'#fff2c8');B(-7,0,1,1,'#ff3b4e');
+    g.globalAlpha=.6+.4*Math.sin(t*9+a.z);B(-5,2,10,1,a.cop?(Math.sin(t*10)>0?'#ff3b4e':'#3fe8ff'):a.c);g.globalAlpha=1;
+    if(a.cop){const lg=g.createLinearGradient(x,y,x,y+h*.4);lg.addColorStop(0,'rgba(220,240,255,.28)');lg.addColorStop(1,'rgba(220,240,255,0)');g.fillStyle=lg;const sw=Math.sin(t*.7)*40;g.beginPath();g.moveTo(x-2,y+2*s);g.lineTo(x+2,y+2*s);g.lineTo(x+sw+30,y+h*.4);g.lineTo(x+sw-30,y+h*.4);g.fill();
+      g.fillStyle=Math.sin(t*10)>0?'#ff3b4e':'#3fe8ff';g.fillRect(x-1*s,y-4*s,2*s,1*s);}}
+  g.restore();}catch(e){}return r;};}
+
+// ---------- ENDING CINEMATIC SCENES: real sprites, camera push, letterbox ----------
+cineScene=function(g,W2,H2,kind,t,grade){const sky=grade||['#0a0a16','#1a1030'],U=Math.max(2,Math.round(Math.min(W2/160,H2/100))),rng=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);};
+  g.save();g.imageSmoothingEnabled=false;const z=1+Math.min(1,t/5200)*.07;g.translate(W2/2,H2/2);g.scale(z,z);g.translate(-W2/2,-H2/2);
+  const dawn=kind==='coop',sun=kind==='payout';
+  {const gr=g.createLinearGradient(0,0,0,H2);gr.addColorStop(0,sun?'#2a0f2a':dawn?'#14203a':sky[0]);gr.addColorStop(.62,sun?'#ff7a3a':dawn?'#ff9a6a':sky[1]);gr.addColorStop(1,'#05050a');g.fillStyle=gr;g.fillRect(-20,-20,W2+40,H2+40);}
+  const hor=H2*.64;
+  if(sun){g.fillStyle='#ffd24a';g.shadowColor='#ff9a3c';g.shadowBlur=40;g.beginPath();g.arc(W2*.62,hor-10*U,18*U,0,7);g.fill();g.shadowBlur=0;}
+  // skyline layers
+  for(let L2=0;L2<2;L2++){const col=L2?'#0b0b16':'#12122a',dr=(t*(L2?.004:.0015))%40;for(let i=0;i<30;i++){const bw=(8+rng(i+L2*40)*14)*U,bh=(20+rng(i*3+L2)*50)*U*(L2?1:.7),x=i*W2/22-dr*U-20;g.fillStyle=col;g.fillRect(x,hor-bh,bw,bh+4);
+    if(!sun)for(let wy=4*U;wy<bh-4*U;wy+=4*U)for(let wx=2*U;wx<bw-2*U;wx+=3*U)if(rng(i*91+wy+wx*7+L2)>.74){g.fillStyle=rng(i+wy)>.5?'#3fe8ff55':'#ffd24a55';g.fillRect(x+wx,hor-bh+wy,U,U);}}}
+  // MTX tower
+  if(kind!=='payout'){const tw=46*U,tx=W2/2-tw/2,th=hor*1.05;g.fillStyle='#0d0e1c';g.fillRect(tx,hor-th,tw,th);g.fillStyle='#1a1c30';g.fillRect(tx,hor-th,3*U,th);
+    const lit=dawn?Math.min(1,t/3500):kind==='rain'?Math.max(.15,1-t/4000):.55;for(let wy=6*U;wy<th-10*U;wy+=5*U)for(let wx=5*U;wx<tw-5*U;wx+=5*U)if(rng(wx*3+wy*7)<lit){g.fillStyle=dawn?'#39ffb0':rng(wx+wy)>.5?'#3fe8ff':'#ffd24a';g.globalAlpha=.8;g.fillRect(tx+wx,hor-th+wy,2*U,2*U);g.globalAlpha=1;}
+    g.fillStyle=dawn?'#39ffb0':'#ff4fd8';g.shadowColor=g.fillStyle;g.shadowBlur=12;g.font=`bold ${7*U}px ui-monospace,monospace`;g.textAlign='center';g.fillText(dawn?'MTX CO-OP':'MTX',W2/2,hor-th+12*U);g.shadowBlur=0;
+    if(kind==='crowd'||dawn){g.fillStyle='#fff2c8';g.globalAlpha=.85;g.fillRect(W2/2-8*U,hor-18*U,16*U,18*U);g.globalAlpha=.25;g.fillStyle='#ffd24a';g.beginPath();g.moveTo(W2/2-8*U,hor);g.lineTo(W2/2+8*U,hor);g.lineTo(W2/2+30*U,H2);g.lineTo(W2/2-30*U,H2);g.fill();g.globalAlpha=1;}}
+  // street, wet
+  g.fillStyle=sun?'#2a1420':'#0a0b14';g.fillRect(-20,hor,W2+40,H2);for(let i=0;i<24;i++){g.fillStyle=sun?'rgba(255,154,60,.18)':'rgba(63,232,255,.08)';g.fillRect(rng(i)*W2,hor+(4+rng(i+3)*30)*U,(8+rng(i+5)*20)*U,U);}
+  // actors
+  const A=(spr,x,y,sc,flip)=>{if(!spr)return;const s=22*U*sc;g.save();g.translate(x,y);if(flip)g.scale(-1,1);g.drawImage(spr,-s/2,-s,s,s);g.globalAlpha=.22;g.scale(1,-1);g.drawImage(spr,-s/2,-s*0.15,s,s*.6);g.restore();};
+  const fr=Math.floor(t/260)%2,hero=heroSpr(fr);
+  if(kind==='crowd'){for(let n=0;n<12;n++){const p=Math.min(1,Math.max(0,(t-n*260)/2400)),x=W2/2+(rng(n)-.5)*W2*.8*p,y=hor+(2+p*28)*U;g.globalAlpha=Math.min(1,p*3);A(lookSprite(npcLook(n*37+11,''),(Math.floor(t/300)+n)%2),x,y,.9+p*.5,rng(n+2)>.5);g.globalAlpha=1;}
+    A(hero,W2*.6,hor+40*U,2.2,false);A(npcSpr('cop',5,0),W2*.12,hor+30*U,1.6,false);A(npcSpr('cop',8,0),W2*.88,hor+30*U,1.6,true);
+    const fl=Math.sin(t/90)>0;g.globalAlpha=.16;g.fillStyle=fl?'#ff3b4e':'#3fe8ff';g.fillRect(-20,hor,W2+40,H2);g.globalAlpha=1;
+    for(const sx of [.25,.75]){const a=Math.sin(t/1400+sx*9)*.5,x=W2*sx,lg=g.createLinearGradient(0,H2,0,0);lg.addColorStop(0,'rgba(220,240,255,.18)');lg.addColorStop(1,'rgba(220,240,255,0)');g.fillStyle=lg;g.beginPath();g.moveTo(x-4*U,H2);g.lineTo(x+4*U,H2);g.lineTo(x+Math.sin(a)*H2+20*U,0);g.lineTo(x+Math.sin(a)*H2-20*U,0);g.fill();}}
+  else if(kind==='coop'){for(let n=0;n<9;n++){const x=W2*(.1+n*.1),hop=Math.abs(Math.sin(t/300+n))*3*U;A(lookSprite(npcLook(n*53+7,''),(Math.floor(t/300)+n)%2),x,hor+26*U-hop,1.3,n%2);}
+    A(hero,W2*.62,hor+42*U,2.1,false);const cp=.5+.5*Math.sin(t/200);g.fillStyle='#3af5f5';g.shadowColor='#3af5f5';g.shadowBlur=14*cp;g.fillRect(W2*.62+8*U,hor+20*U-Math.min(1,t/3000)*6*U,5*U,5*U);g.shadowBlur=0;}
+  else if(kind==='badge'){g.fillStyle='rgba(0,0,0,.45)';g.fillRect(-20,-20,W2+40,H2+40);for(let i=0;i<14;i++){g.globalAlpha=.25;g.fillStyle=rng(i)>.5?'#ff3b4e':'#3fe8ff';g.beginPath();g.arc(rng(i+1)*W2,rng(i+2)*hor,(6+rng(i+3)*14)*U,0,7);g.fill();}g.globalAlpha=1;
+    A(npcSpr('captain',1,0),W2*.3,H2*.98,4.2,false);A(hero,W2*.72,H2*.98,4.2,true);const gl=Math.max(0,Math.sin(t/500));g.fillStyle='#ffd24a';g.shadowColor='#fff2c8';g.shadowBlur=20*gl;g.fillRect(W2*.5-4*U,H2*.55,8*U,9*U);g.fillStyle='#fff2c8';g.fillRect(W2*.5-2*U,H2*.55+2*U,4*U,4*U);g.shadowBlur=0;}
+  else if(kind==='rain'){A(hero,W2*.5,hor+34*U,2.4,false);g.fillStyle='#ff4fd8';g.shadowColor='#ff4fd8';g.shadowBlur=16;g.font=`bold ${9*U}px ui-monospace,monospace`;g.textAlign='center';g.globalAlpha=.75+.25*Math.sin(t/140);g.fillText('RAHMUN',W2*.2,hor-6*U);g.globalAlpha=1;g.shadowBlur=0;
+    g.fillStyle='rgba(150,190,255,.35)';for(let i=0;i<120;i++){const x=(rng(i)*W2+t*.05)%W2,y=(rng(i+9)*H2+t*.9*(1+rng(i)))%H2;g.fillRect(x,y,1,5*U);}}
+  else if(kind==='payout'){A(hero,W2*.36,hor+30*U,2.2,false);for(let i=0;i<3;i++){const x=W2*(.08+i*.1);g.fillStyle='#14080c';g.fillRect(x,hor-40*U,2*U,40*U);for(let f=0;f<5;f++){g.save();g.translate(x+U,hor-40*U);g.rotate(-1.4+f*.7);g.fillRect(0,0,18*U,2*U);g.restore();}}
+    if(Math.floor(t/400)%2){g.fillStyle='#3af5f5';g.font=`bold ${6*U}px ui-monospace,monospace`;g.textAlign='center';g.fillText('☏ MTX',W2*.36,hor-4*U);}}
+  g.restore();
+  // letterbox + vignette + grain
+  {const vg=g.createRadialGradient(W2/2,H2/2,H2*.25,W2/2,H2/2,H2*.8);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.7)');g.fillStyle=vg;g.fillRect(0,0,W2,H2);}
+  g.fillStyle='#000';g.fillRect(0,0,W2,H2*.08);g.fillRect(0,H2*.92,W2,H2*.08);g.globalAlpha=.05;g.fillStyle='#fff';for(let i=0;i<80;i++)g.fillRect(Math.random()*W2,Math.random()*H2,1,1);g.globalAlpha=1;};
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
