@@ -397,7 +397,7 @@ const CLASSES={
  enforcer:{name:'ENFORCER',hp:26,str:11,desc:'Ex-riot cop. Soaks damage and hits hard up close.',perk:'Thick Hide: bonus armor that grows with level.',abil:'Adrenal Rush',adesc:'Heal 30% HP and deal +50% damage for 8 turns.',cd:60,outfit:'#3f6fb0',start:[['wrench'],['hoodie'],['heal',1],['noodle',1]]},
  netrunner:{name:'NETRUNNER',hp:18,str:9,desc:'Hacker. Fragile, but tech bends to their will.',perk:'All data chips come pre-decoded. Guns recharge 50% faster.',abil:'Overload',adesc:'Zap every enemy in sight; machines are stunned.',cd:50,outfit:'#19c7b0',start:[['switchblade'],['hoodie'],['shockpistol'],['heal',1],['noodle',1]]},
  ghost:{name:'GHOST',hp:20,str:10,desc:'Infiltrator. Strikes from the dark, vanishes.',perk:'Sneak attacks deal double. Spots traps and hidden doors nearby.',abil:'Cloak',adesc:'Turn invisible for 10 turns. Enemies lose you.',cd:50,outfit:'#5a4a7a',start:[['switchblade'],['hoodie'],['knife',8],['heal',1],['noodle',1]]},
- gunner:{name:'GUNNER',hp:20,str:10,desc:'Sharpshooter. Keeps trouble at a distance.',perk:'+30% ranged accuracy and damage.',abil:'Deadeye',adesc:'Your next 3 shots cannot miss and hit 50% harder.',cd:40,outfit:'#b0503f',start:[['knuckles'],['hoodie'],['techpistol'],['cell',1],['heal',1],['noodle',1]]},
+ gunner:{name:'GUNNER',hp:20,str:10,desc:'Sharpshooter. Keeps trouble at a distance.',perk:'+30% ranged accuracy and damage.',abil:'Deadeye',adesc:'Your next 3 shots cannot miss and hit 50% harder.',cd:40,outfit:'#b0503f',start:[['knuckles'],['hoodie'],['needler'],['cell',1],['heal',1],['noodle',1]]},
  tinker:{name:'TINKER',hp:20,str:10,desc:'Drone wrangler. Never climbs alone.',perk:'Starts with a Scout Drone. Companions are 50% tougher.',abil:'Field Rebuild',adesc:'Fully repair your companion — or rebuild a destroyed one.',cd:70,outfit:'#c9a227',start:[['wrench'],['hoodie'],['kit',1],['heal',1],['noodle',1]]}
 };
 const ITEMS={};
@@ -601,7 +601,7 @@ function randFood(){return mk(wpick({noodle:5,bar:3,skewer:3,cola:2}));}
 function newLevel(depth){
   return {gv:GEN_V,depth,map:new Array(N).fill(T.WALL),vr:Array.from({length:N},()=>rnd(256)),seen:new Array(N).fill(0),traps:{},items:[],mobs:[],lights:[],clouds:{},boss:depth>0&&depth%5===0,gang:sectorOf(depth)*3+rnd(3),entry:0,exit:0,shopR:null,vt:null};
 }
-function gunMax(it){return ITEMS[it.k].ch+Math.max(0,it.lvl||0);}
+function gunMax(it){return ITEMS[it.k].ch+Math.max(0,it.lvl||0)*(it.k==='minigun'?5:1);}
 function mk(k,o){
   const d=ITEMS[k],it=Object.assign({k,q:1},o||{});
   if(d.type==='melee'||d.type==='armor'||d.type==='gun'||d.type==='implant'){
@@ -901,10 +901,10 @@ function makePlan(){
 }
 function makeHero(o){
   const c=CLASSES[o.cls];
-  const h={name:o.name||'Runner',cls:o.cls,look:o.look,hp:c.hp,mhp:c.hp,str:c.str,lvl:1,xp:0,pos:0,hunger:0,creds:0,inv:[],eq:{melee:null,gun:null,gun2:null,armor:null,imp:[null,null,null]},b:{},quick:['heal',null],acd:0,shield:0,rt:0,dz:0};
+  const h={name:o.name||'Runner',cls:o.cls,look:o.look,hp:c.hp,mhp:c.hp,str:c.str,lvl:1,xp:0,pos:0,hunger:0,creds:300,inv:[],eq:{melee:null,gun:null,gun2:null,armor:null,imp:[null,null,null]},b:{},quick:['heal',null],acd:0,shield:0,rt:0,dz:0};
   for(const [k,q] of c.start){
     const d=ITEMS[k],it=mk(k,{known:true});if(q)it.q=q;
-    if(k==='techpistol'){it.lvl=1;it.ch=gunMax(it);}
+    if(k==='techpistol'||k==='needler'){it.lvl=1;it.ch=gunMax(it);}
     if(d.type==='melee')h.eq.melee=it;else if(d.type==='armor')h.eq.armor=it;else if(d.type==='gun')h.eq.gun=it;else h.inv.push(it);
   }
   if(o.cls==='ghost'){h.quick[1]='knife';const kn=h.inv.find(x=>x.k==='knife');if(kn&&!h.eq.gun){h.inv.splice(h.inv.indexOf(kn),1);h.eq.gun=kn;}}
@@ -1159,7 +1159,7 @@ function trigger(i){
 }
 function actMove(to){
   const h=G.hero,L=G.L;if(G.over||to<0||to>=N)return false;const t=L.map[to],m=mobAt(to);
-  if(m){const d=MOBS[m.k];if(d.npc){const quiet=m.k==='courier'||m.leave||m.k==='civ'&&m.done&&!m.need&&!m.helped||(G.walking&&m.talked);if(quiet){m.pos=h.pos;h.pos=to;afterMove();spend(1);return true;}m.talked=1;if(EV.npc)EV.npc(m);return false;}
+  if(m){const d=MOBS[m.k];if(d.npc){const quiet=m.k==='courier'||m.leave!=null||m.k==='civ'&&m.done&&!m.need&&!m.helped||(G.walking&&m.talked);if(quiet){m.pos=h.pos;h.pos=to;afterMove();spend(1);return true;}m.talked=1;if(EV.npc)EV.npc(m);return false;}
     if(d.ally){m.pos=h.pos;h.pos=to;m._yield=G.turn+1;afterMove();spend(1);return true;}
     heroAttack(m);return true;}
   if(t===T.TERM){if(EV.term)EV.term(to);return false;}
@@ -1168,7 +1168,7 @@ function actMove(to){
   if(!pass(to)){
     const d0=to-h.pos;
     if(DIRS.indexOf(d0)>=0){const bey=to+d0,mb=(bey>=0&&bey<N&&dist(bey,h.pos)<=2)?mobAt(bey):null;
-      if(mb&&MOBS[mb.k].npc&&!mb.leave){mb.talked=1;if(EV.npc)EV.npc(mb);return false;}}
+      if(mb&&MOBS[mb.k].npc&&mb.leave==null){mb.talked=1;if(EV.npc)EV.npc(mb);return false;}}
     return false;}
   if(t===T.DOOR)sfx('door');
   h.pos=to;afterMove();if(!G.over)spend(1);return true;
@@ -1333,7 +1333,7 @@ function actCiv(m,act){
 function surgCost(kind,it){const s=sectorOf(G.depth),m=(1+s*.4)*((G.karma||0)>=3?.9:(G.karma||0)<=-3?1.15:1);return Math.round((kind==='up'?70+45*Math.max(0,it.lvl+1):kind==='look'?25:30)*m);}
 function actSurgery(kind,arg){
   const h=G.hero,L=G.L;let cost=0;
-  if(kind==='up'){const it=h.eq.imp[arg];if(!it)return false;cost=surgCost('up',it);if(h.creds<cost){log('Not enough creds.','warn');return false;}it.lvl++;it.cursed=false;it.known=true;if(it.k==='gunhand')it.ch=gunMax(it);log(`Surgery complete: ${itemName(it)}.`,'hi');}
+  if(kind==='up'){const it=h.eq.imp[arg];if(!it)return false;cost=surgCost('up',it);if(h.creds<cost){log('Not enough creds.','warn');return false;}it.lvl+=2;it.cursed=false;it.known=true;if(it.k==='gunhand')it.ch=gunMax(it);log(`Surgery complete: ${itemName(it)}.`,'hi');}
   else if(kind==='install'){const it=arg,i=h.eq.imp.indexOf(null);if(i<0){log('All implant ports are full.','warn');return false;}cost=surgCost('install');if(h.creds<cost){log('Not enough creds.','warn');return false;}const ii=h.inv.indexOf(it);if(ii<0)return false;h.inv.splice(ii,1);h.eq.imp[i]=it;it.known=true;if(it.k==='heart2'){it.hb=Math.round(h.mhp*.25);h.mhp+=it.hb;h.hp+=it.hb;}note('i',it.k,2);log(`Installed: ${itemName(it)}.`+(it.cursed?' It is glitched — the doc shrugs.':''),it.cursed?'bad':'hi');}
   else if(kind==='remove'){const it=h.eq.imp[arg];if(!it)return false;cost=surgCost('remove');if(h.creds<cost){log('Not enough creds.','warn');return false;}h.eq.imp[arg]=null;it.cursed=false;if(it.hb){h.mhp-=it.hb;h.hp=Math.max(1,Math.min(h.hp,h.mhp));it.hb=0;}stow(it);log(`Removed: ${itemName(it)}. Malware cut out with it.`,'hi');}
   else if(kind==='look'){cost=surgCost('look');if(h.creds<cost){log('Not enough creds.','warn');return false;}Object.assign(h.look,arg);log('New face, same problems.','hi');}
@@ -1451,7 +1451,7 @@ function allyAct(a){
   if(foe){if(bd<=1){mobHit(a,foe);return;}if(d.rng&&bd<=d.rng&&clearLine(a.pos,foe.pos)){mobHit(a,foe,true);return;}if(!d.med)stepToward(a,foe.pos);else if(dist(a.pos,h.pos)>1)stepToward(a,h.pos);return;}
   if(dist(a.pos,h.pos)>1)stepToward(a,h.pos);
 }
-function summonNear(k,p,own){const q=freeNear(p,3);if(q<0)return null;const m=mkMob(k,q,'hunt');m.tg=G.hero.pos;m.own=own;G.L.mobs.push(m);fx({t:'boom',p:q,c:'#ff9a3c',r:1});return m;}
+function summonNear(k,p,own){const L=G.L;let q=-1,bd=1e9;if(k==='guard'){for(let i=0;i<N;i++){if(L.map[i]!==T.DOOR||mobAt(i)||i===G.hero.pos)continue;const dd=dist(i,p);if(dd<=12&&dd<bd){bd=dd;q=i;}}if(q>=0&&L.vis[q]&&!L._gdoor){L._gdoor=1;log('A door bangs open — Helix security pours in.','bad');}}if(q<0)q=freeNear(p,3);if(q<0)return null;const m=mkMob(k,q,'hunt');m.tg=G.hero.pos;m.own=own;G.L.mobs.push(m);fx({t:'boom',p:q,c:'#ff9a3c',r:1});return m;}
 function bossAct(m,sees,dh){
   const h=G.hero,L=G.L;m.cd++;
   if(m.k==='b1'){if(m.hp<m.mhp/2&&!m.b.enr){m.b.enr=9999;log('The Scrap King ROARS and tears off its plating. It is faster now.','bad');fx({t:'boom',p:m.pos,c:'#39ffb0',r:2});return true;}return false;}
@@ -1481,7 +1481,7 @@ function bossAct(m,sees,dh){
 }
 function randNearHero(a,b){const h=G.hero;for(let n=0;n<80;n++){const x=X(h.pos)+rr(-b,b),y=Y(h.pos)+rr(-b,b);if(x<1||y<1||x>=W-1||y>=H-1)continue;const i=idx(x,y),dd=dist(i,h.pos);if(dd>=a&&dd<=b&&pass(i)&&!mobAt(i)&&G.L.vis[i])return i;}return -1;}
 function mobAct(m){
-  const d=MOBS[m.k],h=G.hero,L=G.L;if(m.k==='courier'&&m.deliver!=null){courierAct(m);return;}if(m.leave){npcLeave(m);return;}if(d.npc)return;
+  const d=MOBS[m.k],h=G.hero,L=G.L;if(m.k==='courier'&&m.deliver!=null){courierAct(m);return;}if(m.leave!=null){npcLeave(m);return;}if(d.npc)return;
   if(m.b.stun>0||m.b.frozen>0)return;
   if(d.regen&&m.hp<m.mhp)m.hp=Math.min(m.mhp,m.hp+2);
   if(d.ally)return allyAct(m);
@@ -1544,8 +1544,8 @@ function worldTick(){
 function world(t){
   const h=G.hero,L=G.L;
   for(const m of L.mobs.slice()){
-    if(m.hp<=0||G.over||G.resp)continue;const d=MOBS[m.k];if(!d.sp)continue;
-    m.en+=t*d.sp*(m.b.enr?1.5:1);let g=0;
+    if(m.hp<=0||G.over||G.resp)continue;const d=MOBS[m.k],msp=d.sp||(m.leave!=null?1:0);if(!msp)continue;
+    m.en+=t*msp*(m.b.enr?1.5:1);let g=0;
     while(m.en>=1&&m.hp>0&&!G.over&&g++<4){m.en-=1;if(L.mobs.indexOf(m)<0)break;mobAct(m);}
   }
   G.tk+=t;while(G.tk>=1&&!G.over){G.tk-=1;worldTick();}
@@ -1600,8 +1600,8 @@ function cloneRespawn(){const h=G.hero,cl=G.clone,cause=G.resp.cause;G.resp=null
 
 // ---------- v0.9 helpers
 function splitStack(it,n){const h=G.hero,i=h.inv.indexOf(it);if(i<0||!it.q||n>=it.q)return it;it.q-=n;const p=Object.assign({},it,{q:n});h.inv.splice(i+1,0,p);return p;}
-function npcLeave(m){const L=G.L,h=G.hero;if(G.turn-m.leave>25||(!L.vis[m.pos]&&G.turn-m.leave>3)){L.mobs.splice(L.mobs.indexOf(m),1);return;}
-  const tgt=dist(m.pos,L.exit)<dist(m.pos,L.entry)?L.exit:L.entry;if(m.pos===tgt){L.mobs.splice(L.mobs.indexOf(m),1);return;}
+function npcLeave(m){const L=G.L,h=G.hero;if(G.turn-m.leave>60||(!L.vis[m.pos]&&G.turn-m.leave>8)){L.mobs.splice(L.mobs.indexOf(m),1);return;}
+  const tgt=L.entry;if(m.pos===tgt||dist(m.pos,tgt)<=1){if(L.vis[m.pos]&&m.k==='civ')log(`${npcName(m)} slips into the elevator. The doors close.`);L.mobs.splice(L.mobs.indexOf(m),1);return;}
   if(!stepToward(m,tgt)){let best=-1,bd=1e9;for(const d of DIRS){const j=m.pos+d;if(!pass(j)||mobAt(j)||j===h.pos)continue;const v=dist(j,tgt)+(Math.random()*.5);if(v<bd){bd=v;best=j;}}if(best>=0)m.pos=best;}
   if(m.deliver==null&&m.k==='courier'&&!L.vis[m.pos]&&G.turn-m.leave>2)L.mobs.splice(L.mobs.indexOf(m),1);}
 function actNeed(m,act){const h=G.hero,L=G.L;if(L.mobs.indexOf(m)<0||(act==='give'&&!m.need))return false;
@@ -1617,7 +1617,7 @@ function allyStats(a){const d=MOBS[a.k],h=G.hero,m=(h.cls==='tinker'?1.5:1)*(1+.
 // companion barks
 function bark(kind){const L=G.L,al=L.mobs.filter(m=>MOBS[m.k].ally&&L.vis[m.pos]);if(!al.length||G.turn-(G.lastBark||-99)<6||!chance(.45))return;G.lastBark=G.turn;const a=pick(al),d=MOBS[a.k];
   if(d.robot){fx({t:'txt',p:a.pos,s:pick(['♪ beep','bwee-oo','*hum*','!!']),c:'#7ae0ff'});if(EV.sfx)EV.sfx('beep2');}
-  else{const s=pick(kind==='boom'?['Damn!','Holy—','Ears ringing!','Hell yes.']:kind==='crit'?['Nice shot.','Clean.','Damn, choom.','Remind me not to piss you off.']:['Got him.','Nice.','That\'s one.']);fx({t:'txt',p:a.pos,s,c:'#ffe14a'});log(`${a.lk!=null?'Survivor':d.n}: "${s}"`,'');}}
+  else{const s=pick(kind==='boom'?['Damn!','Holy—','Ears ringing!','Hell yes.']:kind==='crit'?['Nice shot.','Clean.','Damn, choom.','Remind me not to piss you off.']:['Got him.','Nice.','That\'s one.']);fx({t:'txt',p:a.pos,s,c:'#ffe14a',dur:2400});log(`${a.lk!=null?npcName(a):d.n}: "${s}"`,'');}}
 
 // ---------- v0.17 phone contacts + dev mode
 function addContact(m,kind){G.contacts=G.contacts||[];const nm=typeof npcName==='function'?npcName(m):'Resident';if(G.contacts.some(c=>c.n===nm))return;
@@ -1915,7 +1915,7 @@ function drawTile(g,L,i,sec,si){
   else if(si===2){F(15,0,1,16,sec.fl[2]);F(0,15,16,1,sec.fl[2]);F(1,1,1,1,sec.fl[2]);F(13,1,1,1,sec.fl[2]);F(1,13,1,1,sec.fl[2]);F(13,13,1,1,sec.fl[2]);if(v<20)for(let k=0;k<4;k++)F(k*4,13,2,2,'#8a6a1a');if(v>232)for(let k=0;k<3;k++)F(3,4+k*3,9,1,sec.fl[2]);}
   else if(si===3){F(15,0,1,16,shade(sec.fl[0],.12));F(0,15,16,1,shade(sec.fl[0],.12));if(v<16){F(7,7,2,2,'#5fd0ff');}if(v>244)F(2,2,11,11,'rgba(95,208,255,.05)');}
   else if(si===4){F(15,0,1,16,'#5a4a2a');F(0,15,16,1,'#5a4a2a');let px=r()*8|0;for(let k=0;k<5;k++)F(px+k*2,2+k*2+(r()*2|0),2,1,shade(sec.fl[1],.12));if(v<14)F(6,6,3,3,'#8a6a2a');}
-  if(t===T.COUNTER){F(0,13,16,3,'rgba(0,0,0,.45)');F(0,4,16,10,'#5a3a24');F(0,4,16,2,'#8a6040');F(0,13,16,1,'#2a1a10');for(let x=1;x<16;x+=5)F(x,6,1,7,'#4a2e1c');const b=v%3;if(b===0){F(4,2,8,3,'#f2f0ea');F(5,1,6,1,'#c87a3a');F(6,1,2,1,'#e8d070');}else if(b===1){F(2,2,5,3,'#f2f0ea');F(3,1,3,1,'#ff9a4a');F(10,3,4,1,'#3a2a20');F(10,2,1,1,'#3a2a20');}else{F(3,3,10,1,'#c8ccd4');F(4,2,3,1,'#5ac85a');F(9,2,2,1,'#ff5a5a');}return;}
+  if(t===T.COUNTER){F(0,13,16,3,'rgba(0,0,0,.45)');F(0,4,16,10,'#5a3a24');F(0,4,16,2,'#8a6040');F(0,13,16,1,'#2a1a10');for(let x=1;x<16;x+=5)F(x,6,1,7,'#4a2e1c');const b=v%3;if(b===0){F(4,1,7,4,'#2a2e36');F(5,2,5,1,'#39ff7a');F(4,0,3,1,'#5a626e');}else if(b===1){F(3,1,3,4,'rgba(190,230,255,.55)');F(3,1,3,1,'#c8ccd4');F(10,3,4,1,'#3a2a20');}else{F(3,3,10,1,'#c8ccd4');F(4,2,3,1,'#5ac85a');F(9,2,2,1,'#ff5a5a');}return;}
   if(t===T.TREE){F(2,13,12,3,'rgba(0,0,0,.45)');F(7,9,2,6,'#4a3020');F(6,14,4,1,'#3a2418');F(1,1,14,10,'#1e5a30');F(2,0,12,1,'#2a7a40');F(0,3,1,6,'#1e5a30');F(15,3,1,6,'#163a22');F(3,2,5,3,'#3a9a50');F(9,6,4,3,'#164a26');F(4,8,3,2,'#2a7a40');if(v&1)F(11,3,1,1,'#ff7ac0');return;}
   if(t===T.CAR){const cc=['#c0303a','#2a6ab0','#d8d8e0','#1a1a22','#e0a020','#3a8a5a','#6a3a8a'][v%7],md=(v>>3)%4;F(0,13,16,3,'rgba(0,0,0,.5)');
     if(md===0){F(1,3,14,11,cc);F(1,3,14,1,shade(cc,.4));F(3,5,10,3,'#0a1224');F(4,5,4,1,'rgba(160,200,255,.5)');F(3,10,10,2,shade(cc,-.3));}
@@ -2016,7 +2016,14 @@ function rdFrame(now){
       else if(k==='pod'){g.fillStyle=(now/700+v)%2<1?'#39ff7a':'#1a4a2a';g.fillRect(px+13*S,py+8*S,S,S);g.fillStyle=(now/900+v)%3<.4?'#ff3b4e':'#5a1018';g.fillRect(px+13*S,py+10*S,S,S);}
       else if(k==='vend'){if((now/1600+v)%5<.2){g.fillStyle='rgba(255,255,255,.25)';g.fillRect(px+3*S,py+3*S,10*S,8*S);}}}
     if(t===T.TERM){g.fillStyle='#3fe8ff';const ph=(now/300+v)|0;for(let q=0;q<3;q++)g.fillRect(px+5*S,py+(3+q)*S+q*S*.3,(2+((ph+q*3)%5))*S,Math.max(1,S*.6));if((now/400|0)&1)g.fillRect(px+10*S,py+6*S,S,S);}
-    else if(t===T.COUNTER&&L.kitchen&&y===L.kitchen[2]&&x>=L.kitchen[0]&&x<=L.kitchen[1]){if(Math.random()<dt*1.6)smk(x+.3+Math.random()*.4,y+.2,(Math.random()-.5)*.1,-.35);const bx=((now/40+x*16*0)%(16*6))-(x-(L.kitchen?L.kitchen[0]:x))*16;if(bx>=0&&bx<16){g.fillStyle='#f2f0ea';g.fillRect(px+bx*S,py+2*S,4*S,2*S);g.fillStyle='#c87a3a';g.fillRect(px+(bx+1)*S,py+1*S,2*S,S);}}
+    else if(t===T.COUNTER&&L.kitchen&&y===L.kitchen[2]&&x>=L.kitchen[0]&&x<=L.kitchen[1]){const k0=L.kitchen[0],k1=L.kitchen[1],R=(xx,yy,w,hh,c)=>{g.fillStyle=c;g.fillRect(px+xx*S,py+yy*S,w*S,hh*S);};
+      if(x===k0){R(1,0,14,6,'rgba(160,230,255,.25)');R(1,0,14,1,'#bfefff');R(1,0,1,6,'#9ad8f0');R(14,0,1,6,'#9ad8f0');R(3,3,3,2,'#f2c06a');R(7,3,3,2,'#e86a4a');R(11,3,2,2,'#f2f0ea');R(2,5,12,1,'#ffe8a0');}
+      else if(x===k1){R(4,1,8,4,'#2a2e36');R(5,2,6,2,'#06303a');R(5,2,2,1,'#39ff7a');R(9,3,1,1,'#ffe14a');}
+      else if((x-k0)%2===1){R(4,2,8,3,'#f2f0ea');R(5,1,6,1,'#c87a3a');R(6,1,2,1,'#e8d070');R(11,0,1,3,'#8a5a2a');R(12,0,1,3,'#8a5a2a');}
+      else{R(5,3,6,1,'#c8ccd4');R(6,2,1,1,'#ff5a5a');R(8,2,2,1,'#5ac85a');}
+      // cooking area behind the counter (row +2): two burners with pots and steam, and a fridge at the far end
+      if(x===k0||x===k0+1){const qy=py+2*TS;R(0,2*16+4,16,10,'#3a3f48');R(0,2*16+4,16,1,'#5a626e');R(3,2*16+2,10,4,'#20242c');R(4,2*16+1,8,1,'#5a626e');R(5,2*16+11,6,1,(now/200|0)%2?'#ff7a2a':'#ff4a1a');if(Math.random()<dt*2.2)smk(x+.3+Math.random()*.4,y+2.1,(Math.random()-.5)*.1,-.35);}
+      if(x===k1){R(1,16+0,14,30,'#c8ccd4');R(1,16+0,14,1,'#e8eef4');R(2,16+13,12,1,'#8a9aa8');R(12,16+5,1,5,'#5a626e');R(12,16+17,1,6,'#5a626e');R(3,16+2,3,2,'#3fe8ff');}}
     else if(t===T.CHAIR){g.globalAlpha=.5+.4*pulse;g.fillStyle='#39ffb0';g.fillRect(px,py+7*S,2*S,S);g.globalAlpha=1;}
     if(t===T.DOOR||t===T.LOCKED){const horiz=wallish(L,i-1)||wallish(L,i+1)?1:0,open=t===T.DOOR&&(h.pos===i||mobAt(i))?1:0;g.drawImage(doorSprite(sec,horiz,open,t===T.LOCKED?1:0),px,py,TS,TS);}
     else if(t===T.WATER&&G.depth<=0){const ph=(now/700+x*1.7+y*2.3)%5;if(ph<1){g.globalAlpha=.6*(1-ph);g.strokeStyle='#cfe8ff';g.lineWidth=Math.max(1,S*.5);g.beginPath();g.arc(px+(5+(x*3+y)%6)*S,py+(7+(x+y*3)%4)*S,(1+ph*3)*S,0,7);g.stroke();g.globalAlpha=1;}}
@@ -2180,7 +2187,7 @@ function rdFrame(now){
   const C=i=>[ox+(X(i)+.5)*TS,oy+(Y(i)+.5)*TS];
   RD.fx=RD.fx.filter(f=>{
     const a=(now-f.t0);if(a<0)return true;
-    if(f.t==='txt'){if(a>800)return false;if(!L.vis[f.p])return true;const [px,py]=C(f.p),p=a/800;g.font=`${f.s.length>5?5*S:6*S}px "Press Start 2P",monospace`;g.textAlign='center';g.globalAlpha=p>.7?1-(p-.7)/.3:1;const yy=py-8*S-p*14*S-f.off*7*S;g.fillStyle='#040407';g.fillText(f.s,px+S,yy+S);g.fillStyle=f.c;g.fillText(f.s,px,yy);g.globalAlpha=1;return true;}
+    if(f.t==='txt'){const du=f.dur||800;if(a>du)return false;if(!L.vis[f.p])return true;const [px,py]=C(f.p),p=a/du;g.font=`${f.s.length>5?5*S:6*S}px "Press Start 2P",monospace`;g.textAlign='center';g.globalAlpha=p>.7?1-(p-.7)/.3:1;const yy=py-8*S-p*14*S-f.off*7*S;g.fillStyle='#040407';g.fillText(f.s,px+S,yy+S);g.fillStyle=f.c;g.fillText(f.s,px,yy);g.globalAlpha=1;return true;}
     if(f.t==='beam'){if(a>170)return false;const [ax,ay]=C(f.a),[bx,by]=C(f.b),p=1-a/170;g.globalCompositeOperation='lighter';g.strokeStyle=f.c;g.lineCap='round';g.globalAlpha=p*.5;g.lineWidth=(2+(f.w||1))*S*1.6;g.beginPath();g.moveTo(ax,ay-4*S);g.lineTo(bx,by-4*S);g.stroke();g.globalAlpha=p;g.strokeStyle='#ffffff';g.lineWidth=S;g.beginPath();g.moveTo(ax,ay-4*S);g.lineTo(bx,by-4*S);g.stroke();g.globalAlpha=1;g.globalCompositeOperation='source-over';return true;}
     if(f.t==='proj'){if(a>150)return false;const [ax,ay]=C(f.a),[bx,by]=C(f.b),p=a/150,px=ax+(bx-ax)*p,py=ay+(by-ay)*p-4*S-Math.sin(p*Math.PI)*6*S;if(f.k==='knife'){const ic=itemIcon({k:'knife',q:1}),sz=9*S;g.save();g.translate(px,py);g.rotate(Math.atan2(by-ay,bx-ax)+Math.PI/4+a/14);g.imageSmoothingEnabled=false;g.drawImage(ic,-sz/2,-sz/2,sz,sz);g.restore();return true;}g.fillStyle=f.c;g.fillRect(px-S*1.5,py,3*S,3*S);return true;}
     if(f.t==='boom'){if(a>380)return false;const [px,py]=C(f.p),p=a/380,r=f.r*TS*(.3+.7*p);g.globalCompositeOperation='lighter';g.globalAlpha=(1-p)*.8;g.drawImage(glow(f.c),px-r*1.5,py-r*1.5,r*3,r*3);g.strokeStyle=f.c;g.lineWidth=2*S;g.beginPath();g.arc(px,py,r,0,7);g.stroke();g.globalAlpha=1;g.globalCompositeOperation='source-over';return true;}
@@ -2238,10 +2245,10 @@ function carHit(dir){const now=performance.now();if(!G||G.over||G.depth!==0||bus
 
 // ---------- v0.16 random names for NPCs + "has something to say" check
 const NM_F=['Ari','Juno','Kenji','Mara','Dex','Lio','Rook','Saya','Vik','Nadia','Oz','Pell','Remy','Tamsin','Iko','Bram','Cass','Dao','Esme','Fenn','Gage','Hana','Jax','Kit','Luz','Milo','Nia','Orin','Pax','Quinn','Rei','Sol','Tov','Uma','Vee','Wren','Yuki','Zed'];
-const NM_L=['Okoro','Vance','Sato','Ibarra','Kowal','Mbeki','Novak','Reyes','Tran','Haddad','Lund','Petrov','Quill','Raines','Szabo','Ueda','Varga','Wolfe','Xu','Yilmaz','Zane','Achebe','Bauer','Castell'];
+const NM_L=['Okoro','Vance','Mori','Ibarra','Kowal','Mbeki','Novak','Delgado','Tran','Haddad','Lund','Petrov','Quill','Raines','Szabo','Ueda','Varga','Wolfe','Xu','Yilmaz','Zane','Achebe','Bauer','Castell'];
 function npcName(m){if(m.nm)return m.nm;const d=MOBS[m.k],s=(m.lk!=null?m.lk:m.id)*7919+(G.depth+3)*104729+m.id;const f=NM_F[s%NM_F.length],l=NM_L[(s>>3)%NM_L.length];
   m.nm=m.k==='captain'?'Capt. Reyes':m.k==='chef'?'Chef Okabe':m.k==='wreck'?'Broken Drone':m.vt==='ripper'&&G.depth===0?'Doc Sato':m.vt?(VENDORS[m.vt].n+' '+l):d.robot?(d.n.split(' ')[0]+'-'+(m.id%90+10)):f+' '+l;return m.nm;}
-function npcTalk(m){const L=G.L;if(m.k==='captain')return L.map[L.exit]===T.EXITL;if(m.k==='wreck')return true;if(m.need||m.helped)return !m.leave;if(m.cower)return true;if(m.k==='civ'&&m.wild&&!m.done)return true;return false;}
+function npcTalk(m){const L=G.L;if(m.k==='captain')return L.map[L.exit]===T.EXITL;if(m.k==='wreck')return true;if(m.need||m.helped)return m.leave==null;if(m.cower)return true;if(m.k==='civ'&&m.wild&&!m.done)return true;return false;}
 
 // ---------- v0.18 wall-embedded decor (face walls only, never on floor)
 function wallDeco2(F,k,v){
@@ -2848,10 +2855,10 @@ function vendorTalk(m){
 function captainTalk(m,stage){
   const h=G.hero,done=G.L.map[G.L.exit]===T.EXIT,cop=h.cls==='enforcer',nm=esc(h.name);let txt,btns;
   if(done){txt=`<p>"Lift's open, ${cop?'officer':choom()}. Clock's running. Bring back proof, get paid per floor. Lifts below are dead and the stairwells belong to the gangs."</p><p>"Nowhere to go but up."</p>`;btns='';}
-  else if(!stage){txt=`<p>${cop?`"Officer ${nm}? Didn't think they'd send one of ours."`:`"Keep moving, ${choom()}. This is a cordon, not a sidewalk."`}</p>`;btns=`<button class="btn go" data-act="q1">"WHAT'S GOING ON?"</button><button class="btn" data-act="close">WALK AWAY</button>`;}
+  else if(!stage){txt=`<p>${cop?`"Oh thank god — you used to be a badge. Officer ${nm}, right? Somebody in there finally knows how a cordon works."`:`"Keep moving, ${choom()}. This is a cordon, not a sidewalk."`}</p>`;btns=`<button class="btn go" data-act="q1">"WHAT'S GOING ON?"</button><button class="btn" data-act="close">WALK AWAY</button>`;}
   else if(stage===1){txt=`<p>"What's going on? The Tower's on lockdown, that's what. Three nights ago the biggest gang deal this city's ever seen went sideways on the market level. Every crew inside opened fire, then the building's security grid turned on all of them and sealed every exit."</p><p>"Gangs hold every floor now. Floors keep blowing out — you just saw one. There are still residents in there."</p>`;btns=`<button class="btn go" data-act="q2">"SO WHO'S GOING IN?"</button><button class="btn" data-act="close">WALK AWAY</button>`;}
   else{txt=`<p>"Metro won't risk a single badge in there. So the city's hiring outside — independent contractors, mercenaries, anyone who can shoot straight and sign a waiver. Every floor you clear pays. Each floor has a lockdown key; take it, and the next floor opens."</p><p>"${cop?'Your badge still opens the lobby lift. You in?':`You look like you can handle yourself. Contract's yours if you want it. You in?`}"</p>`;btns=`<button class="btn go" data-act="job">"I'M IN."</button><button class="btn" data-act="close">"NOT YET."</button>`;}
-  const p=openModal(`<div class="mhead"><h2>CAPTAIN REYES</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><small>METRO ENFORCEMENT · TOWER CORDON</small></div></div>${txt}<div class="btns">${btns||'<button class="btn" data-act="close">OK</button>'}</div></div>`);
+  const p=openModal(`<div class="mhead"><h2>METRO CAPTAIN</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><small>METRO ENFORCEMENT · TOWER CORDON</small></div></div>${txt}<div class="btns">${btns||'<button class="btn" data-act="close">OK</button>'}</div></div>`);
   p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const k=a.dataset.act;if(k==='q1'){captainTalk(m,1);return;}if(k==='q2'){captainTalk(m,2);return;}if(k==='job'){actAcceptJob();toast('Contract signed. The lobby elevator is unlocked — head through the tower doors.');}closeModal();refresh();};
 }
 function civTalk(m){toast(`<b style="color:#ffe14a">Bystander</b><br>${CIV_LINES[(m.ln||0)%CIV_LINES.length]}`);}
@@ -2938,20 +2945,23 @@ function miniTap(ev){
 }
 // ---------- movement
 function go(target){
-  stopWalk();const noLift=UI.noLift;UI.noLift=false;
+  stopWalk();const noLift=UI.noLift;UI.noLift=false;let last=0;
   const step=()=>{
     if(busy()||!G||G.over){stopWalk();return false;}
     const h=G.hero;if(h.pos===target){stopWalk();return false;}
+    const vf=visFoes();if(vf.length&&last&&performance.now()-last<walkDelay())return true;
+    if(!vf.length)UI.spotSeen=new Set();UI.spotSeen=UI.spotSeen||new Set();
+    const fresh=vf.filter(m=>!UI.spotSeen.has(m.id));fresh.forEach(m=>UI.spotSeen.add(m.id));
+    if(fresh.length&&last){stopWalk();fx({t:'txt',p:fresh[0].pos,s:'!',c:'#ff5a5a',dur:1600});RD.spot={p:fresh[0].pos,t:performance.now()};log(`Hostile spotted: ${mobName(fresh[0])}. Tap again to keep moving.`,'warn');refresh();return false;}
     const s=heroStep(target);if(s<0){stopWalk();return false;}
     {const L=G.L,mm=mobAt(s),hostile=mm&&!MOBS[mm.k].npc&&!MOBS[mm.k].ally,trap=L.traps[s]&&!L.traps[s].hid;if((UI.hud.collide!==false)&&(hostile||trap||L.map[s]===T.LOCKED)){stopWalk();log(hostile?'Stopped — enemy in the way.':trap?'Stopped — trap ahead.':'Stopped — locked door.','warn');refresh();return false;}}
     G.intr=false;const m=mobAt(s),depth=G.depth;G.walking=1;const ok=actMove(s);G.walking=0;refresh();
     if(G.depth!==depth||!ok||G.over||G.intr||(m&&!MOBS[m.k].npc&&!MOBS[m.k].ally)){stopWalk();flushShop();return false;}
     if(h.pos===target){stopWalk();const t=G.L.map[h.pos];if(!noLift&&t===T.EXIT&&UI.tapLift){UI.tapLift=0;setTimeout(elevPanel,120);}flushShop();return false;}
-    UI.shopE=null;
-    if(visFoes().length){stopWalk();return false;}
+    UI.shopE=null;last=performance.now();
     RD.dest=target;return true;
   };
-  if(step())UI.walk=setInterval(step,80);
+  if(step())UI.walk=setInterval(step,60);
 }
 function onTap(i){
   if(!G||G.over||busy()||i<0)return;initAudio();const h=G.hero,m=UI.mode;
@@ -3702,7 +3712,7 @@ function fpFrame(now){
   g.globalAlpha=.22;g.fillStyle='#ffffff';const ar=(x,y,dir)=>{g.beginPath();if(dir==='l'){g.moveTo(x+8*u,y-10*u);g.lineTo(x,y);g.lineTo(x+8*u,y+10*u);}else if(dir==='r'){g.moveTo(x-8*u,y-10*u);g.lineTo(x,y);g.lineTo(x-8*u,y+10*u);}else if(dir==='u'){g.moveTo(x-10*u,y+8*u);g.lineTo(x,y);g.lineTo(x+10*u,y+8*u);}else{g.moveTo(x-10*u,y-8*u);g.lineTo(x,y);g.lineTo(x+10*u,y-8*u);}g.lineWidth=2*u;g.strokeStyle='#ffffff';g.stroke();};
   if(FP.set.hints&&FP.set.ctl!=='dpad'){ar(W2*.06,H2*.5,'l');ar(W2*.94,H2*.5,'r');ar(W2/2,H2*.62,'u');ar(W2/2,H2*.8,'d');}g.globalAlpha=1;g.textAlign='left';
 }
-{const _rf=rdFrame;rdFrame=function(now){if(FP.on&&RD.on&&G&&G.L&&!G.L.street&&!G.over){requestAnimationFrame(rdFrame);try{fpFrame(now);}catch(e){console.warn('fp',e);FP.on=false;}return;}return _rf.apply(this,arguments);};}
+{const _rf=rdFrame;rdFrame=function(now){if(FP.on&&RD.on&&G&&G.L&&!G.over){requestAnimationFrame(rdFrame);try{fpFrame(now);}catch(e){console.warn('fp',e);FP.on=false;}return;}return _rf.apply(this,arguments);};}
 function fpTurn(d){FP.dir=(FP.dir+d+4)%4;}
 function fpStep(back){const h=G.hero,f=FPD[(FP.dir+(back?2:0))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
 function fpStrafe(d){const h=G.hero,f=FPD[(FP.dir+(d>0?1:3))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
@@ -3711,7 +3721,7 @@ function fpToggle(on){FP.on=on===undefined?!FP.on:on;try{localStorage.setItem('m
 // controls: capture taps on the game canvas while first-person is on
 
 // d-pad + settings panel
-function fpUI(){const on=FP.on&&G&&G.L&&!G.L.street&&!G.over,pad=document.getElementById('fpPad'),gear=document.getElementById('fpGear'),pan=document.getElementById('fpSet');
+function fpUI(){const on=FP.on&&G&&G.L&&!G.over,pad=document.getElementById('fpPad'),gear=document.getElementById('fpGear'),pan=document.getElementById('fpSet');
   if(gear)gear.style.display=FP.on?'':'none';if(pan&&!FP.on)pan.style.display='none';
   if(pad){const sz={s:40,m:52,l:66}[FP.set.padSize]||52;pad.style.gridTemplateColumns=pad.style.gridTemplateRows=`repeat(3,${sz}px)`;pad.style.fontSize=Math.round(sz*.34)+'px';
     pad.style.opacity={low:.45,mid:.8,high:1}[FP.set.padAlpha]||.8;pad.style.display=on&&(FP.set.ctl!=='tap'||FP.edit)?'grid':'none';pad.classList.toggle('edit',!!FP.edit);
@@ -3760,7 +3770,7 @@ function fpBuildUI(host,b){
   place2();window.addEventListener('resize',place2);setInterval(()=>{place2();fpUI();},1500);fpUI();
 }
 function fpInstall(cv){let dn=null,lt=null;
-  const ok=()=>FP.on&&G&&G.L&&!G.L.street&&!G.over;
+  const ok=()=>FP.on&&G&&G.L&&!G.over;
   cv.addEventListener('pointerdown',e=>{if(!ok())return;e.stopImmediatePropagation();dn={x:e.clientX,y:e.clientY,t:performance.now()};clearTimeout(lt);
     lt=setTimeout(()=>{if(!dn)return;dn.long=1;const h=G.hero,f=FPD[FP.dir];showInfo(h.pos+f[0]+f[1]*W);refresh();},460);},true);
   cv.addEventListener('pointermove',e=>{if(!ok()||!dn)return;e.stopImmediatePropagation();if(Math.abs(e.clientX-dn.x)>14)clearTimeout(lt);},true);
@@ -3790,8 +3800,57 @@ function fpInstall(cv){let dn=null,lt=null;
 }
 {const _wait=setInterval(()=>{if(RD&&RD.cv){clearInterval(_wait);fpInstall(RD.cv);}},300);}
 
+
+// ---------- v0.29 saved residents: four ways it can go
+// most: number + elevator · some: bolt in a panic · some: ask to come along · rare: owe you one and turn up in a fight later
+function rescueTalk29(civ){
+  if(!G||G.over||G.L.mobs.indexOf(civ)<0)return;const L=G.L,h=G.hero,nm=npcName(civ),can=allies().filter(a=>a!==civ).length<allyCap();
+  const r=Math.random(),out=r<.5?'number':r<.72?'scared':r<.94?'join':'later';const o=(out==='join'&&!can)?'number':out;
+  const lines={number:pick(['I thought that was it. I really thought that was it.','They took everything but my pulse. You stopped them taking that.','Nobody helps anybody in here. Why did you?']),
+    scared:pick(['They just — they just — I have to go. I HAVE TO GO.','Don\'t — don\'t follow me. I\'m sorry. I\'m sorry.','*They stare at the bodies, then at you, then run.*']),
+    join:pick(['I can '+(MOBS[civ.k].rng?'shoot':'swing a pipe')+'. Let me come with you — I\'m dead alone anyway.','You\'re going up? Then so am I. I owe them for this.']),
+    later:pick(['I won\'t forget this. When it gets bad up there — and it will — look for me.','Go. I\'ll find you when it counts. I always pay my debts.'])};
+  const btn=o==='join'?'<button class="btn go" data-act="join">LET THEM JOIN</button><button class="btn" data-act="rew">"ELEVATOR\'S CLEAR — GET OUT."</button>':`<button class="btn go" data-act="${o}">${o==='scared'?'LET THEM GO':'"STAY ALIVE."'}</button>`;
+  const p=openModal(`<div class="mhead"><h2>${esc(nm).toUpperCase()}</h2></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(civ,0))}"><div><p>"${lines[o]}"</p></div></div><p class="good">☯ Light karma +2.</p><div class="btns">${btn}</div></div>`,'shop');
+  p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const k=a.dataset.act;closeModal();
+    if(k==='join'){actRescue(civ,true);}
+    else if(k==='scared'){if(L.mobs.indexOf(civ)>=0){addKarma(2);const c=mkMob('civ',civ.pos,'npc');c.lk=civ.lk;c.nm=nm;c.wild=1;c.done=1;c.leave=G.turn;L.mobs.splice(L.mobs.indexOf(civ),1,c);G.legend=(G.legend||0)+1;log(`${nm} bolts for the elevator without a word. Still alive. That counts.`,'hi');}}
+    else if(k==='later'){if(L.mobs.indexOf(civ)>=0){addKarma(2);const c=mkMob('civ',civ.pos,'npc');c.lk=civ.lk;c.nm=nm;c.wild=1;c.done=1;c.leave=G.turn;L.mobs.splice(L.mobs.indexOf(civ),1,c);G.owed=G.owed||[];G.owed.push({nm,lk:civ.lk,k:MOBS[civ.k].rng?'a_civg':'a_civ',d:G.depth});log(`${nm}: "I owe you one." They head for the elevator.`,'hi');}}
+    else actRescue(civ,false);
+    refresh();};
+}
+// someone you saved shows up once when a fight goes bad
+function owedArrive(){try{const h=G.hero,L=G.L;if(!G.owed||!G.owed.length||G.over||L.street)return;const foes=visFoes();if(foes.length<2||h.hp>h.mhp*.6||!chance(.12))return;
+  const o=G.owed.find(x=>x.d<G.depth);if(!o)return;const from=dist(L.entry,h.pos)<dist(L.exit,h.pos)?L.entry:L.exit,sp=freeNear(h.pos,3);if(sp<0)return;
+  G.owed.splice(G.owed.indexOf(o),1);const a=scaleAlly(mkMob(o.k,sp,'ally'));a.nm=o.nm;a.lk=o.lk;a.joined=1;a.temp=G.turn+25;L.mobs.push(a);fx({t:'boom',p:sp,c:'#4fd8ff',r:1});fx({t:'txt',p:sp,s:'Told you I\'d come.',c:'#4fd8ff',dur:2600});
+  log(`${o.nm} comes out of the stairwell swinging. "Told you I'd find you."`,'hi');}catch(e){}}
+{const _wt=worldTick;worldTick=function(){const r=_wt.apply(this,arguments);try{owedArrive();const L=G.L;for(const m of L.mobs.slice())if(m.temp&&G.turn>m.temp&&!visFoes().length){log(`${npcName(m)}: "We're square. Stay alive." They head back down.`,'hi');m.temp=0;const c=mkMob('civ',m.pos,'npc');c.nm=m.nm;c.lk=m.lk;c.done=1;c.wild=1;c.leave=G.turn;L.mobs.splice(L.mobs.indexOf(m),1,c);}}catch(e){}return r;};}
+
+// ---------- v0.29 Chef Okabe: a real conversation
+function chefTalk29(m){const h=G.hero,c=12,k=G.karma||0,first=!G.chefTalked,cls=h.cls;G.chefTalked=1;G.metChef=1;G.chefV=(G.chefV||0)+1;
+  const greet=first?(cls==='enforcer'?'Metro? No — ex-Metro. You have the walk but not the badge. Sit anyway.':'New face. Real new — Sato\'s work, I can tell. Sit. Eat. The tower can wait ten minutes.')
+    :k>=4?'Heard what you did up there. People coming down the lifts say your name. This one\'s on the house.':k<=-4?'People talk. Not good things. Eat, pay, and don\'t make a mess.':pick(['Back again. Tower hasn\'t killed you yet.','You look worse than last time. Good — means you\'re working.','Broth\'s been going since before the lockdown. It\'ll be going after.']);
+  const freeBowl=k>=4&&!G.chefFree;
+  const step=(txt,btns)=>{const p=openModal(`<div class="mhead"><h2>RAHMUN</h2><button class="x" data-act="close">✕</button></div><div class="detail"><div class="dhead"><img class="pix big" src="${urlOf(mobSprite(m,0))}"><div><small>CHEF OKABE</small><p>${txt}</p></div></div><div class="btns">${btns}</div></div>`);p.onclick=onc;};
+  const main=()=>step(`"${greet}"`,`<button class="btn go ${h.creds>=c||freeBowl?'':'off'}" data-a="buy">${freeBowl?'BOWL OF RAHMUN · FREE':'BOWL OF RAHMUN · '+c+'◈'}</button><button class="btn" data-a="tower">"WHAT'S UP WITH THE TOWER?"</button><button class="btn" data-a="cop">"THE CAPTAIN OUT THERE?"</button><button class="btn" data-a="deliv">"YOU DELIVER?"</button><button class="btn" data-a="quiet">"…"</button><button class="btn" data-act="close">LEAVE</button>`);
+  const onc=ev=>{if(ev.target.closest('[data-act]')){closeModal();refresh();return;}const b=ev.target.closest('[data-a]');if(!b||b.classList.contains('off'))return;const a=b.dataset.a;
+    if(a==='buy'){if(freeBowl)G.chefFree=1;else h.creds-=c;addInv(mk('noodle',{known:true}));if(!G.chefKarma){G.chefKarma=1;addKarma(1);log('Supporting the last open kitchen on the block. Light karma +1.','hi');}log(freeBowl?'Okabe waves your creds away and slides a bowl across. +1 Noodle Cup.':'Chef Okabe slides a steaming bowl across the counter. +1 Noodle Cup.','hi');sfx('coin');closeModal();refresh();return;}
+    if(a==='tower')step('"Three nights ago the whole thing locked. Gangs inside, Metro outside, everybody in between eating my noodles. The lifts only go up now. Nobody comes back down unless somebody carries them."',`<button class="btn" data-a="back">BACK</button>`);
+    else if(a==='cop')step(`"Reyes? Eats here every night. Same bowl, extra egg, never sits down." He lowers the cleaver. "She lost a squad in there. She won't say it. You bring her people back, she'll remember you."`,`<button class="btn" data-a="back">BACK</button>`);
+    else if(a==='deliv'){step('"Ring the number. I send the little blue bot up with a bowl — any floor. No charge. Dead customers don\'t come back, so I keep the live ones fed."',`<button class="btn" data-a="back">BACK</button>`);if(!(G.contacts||[]).some(x=>x.n==='Chef Okabe'))addContact('Chef Okabe','chef','6522','OKABE: "Take the number. Ring it and I send a bowl up — wherever you are."');}
+    else if(a==='quiet')step('He looks at you for a long second. "Quiet type. Good. The quiet ones live longer in there." He goes back to the scallions.',`<button class="btn" data-a="back">BACK</button>`);
+    else if(a==='back')main();};
+  main();
+  if(first)setTimeout(()=>addContact('Chef Okabe','chef','6522','OKABE: "You look like you skip meals. Take the number. Ring it and I send a bowl up — wherever you are."'),500);
+}
+chefTalk=chefTalk29;rescueTalk=rescueTalk29;
+
+// ---------- v0.29 helpers
+function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c))return false;for(const d of (onWall?[W-1,W,W+1]:DIRS)){const n=c+d;if(n<0||n>=N||!pass(n)&&n!==hp)continue;if(n===hp)return true;if(dist(n,hp)<=7&&!blocksShotLine(n,hp))return true;}return false;}catch(e){return true;}}
+{const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.29','FIXES: First person now works everywhere, including the street where the game starts. · The ramen bowl no longer slides anywhere. The noodle stand has a set layout: a glass food case, bowls at the seats, a register, two burners with steam behind the counter, and a fridge. Plain counters no longer show food. · Captain Reyes knows an ex-cop when she sees one ("Oh thank god — you used to be a badge"), and her dialog no longer shows her name. · NOT IN MY HOUSE (and the bartender\'s shotgun line) only happens when you can see it. · Contacts show the real name, number and "Met on MT: Level X", and the old [object Object] entries are cleaned out. · Saved residents walk to the elevator and leave instead of standing still. · Survivor quips use their real name and stay on screen longer. · Random names no longer use Sato or Reyes. · Vendor and bartender dialogs show the same name as the tag over their head. · The security terminal shows only the console code, with no news on top. · The Mayor\'s ending line clears before the choice screen. · Cameras only spot you from the side of the wall they face. · Spotted: walking stops once when a new hostile appears and marks it with "!". Tap again and you keep moving, at the Combat Speed setting, which now works. · Helix guards come in through doors instead of appearing from nowhere. · Street NPCs never stand in the road. · NEW: You start with 300 creds. Ripper implant upgrades give +2. The minigun gets +5 shots per upgrade level. The Gunner starts with a Needler SMG +1 (self-charging and upgradable) instead of the tech pistol. · Saved residents now react in one of four ways. Most give you their number and head for the elevator. Some panic and bolt (still karma). Some ask to join. Rarely, one owes you and turns up once, later, when a fight goes bad. · Doc Sato pauses ("…") before he talks. · Chef Okabe has a real conversation: a first-visit line (he spots Sato\'s work, or an ex-cop), returning lines that change with your karma, a free bowl at high karma, Reyes eating there every night, free deliveries, a "…" option, and +1 karma the first time you buy a bowl.'],
  ['v0.28b','D-pad settings: Pad size (S, M or L) and Pad opacity (Low, Mid or Full). Pad position: tap Move, drag the pad anywhere on screen, then tap Done. Reset puts it back in the corner. Settings are remembered between sessions.'],
  ['v0.28','First-person mode. Tap 1ST under the minimap to walk the same floor from eye level, and tap MAP to go back. It uses the same map, turns, enemies and loot. The ⚙ button next to it opens the settings: Controls (Tap, D-pad or Both), which side the D-pad sits on, a Normal or Wide view, and hint arrows on or off. The D-pad has step forward and back (hold to keep walking), turn left and right, sidestep, and wait. With tap controls, tap the middle to step, tap the sides or swipe to turn, and tap the bottom to step back. Turning is free. Tap an enemy, NPC or item in view to attack, talk or pick it up, and guns and throws still aim by tapping a target. The floors use the real map art, and mobs, loot, counters and the tube dancers stand up in the view. The crosshair turns red when a hostile is right in front of you. On a keyboard, use arrows or WASD. The street level always uses the top-down view.'],
  ['v0.27','Bars got their own look: the counter is a polished bar top with glasses and bottles under a pink neon edge. No more ramen bowls sliding along every counter; that only happens at the noodle stand now. · Tube dancers: the stick holograms are replaced by real dancers floating in water tubes. Each bar has one tube colour, and its dancers wear matching one-piece swimsuits. Skin tone and hair (afro, bob, pixie, short crop) change from dancer to dancer. The tubes are solid and never sit in front of a door. · Nothing is out of reach anymore. Loot that landed behind the bar or on a counter is moved out onto the floor. Decor is cleared from in front of every door. If an item, the exit or a patch of floor is still cut off, a path is carved to it. The bar seal no longer leaks out of the bar room and drops counters into the hallways. · Fixed a crash in Doc Sato\'s wake-up line that stopped it from showing.'],
@@ -3874,7 +3933,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.28b · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.29 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -3987,7 +4046,7 @@ DEVNOTES.push('Inbox messages (MAIL_T) and senders (MAIL_FROM) in ui5.js are you
 // ---------- v0.17 PHONE: contacts + keypad (0000 = developer mode)
 function phone(tab){tab=tab||'contacts';ensureContacts();const cs=G.contacts||[];let num='';
   const draw=()=>{let body='';
-    if(tab==='contacts')body=cs.length?cs.map((c,i)=>`<div class="dbr lv2"><div style="flex:1"><h4>${esc(c.n)} <em>${c.num}</em></h4><p class="dim">Met on ${c.d<=0?'the street':'floor '+c.d}${c.used>=2?' · not answering':''}</p></div><button class="btn sm ${c.used>=2?'off':''}" data-c="${i}">CALL</button></div>`).join(''):'<p class="dim">No contacts yet. People you help may give you their number.</p>';
+    if(tab==='contacts')body=cs.length?cs.map((c,i)=>`<div class="dbr lv2"><div style="flex:1"><h4>${esc(c.n)} <em>${c.num}</em></h4><p class="dim">Met on ${c.d<=0?'the street':'MT: Level '+c.d}${c.used>=2?' · not answering':''}</p></div><button class="btn sm ${c.used>=2?'off':''}" data-c="${i}">CALL</button></div>`).join(''):'<p class="dim">No contacts yet. People you help may give you their number.</p>';
     else body=`<div class="pscr">${num||'&nbsp;'}</div><div class="pkey">${['1','2','3','4','5','6','7','8','9','*','0','#'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="btns"><button class="btn go" data-k="call">☏ CALL</button><button class="btn" data-k="clr">CLEAR</button></div>`;
     if(G.dev)body+=`<h5 class="h5">DEVELOPER</h5><div class="btns"><button class="btn sm" data-d="shadow">${G.shadow?'SHADOW OP ✓':'SHADOW OP'}</button><button class="btn sm" data-d="god">GOD: ${G.god?'ON':'OFF'}</button><button class="btn sm" data-d="cr">+100k ◈</button><button class="btn sm" data-d="str">STR +5</button><button class="btn sm" data-d="lvl">LEVEL +1</button><button class="btn sm" data-d="unl">UNLOCK ALL FLOORS</button><button class="btn sm" data-d="map">REVEAL MAP</button><button class="btn sm" data-d="heal">FULL HEAL</button><button class="btn sm" data-d="jump">JUMP TO FLOOR</button><button class="btn sm" data-d="spawn">SPAWN ITEM</button><button class="btn sm" data-d="off">DEV OFF</button></div>`;
     const p=openModal(`<div class="mhead"><h2>☏ PHONE</h2><button class="x" data-act="close">✕</button></div><div class="tabs"><button class="chip ${tab==='contacts'?'on':''}" data-t="contacts">CONTACTS</button><button class="chip ${tab==='keypad'?'on':''}" data-t="keypad">KEYPAD</button></div><div class="detail">${body}</div>`);
@@ -4034,7 +4093,7 @@ function endingCine(){const h=G.hero,blk=$('#cineblk')||(()=>{const d=document.c
       await say(`CAPT. REYES: "${h.cls==='enforcer'?'Officer':esc(h.name)}. Thirty floors. I had a pool going on floor six." She almost smiles. "Drinks are on me. Forever."`,2800);
       await say('MAYOR DELACROIX: "On behalf of the city — and the cameras — MTX needs someone to run it. The board has agreed. You choose."',3000);
       setTimeout(()=>endingChoice(),2600);})();});}
-function endingChoice(){const k=G.karma||0;if($('#cineblk'))$('#cineblk').className='';const p=openModal(`<div class="mhead"><h2>WHAT NOW?</h2></div><div class="detail"><p>The Tower Core is warm in your hand. Everyone is looking at you.</p>${ENDINGS.map((e,i)=>{const ok=!e.need||e.need(k);return `<button class="btn ${ok?'go':'off'}" data-e="${i}" style="display:block;width:100%;margin:6px 0;text-align:left">${e.t}<br><small style="opacity:.8">${ok?e.d:'Needs more good karma.'}</small></button>`;}).join('')}</div>`);
+function endingChoice(){const k=G.karma||0;try{$('#toast').classList.remove('show');clearTimeout(UI.toastT);}catch(e){}if($('#cineblk'))$('#cineblk').className='';const p=openModal(`<div class="mhead"><h2>WHAT NOW?</h2></div><div class="detail"><p>The Tower Core is warm in your hand. Everyone is looking at you.</p>${ENDINGS.map((e,i)=>{const ok=!e.need||e.need(k);return `<button class="btn ${ok?'go':'off'}" data-e="${i}" style="display:block;width:100%;margin:6px 0;text-align:left">${e.t}<br><small style="opacity:.8">${ok?e.d:'Needs more good karma.'}</small></button>`;}).join('')}</div>`);
   p.onclick=ev=>{const b=ev.target.closest('[data-e]');if(!b||b.classList.contains('off'))return;const e=ENDINGS[+b.dataset.e];G.endk=e;closeModal();epilogue(e);};}
 function epilogue(e){
   const C=ENDING_CINE[e.k];
@@ -4435,7 +4494,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
     refresh();};}
 // cameras watch
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.props&&!(G.camOff&&G.camOff[sectorOf(G.depth)])&&!invFind('s_mod')&&G.turn-(L.camT||-99)>30&&!(h.b.invis>0)){
-  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&chance(h.cls==='ghost'?.12:.3)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
+  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&chance(h.cls==='ghost'?.12:.3)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
 // tap support
 {const _tk=tapKind;tapKind=function(i){const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.seen[i])return 'use';return _tk.apply(this,arguments);};}
 // ---------- drawing
@@ -4473,7 +4532,7 @@ function secDoorUI(to){const h=G.hero,kc=invFind('keycard'),ch=Math.max(.08,Math
     pry:()=>{sfx('pry');alertNoise(to,8);wear('melee',3);spend(2);if(chance(ch)){(G.L.secDoors||[to]).forEach(d=>G.L.map[d]=T.DOOR);mapChanged();log('You wrench the door off its track.','hi');}else log('The door holds. Everyone heard that.','warn');},
     card:()=>{consume(kc);(G.L.secDoors||[to]).forEach(d=>G.L.map[d]=T.DOOR);mapChanged();log('Keycard accepted.','hi');sfx('door');spend(1);}}});}
 {const _am=actMove;actMove=function(to){const L=G.L;if(L&&(L.secDoors||[]).includes(to)&&L.map[to]===T.LOCKED){secDoorUI(to);return false;}return _am.apply(this,arguments);};}
-{const _ts=termShow;termShow=function(i){const r=_ts.apply(this,arguments);try{const L=G.L;if(i===L.secTerm&&L.secCode){G.codes=G.codes||{};const k=G.depth+'s';if(!G.codes[k]){G.codes[k]=L.secCode;setTimeout(()=>{log(`Sticky note on the monitor: "SEC ROOM CONSOLE — ${L.secCode}". Saved to your Link Sync notes.`,'hi');toast('CODE SAVED: '+L.secCode);},300);}}}catch(e){}return r;};}
+{const _ts=termShow;termShow=function(i){const L0=G.L;if(i===L0.secTerm&&L0.secCode){G.codes=G.codes||{};G.codes[G.depth+'s']=L0.secCode;SFX.chip();const p=openModal(`<div class="mhead"><h2>TERMINAL · SECURITY</h2><button class="x" data-act="close">✕</button></div><div class="detail term"><small>DESKTOP · STICKY NOTE</small><p>"SEC ROOM CONSOLE — <b style="color:#ffe14a">${L0.secCode}</b>." Somebody really should not have written this down.</p><p class="dim">Code saved to your Link Sync notes.</p><div class="btns"><button class="btn" data-act="close">LOG OFF</button></div></div>`);p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();refresh();}};log(`Security console code: ${L0.secCode}. Saved to your Link Sync notes.`,'hi');return;}const r=_ts.apply(this,arguments);try{const L=G.L;if(i===L.secTerm&&L.secCode){G.codes=G.codes||{};const k=G.depth+'s';if(!G.codes[k]){G.codes[k]=L.secCode;setTimeout(()=>{log(`Sticky note on the monitor: "SEC ROOM CONSOLE — ${L.secCode}". Saved to your Link Sync notes.`,'hi');toast('CODE SAVED: '+L.secCode);},300);}}}catch(e){}return r;};}
 // resume audio on any touch (iOS can suspend it)
 addEventListener('pointerdown',()=>{try{if(AC&&AC.state!=='running')AC.resume();}catch(e){}},{capture:true,passive:true});
 
@@ -4946,15 +5005,17 @@ function drunkLv(){const b=G.hero&&G.hero.b;return b&&b.drunk>0?b.drunk:0;}
 
 // --- contacts are earned, not issued ---
 function addContact(n,k,num,msg){
-  if(!G)return;G.contacts=G.contacts||[];
+  if(!G)return;G.contacts=G.contacts||[];let d=0;
+  if(n&&typeof n==='object'){const m=n;n=npcName(m);k=k||'resident';num=String(1000+((m.id*7919+G.depth*131)%8999));d=G.depth;msg=msg||`${n} gives you their number: ${num}. "Call me if you need something."`;}
+  if(typeof n!=='string'||!n)return;
   if(G.contacts.some(c=>c.n===n))return;
-  G.contacts.unshift({n,k,d:0,num,used:0});
+  G.contacts.unshift({n,k,d,num,used:0});
   sfx('found');
   toast('<b style="color:#3fe8ff">NEW CONTACT</b><br>'+esc(n)+' · '+num);
   if(msg)log(msg,'hi');
 }
 ensureContacts=function(){
-  if(!G)return;G.contacts=G.contacts||[];
+  if(!G)return;G.contacts=(G.contacts||[]).filter(c=>c&&typeof c.n==='string'&&c.n.indexOf('[object')<0);
   const add=(n,k,num)=>{if(!G.contacts.some(c=>c.n===n))G.contacts.unshift({n,k,d:0,num,used:0});};
   if(G.metChef)add('Chef Okabe','chef','6522');
   if(G.metRipper)add('Doc Sato','doc','7286');
@@ -4969,6 +5030,7 @@ ensureContacts=function(){
 // the ripper hands you his line after he puts you back together
 function ripperIntro(){
   if(!G||G.metRipper)return;G.metRipper=1;
+  try{const sd=G.L.mobs.find(m=>m.vt==='ripper');if(sd)setTimeout(()=>{fx({t:'txt',p:sd.pos,s:'...',c:'#e8eef4',dur:1300});},350);}catch(e){}
   const lines=[
     'SATO: "Give it a day before you trust the hands. New nerves take time to believe they are yours."',
     'SATO: "Whatever you were before, that file is closed. Nobody up there is looking for this face."',
@@ -5372,7 +5434,10 @@ function sealBars(){
 function barStaffSet(L){const s=new Set();if(L.bars)for(const b of L.bars){const c=b.c,cy=c[1]+2;for(let x=c[0]+1;x<c[2];x++)for(let y=c[1]+1;y<cy;y++)s.add(idx(x,y));}return s;}
 function fixReach(L){
   try{
-    if(!L||L.street)return;
+    if(!L)return;
+    if(L.street){ // O. nobody stands around in traffic: NPCs on the road rows step up onto the sidewalk
+      if(L.road){const onRoad=i=>Y(i)>=L.road[0]&&Y(i)<=L.road[1];for(const m of L.mobs){if(!MOBS[m.k].npc||m.k==='cop'||!onRoad(m.pos))continue;let best=-1,bd=1e9;for(let i=0;i<N;i++){if(onRoad(i)||!pass(i)||mobAt(i)||i===G.hero.pos)continue;const dd=dist(i,m.pos);if(dd<bd){bd=dd;best=i;}}if(best>=0)m.pos=best;}}
+      return;}
     const staff=barStaffSet(L),kit=L.kitchen,inKit=i=>kit&&Y(i)===kit[2]&&X(i)>=kit[0]&&X(i)<=kit[1];
     const barFront=new Set();if(L.bars)for(const b of L.bars){for(let x=b.c[0];x<=b.c[2];x++)barFront.add(idx(x,b.c[1]+2));}
     const tube=i=>L.props&&L.props[i]&&L.props[i].k==='tube';
@@ -5434,8 +5499,8 @@ function fixReach(L){
       fx({t:'beam',a:bk.pos,b:tgt.pos,c:'#ffab2e',w:2,id:bk.id});
       sfx('shot');
       dmgMob(tgt,rr(6,13)+G.depth);
-      if(chance(.5))log(`${npcName(bk)} comes up from under the bar with a shotgun. "Not in my house."`,'hi');
-      try{achieve('barfight');}catch(e){}
+      const seenIt=G.L.vis[bk.pos]&&G.L.vis[tgt.pos]&&dist(bk.pos,G.hero.pos)<=8;
+      if(seenIt){log(`${npcName(bk)} comes up from under the bar with a shotgun. "Not in my house."`,'hi');try{achieve('barfight');}catch(e){}}
     }
   }catch(e){}
   return r;};}
