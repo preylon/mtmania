@@ -757,8 +757,13 @@ function tryGen(depth){
   // shop
   for(const c of real)if(c.type==='shop'){
     {const ch=free(c,true);if(ch>=0){L.map[ch]=T.CHAIR;L.chair=ch;}}
-    L.shopR=[c.x0,c.y0,c.x1,c.y1];const v=mkMob('vendor',free(c,true),'npc');v.vt=L.vt;L.mobs.push(v);if(L.vt==='general'){const v2=mkMob('vendor',free(c,true),'npc');v2.vt='ripper';L.mobs.push(v2);}
-    const pm=1+s*.5;for(const it of shopStock(L.vt,depth,L.vt==='general'?18:rr(4,6))){if(ITEMS[it.k].type==='stim'||ITEMS[it.k].type==='chip')it.sk=1;put(it,c,Math.round(itemValue(it)*pm));}
+    L.shopR=[c.x0,c.y0,c.x1,c.y1];let cS=c;
+    if(L.vt==='general'&&c.x1-c.x0>=8){const mid=(c.x0+c.x1)>>1,gy=(c.y0+c.y1)>>1,cl={x0:c.x0,y0:c.y0,x1:mid,y1:c.y1,type:'shop'},crr={x0:mid,y0:c.y0,x1:c.x1,y1:c.y1,type:'shop'};
+      for(let y=c.y0+1;y<c.y1;y++){const i=idx(mid,y);if(y===gy||y===gy+1)continue;if(DIRS.some(d=>L.map[i+d]===T.DOOR))continue;if(L.map[i]===T.FLOOR){L.map[i]=T.RAIL;used.add(i);}}
+      if(L.chair!=null&&X(L.chair)>=mid){L.map[L.chair]=T.FLOOR;const ch=free(cl,true);if(ch>=0){L.map[ch]=T.CHAIR;L.chair=ch;}}const v2=mkMob('vendor',free(cl,true),'npc');v2.vt='ripper';L.mobs.push(v2);L.stalls=[[cl.x0,cl.y0,cl.x1,cl.y1,'ripper'],[crr.x0,crr.y0,crr.x1,crr.y1,'general']];cS=crr;}
+    else if(L.vt==='general'){const v2=mkMob('vendor',free(c,true),'npc');v2.vt='ripper';L.mobs.push(v2);}
+    const v=mkMob('vendor',free(cS,true),'npc');v.vt=L.vt;L.mobs.push(v);
+    const pm=1+s*.5;for(const it of shopStock(L.vt,depth,L.vt==='general'?18:rr(4,6))){if(ITEMS[it.k].type==='stim'||ITEMS[it.k].type==='chip')it.sk=1;put(it,cS,Math.round(itemValue(it)*pm));}
   }
   if(clinic){const c=clinic,cx=(c.x0+c.x1)>>1,cy=(c.y0+c.y1)>>1;L.map[idx(cx,cy)]=T.CLONE;used.add(idx(cx,cy));const lk=idx(c.x1-1,c.y0+1);L.map[lk]=T.LOCKER;used.add(lk);const w=mkMob('warden',free(c,true),'sleep');w.mhp=w.hp=60+depth*9;L.mobs.push(w);L.clinic={pod:idx(cx,cy),locker:lk,w:w.id};L.lights.push({x:cx+.5,y:cy+.5,c:'#3fe8ff',r:5});for(let n=0;n<2;n++)put(randGear(pick(['armor','melee']),depth,.4),c);}
   for(const c of real){
@@ -1069,7 +1074,7 @@ function dmgHero(n,cause){
   }
 }
 function dmgMob(m,n,quiet){
-  const d=MOBS[m.k];if(m.hp<=0)return;n=Math.max(0,Math.round(n));if(m.sh)n=Math.ceil(n*.25);
+  const d=MOBS[m.k];if(m.hp<=0)return;n=Math.max(0,Math.round(n));if(m.sh)n=Math.ceil(n*.25);if(d.ally&&m.gear&&m.gear.armor)n=Math.max(0,n-allyGearDR(m));
   if(m.inv){n=0;if(!m.invMsg||G.turn-m.invMsg>3){m.invMsg=G.turn;log('Shielded. Destroy the Drone Fabricators first.','warn');}}
   m.hp-=n;m.rev=1;m.hurt=1;if(m.st==='sleep')m.st='hunt';if(m.st==='wander'){m.st='hunt';m.tg=G.hero.pos;}
   fx({t:'hit',p:m.pos,s:n?'-'+n:'0',c:d.ally?'#ff9a9a':'#ffffff',id:m.id});
@@ -1168,7 +1173,7 @@ function actMove(to){
   if(!pass(to)){
     const d0=to-h.pos;
     if(DIRS.indexOf(d0)>=0){const bey=to+d0,mb=(bey>=0&&bey<N&&dist(bey,h.pos)<=2)?mobAt(bey):null;
-      if(mb&&MOBS[mb.k].npc&&mb.leave==null){mb.talked=1;if(EV.npc)EV.npc(mb);return false;}}
+      if(mb&&MOBS[mb.k].npc&&mb.leave==null&&L.map[to]===T.COUNTER){mb.talked=1;if(EV.npc)EV.npc(mb);return false;}}
     return false;}
   if(t===T.DOOR)sfx('door');
   h.pos=to;afterMove();if(!G.over)spend(1);return true;
@@ -1436,7 +1441,7 @@ function mobHit(m,tg,ranged){
     if(d.steal&&!m.loot&&h.creds>0){const q=Math.min(h.creds,rr(20,50)+G.depth*5);h.creds-=q;m.loot=q;m.st='flee';log(`The ${mobName(m)} lifts ${q} creds and bolts!`,'bad');}
   }else{
     const td=MOBS[tg.k];if(!hitRoll(d.acc+(d.ally?h.lvl:0),td.eva)){fx({t:'txt',p:tg.pos,s:'miss',c:'#9aa7ad'});return;}
-    dmgMob(tg,Math.max(0,dmg-rr(0,td.dr)));
+    dmgMob(tg,Math.max(0,dmg+(d.ally?allyGearDmg(m):0)-rr(0,td.dr)));
   }
 }
 function allyAct(a){
@@ -1639,7 +1644,7 @@ function randomEvent(){const L=G.L,h=G.hero;if(L.street||L.boss||G.over||G.depth
   const k=pick(['patrol','courier','survivor','vend','vend','courier']),lift=dist(L.entry,h.pos)<dist(L.exit,h.pos)?L.exit:L.entry,sp=freeNear(lift,2);
   if(k==='patrol'&&sp>=0){for(let n=0;n<2+rnd(2);n++){const p=freeNear(lift,3);if(p>=0)L.mobs.push(mkMob(wpick(SPAWN[sectorOf(G.depth)]),p,'hunt'));}log('Somewhere on this floor an elevator dings. Boots. A patrol just came up looking for you.','bad');sfx('lift');}
   else if(k==='courier'&&sp>=0){const cb=mkMob('courier',sp,'npc');cb.deliver=pick(['noodle','bar','cola','heal','cell']);cb.from='WRONG ADDRESS';cb.t0=G.turn;L.mobs.push(cb);log('A little blue courier bot rolls out of the elevator, scanning. It seems to have the wrong address. And the right package.','hi');}
-  else if(k==='survivor'){const p=freeNear(h.pos,4);if(p>=0){const c=mkMob('civ',p,'npc');c.lk=rnd(9999);c.wild=1;c.need=pick(['food','heal','stim']);c.fighter=chance(.5)?'a_civg':'a_civ';L.mobs.push(c);log('Someone stumbles out of a side room, hands up. "Don\'t shoot! I just need help!"','hi');}}
+  else if(k==='survivor'){const p=survivorSpawnPoint();if(p>=0){const pod=DIRS.some(d=>L.map[p+d]===T.POD)&&L.map[p]!==T.DOOR;const c=mkMob('civ',p,'npc');c.lk=rnd(9999);c.wild=1;c.need=pick(['food','heal','stim']);c.fighter=chance(.5)?'a_civg':'a_civ';L.mobs.push(c);fx({t:'txt',p,s:pod?'*hiss*':'*bang*',c:'#ffe14a'});log(pod?'A sleeping-capsule hatch hisses open. Someone climbs out, hands up. "Don\'t shoot! I just need help!"':'A door bangs open. Someone stumbles out, hands up. "Don\'t shoot! I just need help!"','hi');}}
   else{const it=mk(pick(['bar','cola','noodle']));dropAt(h.pos,it);{const vm=Object.keys(G.L.wd||{}).map(Number).filter(i=>G.L.wd[i]==='vend'&&G.L.vis[i]).sort((a,b)=>dist(a,h.pos)-dist(b,h.pos))[0];if(vm!==undefined){{const e=G.L.items.find(e=>e.it===it);if(e)G.L.items.splice(G.L.items.indexOf(e),1);}const sp=[W,-W,1,-1].map(d=>vm+d).find(j=>pass(j))||h.pos;dropAt(sp,it);fx({t:'txt',p:vm,s:'CLUNK',c:'#ffe14a'});log(`The vending machine in the wall glitches, rattles and spits out ${itemName(it)}.`,'');sfx('found');}else{const e=G.L.items.find(e=>e.it===it);if(e)G.L.items.splice(G.L.items.indexOf(e),1);}}}
   if(EV.dirty)EV.dirty();}
 
@@ -1876,7 +1881,7 @@ function drawTile(g,L,i,sec,si){
       F(0,5,1,10,sec.wl[3]);F(15,5,1,10,sec.wl[3]);F(0,5,16,1,sec.wl[2]);F(3,6,1,1,'rgba(255,255,255,.25)');F(4,7,1,1,'rgba(255,255,255,.18)');F(5,8,1,1,'rgba(255,255,255,.1)');return;}
     const nc=sec.neon[v%sec.neon.length];
     if(v<38){F(1,9,14,2,nc);F(2,9,12,1,'#ffffff');F(1,8,14,1,shade(nc,-.5));F(1,11,14,1,shade(nc,-.5));}
-    else if(v<72){if(si===0){if(v&1){F(4,6,8,10,'#3a2e28');F(4,6,8,1,'#5a4a40');F(5,7,6,3,r()<.6?'#ffd98a':'#14141c');F(10,11,1,1,'#d8b24a');F(6,12,3,1,'#c8c2a8');}else{F(2,6,12,7,'#0c0c14');F(3,7,10,5,r()<.7?'#e8b86a':'#1a1a22');F(3,7,3,5,'#a8553a');F(10,7,3,5,'#a8553a');F(8,7,1,5,'#0c0c14');}}else if(si===2){F(0,8,16,3,'#5a646a');F(0,8,16,1,'#8a949a');F(5,7,2,5,'#3a4448');F(12,10,1,3,'#3a4448');}else{const wc=r()<.5?'#ffd98a':'#8ad8ff';F(2,7,5,6,'#0c0c14');F(9,7,5,6,'#0c0c14');F(3,8,3,4,r()<.7?shade(wc,-.35):'#14141c');F(10,8,3,4,r()<.6?shade(wc,-.45):'#14141c');}}
+    else if(v<72){if(si===0){if(v&1){F(0,7,16,2,'#5a646a');F(0,7,16,1,'#8a949a');F(0,11,16,2,'#4a5458');F(0,11,16,1,'#6a747a');F(5,6,2,8,'#3a4448');F(5,6,2,1,'#6a747a');F(11,9,3,3,'#a8553a');F(12,10,1,1,'#ffd98a');F(13,12,1,2,'rgba(140,200,255,.5)');}else{F(2,6,12,7,'#0c0c14');F(3,7,10,5,r()<.7?'#e8b86a':'#1a1a22');F(3,7,3,5,'#a8553a');F(10,7,3,5,'#a8553a');F(8,7,1,5,'#0c0c14');}}else if(si===2){F(0,8,16,3,'#5a646a');F(0,8,16,1,'#8a949a');F(5,7,2,5,'#3a4448');F(12,10,1,3,'#3a4448');}else{const wc=r()<.5?'#ffd98a':'#8ad8ff';F(2,7,5,6,'#0c0c14');F(9,7,5,6,'#0c0c14');F(3,8,3,4,r()<.7?shade(wc,-.35):'#14141c');F(10,8,3,4,r()<.6?shade(wc,-.45):'#14141c');}}
     else if(v<96){F(3,7,10,6,sec.wl[0]);for(let k=0;k<3;k++)F(4,8+k*2,8,1,sec.wl[2]);}
     else if(v<116){const c=sec.neon[(v+1)%sec.neon.length];F(3,6,10,8,'#0c0c14');F(4,7,8,6,shade(c,-.6));for(let k=0;k<5;k++)F(5+(r()*6|0),8+(r()*4|0),1+(r()*2|0),1,c);}
     else if(v<134&&si<2){const c=sec.neon[(v+2)%sec.neon.length];let px=3+(r()*3|0),py=8+(r()*3|0);for(let k=0;k<9;k++){F(px,py,1,1,shade(c,-.25));px+=1;py+=(r()*3|0)-1;py=clamp(py,6,13);}}
@@ -2331,7 +2336,7 @@ function drawTube(g,px,py,S,look,now,seed){
   R(2,top+3,1,base-top-3,'#ffffff',.22);R(13,top+3,1,base-top-3,'#ffffff',.12);R(4,top+4,1,base-top-6,'#ffffff',.10);
   R(1,top+3,1,base-top-3,rim,.55);R(14,top+3,1,base-top-3,rim,.55);
   R(0,top,16,3,'#2a2a36');R(0,top,16,1,'#44445a');R(1,top+2,14,1,'#3af5f5',.9);
-  R(0,base,16,4,'#1c1c26');R(0,base,16,1,'#3a3a4a');R(1,base,14,1,c2,.6+.4*Math.sin(now/300+seed));R(2,base+2,2,1,'#3af5f5',.8);R(11,base+2,3,1,c2,.8);
+  R(0,base,16,4,'#1c1c26');R(0,base,16,1,'#3a3a4a');R(1,base,14,1,c2,.6+.4*Math.sin(now/300+seed));R(1,base+2,14,1,c2,.85);R(1,base+3,14,1,c2,.25);
   g.restore();
 }
 return{frame,frames,drawTube,lookFor,THEMES,NF};
@@ -2878,7 +2883,7 @@ function mobInfoHTML(m,full){
   if(tr.length)s+=tr.join(' · ');
   return s;
 }
-function wallDecor(L,i){const v=L.vr[i];if(L.map[i]===T.SECRET)return null;if(v<38)return ['Neon strip','Tube lighting, still powered. The tower keeps its lights on for nobody.'];if(v<72)return G.depth<=5||sectorOf(G.depth)===2?['Service pipes','Coolant and grey water. Warm to the touch.']:['Apartment windows','Someone lived behind that glass.'];if(v<96)return ['Vent','Air handling. It breathes out something that smells like burnt plastic.'];if(v<116)return ['Wall terminal','Scrolling error codes. The building network is talking to itself.'];if(v<134&&sectorOf(G.depth)<2)return ['Gang tag','Fresh paint. Turf marker.'];return null;}
+function wallDecor(L,i){const v=L.vr[i];if(L.map[i]===T.SECRET)return null;if(v<38)return ['Neon strip','Tube lighting, still powered. The tower keeps its lights on for nobody.'];if(v<72)return sectorOf(G.depth)===2||(sectorOf(G.depth)===0&&(v&1))?['Service pipes','Coolant and grey water. Warm to the touch.']:['Apartment windows','Someone lived behind that glass.'];if(v<96)return ['Vent','Air handling. It breathes out something that smells like burnt plastic.'];if(v<116)return ['Wall terminal','Scrolling error codes. The building network is talking to itself.'];if(v<134&&sectorOf(G.depth)<2)return ['Gang tag','Fresh paint. Turf marker.'];return null;}
 const TLORE={18:'Capsule-hotel pod. Somebody pays rent on a coffin with a TV in it.',2:'Bare floor. Nothing here but scuffs.',3:'Sliding door. Closed doors block sight — fight in doorways to face one enemy at a time.',4:'Vault door with a red lock light. The keycard is somewhere on this floor.',6:'The lift you rode up. It still runs — step on and tap yourself to go back down.',7:'The way up. Walk onto it, or tap it from anywhere you have explored.',8:'Blocks line of sight until someone walks through it. Burns.',9:'Trampled debris. Harmless.',10:'Coolant pool. Walking through it puts out fire.',11:'Solid obstacle. Blocks movement but not sight.',12:'Sealed. Something on this floor holds the override.',14:'A waist-high rail and a very long drop.',15:'Open air.'};
 function outsideText(){const d=G.depth;return d<=0?'The undercity drops away below street level: stacked roofs, steam, hover traffic sliding through the rain.':`You are roughly ${d*45} metres up. The city is a circuit board of light below, and the rain falls past you instead of on you. ${d>=20?'Up here you can see the curve of the smog layer.':d>=10?'Hover traffic passes at eye level.':'The street cordon lights are still visible — red and blue, very small.'}`;}
 function showInfo(i){
@@ -3611,7 +3616,7 @@ function injectFX(){let ov=$('#injfx');if(!ov){ov=document.createElement('div');
 const FP={dir:1,ang:0,x:0,y:0,init:false,buf:null,img:null,mapVer:-1,mapData:null,tex:{},hits:[],flash:0,lastHp:null,tubeCv:null};
 const FPD=[[0,-1],[1,0],[0,1],[-1,0]]; // N E S W
 try{FP.on=localStorage.getItem('mtm_fp')==='1';}catch(e){FP.on=false;}
-FP.set={ctl:'both',side:'right',fov:'normal',hints:true,padSize:'m',padAlpha:'mid',padPos:null};FP.edit=false;try{Object.assign(FP.set,JSON.parse(localStorage.getItem('mtm_fpset')||'{}'));}catch(e){}
+FP.set={ctl:'both',side:'right',fov:'normal',hints:true,padSize:'m',padAlpha:'mid',padPos:null,compass:true,compSize:'m'};FP.edit=false;try{Object.assign(FP.set,JSON.parse(localStorage.getItem('mtm_fpset')||'{}'));}catch(e){}
 function fpSave(){try{localStorage.setItem('mtm_fpset',JSON.stringify(FP.set));}catch(e){}}
 {const _rm=rdMap;rdMap=function(){const r=_rm.apply(this,arguments);FP.mapVer++;return r;};}
 function fpSolid(L,i){if(i<0||i>=N)return true;const t=L.map[i];if(wallish(L,i))return true;if((t===T.DOOR||t===T.LOCKED)&&!mobAt(i)&&G.hero.pos!==i)return true;return false;}
@@ -3627,97 +3632,162 @@ function fpDoorTex(locked){const k='door'+(locked?1:0);if(FP.tex[k])return FP.te
 function fpWinTex(){if(FP.tex.win)return FP.tex.win;const c=cvs(16,16),g=c.getContext('2d');g.fillStyle='#10202c';g.fillRect(0,0,16,16);g.fillStyle='#0a3a52';g.fillRect(2,2,12,12);
   g.fillStyle='#3fe8ff';for(const [x,y] of [[4,4],[9,6],[6,10],[11,11],[3,12]])g.fillRect(x,y,1,1);g.fillStyle='#ff3fa4';g.fillRect(8,3,3,1);g.fillStyle='#2a3a4a';g.fillRect(7,2,1,12);g.fillRect(2,8,12,1);return FP.tex.win=g.getImageData(0,0,16,16).data;}
 function fpTubeCanvas(look,now,seed){if(!FP.tubeCv)FP.tubeCv=cvs(16,40);const g=FP.tubeCv.getContext('2d');g.clearRect(0,0,16,40);MTMDancer.drawTube(g,0,22,1,look,now,seed);return FP.tubeCv;}
+// ---- v0.30 renderer: real wall art, low counters, sky/ceiling, elevator, sized sprites, hits/deaths, hands, compass
+FP.dead=[];FP.hit={};FP.kick=0;FP.slash=0;FP.lastAct='melee';FP.bob=0;
+function fpScale(m){const d=MOBS[m.k]||{},a=d.a;let h=1,lift=0;
+  if(a==='hum')h=d.boss?1.35:d.big?1.18:1;else if(a==='drone'){h=.5;lift=.42;}else if(a==='swarm'){h=.45;lift=.4;}else if(a==='crab')h=.34;else if(a==='cat')h=.34;
+  else if(a==='razor')h=d.big?.72:.6;else if(a==='turret')h=.62;else if(a==='mech')h=d.boss?1.6:d.big?1.3:1.1;else if(a==='courier')h=.56;else if(a==='quad')h=.55;
+  return [h,lift];}
+// low blocking decor: [height] — taller than eye level (.5) only for lockers/clones/pillars
+function fpLow(L,i){const t=L.map[i];if(wallish(L,i)||t===T.DOOR||t===T.LOCKED)return 0;if(L.props&&L.props[i]&&L.props[i].k==='tube')return 0;if(pass(i)||mobAt(i))return 0;
+  return t===T.COUNTER?.42:t===T.PILLAR?1:t===T.LOCKER?.85:t===T.CLONE?.9:t===T.TERM?.55:t===T.POD?.5:t===T.CART?.4:t===T.CHAIR?.3:t===T.CAR?.5:t===T.BIKE?.4:t===T.TREE?.9:.45;}
+function fpElevCv(kind){const k='elev'+kind;if(FP.tex[k])return FP.tex[k];const c=cvs(16,24),g=c.getContext('2d');
+  g.fillStyle='#2a2e36';g.fillRect(0,0,16,24);g.fillStyle='#5a626e';g.fillRect(0,0,16,1);g.fillRect(0,0,1,24);g.fillRect(15,0,1,24);
+  g.fillStyle='#8c96a2';g.fillRect(2,4,6,20);g.fillRect(8,4,6,20);g.fillStyle='#a8b2be';g.fillRect(2,4,6,1);g.fillRect(8,4,6,1);g.fillStyle='#3a3f48';g.fillRect(7,4,2,20);
+  g.fillStyle=kind==='lock'?'#ff3b4e':kind==='down'?'#ffb03c':'#39ff7a';g.fillRect(5,1,6,2);g.fillStyle='#14141c';g.fillRect(6,1,1,2);
+  g.fillStyle='rgba(255,255,255,.12)';g.fillRect(3,6,1,16);g.fillRect(9,6,1,16);return FP.tex[k]=c;}
+function fpFaceList(L){if(FP.faceL===L)return FP.faces;const f=[];for(let i=W;i<N-W;i++)if(wallish(L,i)&&!wallish(L,i+W)&&pass(i+W)&&L.map[i]===T.WALL)f.push(i);FP.faceL=L;FP.faces=f.length?f:[0];return FP.faces;}
+function fpHands(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');const it=gunMode?(h.eq.gun||h.eq.melee):(h.eq.melee||null);
+  const skin=(heroLook().skin)||'#c99a7a',k=Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,P=Math.max(2,Math.round(u*3.4)),base=H2*.8;
+  g.save();g.imageSmoothingEnabled=false;
+  if(gunMode&&it){const ic=itemIcon(it),w=16*P,x=W2/2-w/2+bob,y=base-12*P+k*3*P;g.fillStyle=skin;g.fillRect(x+2*P,y+10*P,4*P,5*P);g.fillRect(x+10*P,y+11*P,4*P,4*P);g.drawImage(ic,x,y-k*2*P,w,w);
+    if(k>.6){g.globalAlpha=(k-.6)*2;g.fillStyle='#ffe9a0';g.fillRect(x+6*P,y-4*P-k*2*P,4*P,4*P);g.globalAlpha=1;}}
+  else{const x=W2*.64+bob-k*10*P,y=base-14*P+k*4*P;g.translate(x+8*P,y+12*P);g.rotate(-.35-k*.9);
+    if(it){g.drawImage(itemIcon(it),-8*P,-14*P,16*P,16*P);}g.fillStyle=skin;g.fillRect(-3*P,0,6*P,7*P);g.fillStyle=shade(skin,-.25);g.fillRect(-3*P,5*P,6*P,2*P);
+    g.setTransform(1,0,0,1,0,0);const lx=W2*.22-bob*.5,ly=base-4*P+Math.sin(FP.bob+1)*2*u;g.fillStyle=skin;g.fillRect(lx,ly,6*P,8*P);g.fillStyle=shade(skin,-.25);g.fillRect(lx,ly+6*P,6*P,2*P);}
+  g.restore();}
+function fpCompass(g,W2,H2,u,now){if(FP.set.compass===false)return;const sz={s:.8,m:1,l:1.3}[FP.set.compSize]||1,cw=Math.min(W2*.62,260*u*sz/2.2),ch=Math.round(11*u*sz),cx=W2/2,cy=Math.round(H2*.215);
+  const ang=FP.ang,deg=a=>((a*180/Math.PI)%360+360)%360,hd=deg(ang);g.save();
+  g.fillStyle='rgba(6,8,16,.72)';g.fillRect(cx-cw/2,cy-ch/2,cw,ch);g.fillStyle='#3af5f5';g.globalAlpha=.9;g.fillRect(cx-cw/2,cy+ch/2-1*u,cw,u);g.fillRect(cx-cw/2,cy-ch/2,cw,u);
+  g.beginPath();g.rect(cx-cw/2,cy-ch/2,cw,ch);g.clip();const span=110,pxd=cw/span;
+  for(let d=-60;d<=420;d+=15){let off=((d-hd+540)%360)-180;if(Math.abs(off)>span/2+5)continue;const x=cx+off*pxd,major=d%90===0;g.globalAlpha=major?1:.55;g.fillStyle=major?'#3af5f5':'#6aa0b0';
+    if(major){g.font=`bold ${Math.round(7*u*sz)}px ui-monospace,monospace`;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e8fbff';g.shadowColor='#3af5f5';g.shadowBlur=6*u;g.fillText(['N','E','S','W'][((d/90)%4+4)%4],x,cy);g.shadowBlur=0;}
+    else g.fillRect(x,cy+ch*.15,u,ch*.3);}
+  const L=G.L,h=G.hero,mark=(i,col,shape)=>{const dx=X(i)+.5-FP.x,dy=Y(i)+.5-FP.y,a=deg(Math.atan2(dx,-dy));let off=((a-hd+540)%360)-180;if(Math.abs(off)>span/2)off=Math.sign(off)*span/2;const x=cx+off*pxd;g.globalAlpha=1;g.fillStyle=col;
+    if(shape==='tri'){g.beginPath();g.moveTo(x,cy+ch/2-u);g.lineTo(x-3*u,cy+ch/2+4*u);g.lineTo(x+3*u,cy+ch/2+4*u);g.fill();}else g.fillRect(x-1.5*u,cy-ch/2+u,3*u,3*u);};
+  g.restore();g.save();
+  if(L.seen[L.exit])mark(L.exit,L.map[L.exit]===T.EXITL?'#ff3b4e':'#39ff7a','tri');
+  for(const m of L.mobs){if(m===h||!L.vis[m.pos])continue;const d=MOBS[m.k];mark(m.pos,d.ally?'#4fd8ff':d.npc?'#ffe14a':'#ff3b4e','dot');}
+  g.globalAlpha=1;g.fillStyle='#ffe14a';g.fillRect(cx-u/2,cy-ch/2-2*u,u,3*u);g.restore();}
 function fpFrame(now){
-  const L=G.L,h=G.hero,cv=RD.cv,g=RD.g;if(!L||!h)return;
-  if(RD.lvl!==L){RD.lvl=L;RD.dirty=true;FP.init=false;}
+  const L=G.L,h=G.hero,g=RD.g;if(!L||!h)return;
+  if(RD.lvl!==L){RD.lvl=L;RD.dirty=true;FP.init=false;FP.dead=[];}
   if(RD.dirty){rdMap();RD.dirty=false;}
-  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d').getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;}
+  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;}
+  // drain the top-down effect queue so nothing replays when you switch back
+  for(const f of FX.splice(0)){if(f.t==='die'){const adj=dist(f.p,h.pos)<=1;FP.dead.push({x:X(f.p)+.5,y:Y(f.p)+.5,i:f.p,m:Object.assign({id:f.id,b:{}},f.m||{k:f.k}),t:now});if(FP.dead.length>40)FP.dead.shift();if(adj){FP.slash=now;RD.shake=5;}}
+    else if(f.t==='hit'&&f.id!=null)FP.hit[f.id]=now;else if(f.t==='boom')RD.shake=Math.min(8,(RD.shake||0)+(f.r||1)*2);}
   const hx=X(h.pos)+.5,hy=Y(h.pos)+.5,dt=Math.min(.05,(now-(FP.last||now))/1000);FP.last=now;
   if(!FP.init||Math.hypot(FP.x-hx,FP.y-hy)>2.5){FP.x=hx;FP.y=hy;FP.ang=FP.dir*Math.PI/2;FP.init=true;}
-  const k=Math.min(1,dt*12);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;
+  const k=Math.min(1,dt*12),mv=Math.hypot(hx-FP.x,hy-FP.y);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;if(mv>.02)FP.bob+=dt*12;
   let ta=FP.dir*Math.PI/2,da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
-  if(FP.lastHp!==null&&h.hp<FP.lastHp)FP.flash=1;FP.lastHp=h.hp;FP.flash*=Math.pow(.02,dt);
-  // low-res buffer for the pixel look
+  if(FP.lastHp!==null&&h.hp<FP.lastHp){FP.flash=1;RD.shake=Math.max(RD.shake||0,3);}FP.lastHp=h.hp;FP.flash*=Math.pow(.02,dt);
   const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
-  if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);}
-  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46),fov=FP.set.fov==='wide'?.85:.66,U=RW/(2*fov);
+  if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);FP.sd=new Float32Array(RW);FP.st=new Float32Array(RW);}
+  const shk=(RD.shake||0)>0?(Math.random()-.5)*RD.shake:0;RD.shake=Math.max(0,(RD.shake||0)-dt*20);
+  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46+shk),fov=FP.set.fov==='wide'?.85:.72,U=RW/(2*fov),out=!!L.street;
   const dx=Math.sin(FP.ang),dy=-Math.cos(FP.ang),px=-dy*fov,py=dx*fov;
-  const sec=secOf(G.depth),acc=(sec.neon&&sec.neon[0])||'#3af5f5';
-  const shadeOf=(i,dist)=>{if(!L.seen[i])return 0;let s=L.vis&&L.vis[i]?1:.38;return s/(1+dist*dist*.035);};
-  // floor + ceiling, row by row
+  const shadeOf=(i,dist)=>{if(!L.seen[i])return 0;let s=L.vis&&L.vis[i]?1:.4;return s/(1+dist*dist*.03);};
+  const faces=fpFaceList(L),pulse=t=>.78+.22*Math.sin(now/260+t);
   for(let y=0;y<RH;y++){
-    const floor=y>horizon,p=floor?(y-horizon):(horizon-y);if(p===0)continue;
-    const dist=(U*.5)/p;
-    const rx0=dx-px,ry0=dy-py,rx1=dx+px,ry1=dy+py;
-    const sx=dist*(rx1-rx0)/RW,sy=dist*(ry1-ry0)/RW;let fx=FP.x+dist*rx0,fy=FP.y+dist*ry0;
-    let o=y*RW*4;
-    for(let x=0;x<RW;x++,fx+=sx,fy+=sy,o+=4){
-      const tx=Math.floor(fx),ty=Math.floor(fy);
+    const floor=y>horizon,p=floor?(y-horizon):(horizon-y),o0=y*RW*4;if(p===0)continue;
+    if(!floor&&out){ // open sky outside: gradient, stars, skyline glow
+      const f=y/horizon;for(let x=0,o=o0;x<RW;x++,o+=4){const a=FP.ang+(x/RW-.5)*fov*1.6,sk=((Math.sin(a*37.1)*43758.5)%1+1)%1,bh=horizon-(8+((Math.sin(a*11.3)*9137.2)%1+1)%1*34);
+        let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;if(((x*7+y*13)%23===0)&&sk>.4){r=255;gg=210;b=120;}}else if(sk>.985&&y<horizon*.6&&(x+y)%5===0){r=gg=b=200;}
+        D[o]=r;D[o+1]=gg;D[o+2]=b;D[o+3]=255;}continue;}
+    const dist=(U*.5)/p,rx0=dx-px,ry0=dy-py,rx1=dx+px,ry1=dy+py,sx=dist*(rx1-rx0)/RW,sy=dist*(ry1-ry0)/RW;let fx_=FP.x+dist*rx0,fy_=FP.y+dist*ry0;
+    for(let x=0,o=o0;x<RW;x++,fx_+=sx,fy_+=sy,o+=4){const tx=Math.floor(fx_),ty=Math.floor(fy_);
       if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
-      const i=ty*W+tx,s=shadeOf(i,dist);
-      if(floor){const u=((fx-tx)*16)|0,v=((fy-ty)*16)|0,m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
-      else{const u=((fx-tx)*16)|0,v=((fy-ty)*16)|0;let r=14,gg=12,b=22;if(L.map[i]===T.SKY||L.street){r=10;gg=8;b=26;}if((v===7||v===8)&&(tx+ty)%3===0&&u>2&&u<13){r=60;gg=200;b=210;}D[o]=r*s+4;D[o+1]=gg*s+4;D[o+2]=b*s+7;}
+      const i=ty*W+tx,s=shadeOf(i,dist),u=((fx_-tx)*16)|0,v=((fy_-ty)*16)|0;
+      if(floor){const m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
+      else{let r=22,gg=20,b=30;if(u===0||v===0){r=12;gg=11;b=18;}if(L.map[i]===T.SKY){r=14;gg=12;b=40;}else if((tx*3+ty*5)%7===0&&u>3&&u<12&&v>5&&v<10){r=150;gg=230;b=235;}else if((tx+ty)%11===0&&u>5&&u<10&&v>5&&v<10){r=255;gg=190;b=120;}
+        const sc=Math.max(s,.18);D[o]=r*sc+3;D[o+1]=gg*sc+3;D[o+2]=b*sc+5;}
       D[o+3]=255;}
   }
-  // walls (DDA)
+  // walls + low decor slabs (DDA; slabs are remembered and drawn after walls)
+  const slabs=[];
   for(let x=0;x<RW;x++){
     const cx=2*x/RW-1,rx=dx+px*cx,ry=dy+py*cx;let mx=Math.floor(FP.x),my=Math.floor(FP.y);
-    const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let stx,sty,sdx,sdy,side=0,hit=-1;
+    const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let stx,sty,sdx,sdy,side=0,hit=-1,slab=null;
     if(rx<0){stx=-1;sdx=(FP.x-mx)*ddx;}else{stx=1;sdx=(mx+1-FP.x)*ddx;}
     if(ry<0){sty=-1;sdy=(FP.y-my)*ddy;}else{sty=1;sdy=(my+1-FP.y)*ddy;}
-    for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;if(fpSolid(L,i)){hit=i;break;}}
+    FP.sd[x]=1e9;
+    for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;
+      if(fpSolid(L,i)){hit=i;break;}
+      if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh};}}}
+    if(slab){slabs.push([x,slab]);FP.sd[x]=slab.pd;}
     if(hit<0){FP.z[x]=1e9;continue;}
     const pd=side===0?(sdx-ddx):(sdy-ddy),lh=Math.round(U/pd);FP.z[x]=pd;
     let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);let tu=(wx*16)|0;if((side===0&&rx>0)||(side===1&&ry<0))tu=15-tu;
-    const t=L.map[hit],faceOpen=!wallish(L,hit+W)&&hit+W<N;
-    let tex=null,useMap=false;
-    if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();else if(faceOpen)useMap=true;else tex=fpWallTex('w'+sectorOf(Math.max(1,G.depth))+(L.vr[hit]%3),shade('#2a2f3e',(L.vr[hit]%3)*.06),acc);
-    const s=shadeOf(hit,pd)*(side?0.78:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1));
-    const hx0=(hit%W)*16,hy0=((hit/W)|0)*16;
+    const t=L.map[hit];let tex=null,src=hit;
+    if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();
+    else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
+    const s=shadeOf(hit,pd)*(side?0.8:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
-      if(useMap){const m=((hy0+Math.min(15,4+tv*12/16|0))*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];}else{const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}
+      if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
       D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
   }
+  for(const [x,sl] of slabs){if(sl.pd>=FP.z[x])continue;const lh=U/sl.pd,bot=horizon+lh/2,top=bot-lh*sl.h,y0=Math.max(0,Math.round(top)),y1=Math.min(RH-1,Math.round(bot));FP.st[x]=top;
+    const s=shadeOf(sl.i,sl.pd)*(sl.side?.8:1),hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
+    for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-top)/(bot-top))*12+2)|0)),m=((hy0+tv)*MW+hx0+Math.min(15,sl.u))*4,o=(y*RW+x)*4;const edge=y-y0<1?1.35:1;D[o]=Math.min(255,M[m]*s*edge);D[o+1]=Math.min(255,M[m+1]*s*edge);D[o+2]=Math.min(255,M[m+2]*s*edge);D[o+3]=255;}}
   FP.buf.getContext('2d').putImageData(FP.img,0,0);
-  // billboards: mobs, loot, decor, tubes
+  // billboards
   const bg=FP.buf.getContext('2d');bg.imageSmoothingEnabled=false;const inv=1/(px*dy-dx*py),list=[];FP.hits=[];
-  const add=(i,kind,o)=>{const ex=X(i)+.5,ey=Y(i)+.5;if(kind!=='mob')list.push({ex,ey,kind,o,i});else list.push({ex:o.vx??ex,ey:o.vy??ey,kind,o,i});};
-  for(const m of L.mobs){if(m===h||!L.vis[m.pos])continue;if(!m.vx){m.vx=X(m.pos)+.5;m.vy=Y(m.pos)+.5;}m.vx+=(X(m.pos)+.5-m.vx)*k;m.vy+=(Y(m.pos)+.5-m.vy)*k;add(m.pos,'mob',m);}
-  for(const e of L.items)if(e.pos>=0&&L.seen[e.pos]&&!mobAt(e.pos))add(e.pos,'item',e);
-  for(let yy=Math.max(0,Math.floor(FP.y)-12);yy<=Math.min(H-1,Math.floor(FP.y)+12);yy++)for(let xx=Math.max(0,Math.floor(FP.x)-12);xx<=Math.min(W-1,Math.floor(FP.x)+12);xx++){const i=yy*W+xx;if(L.seen[i]&&fpDecor(L,i))add(i,'decor',null);}
-  if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])add(i,'tube',n);});
+  for(const m of L.mobs){if(m===h||!L.vis[m.pos])continue;if(m.vx==null){m.vx=X(m.pos)+.5;m.vy=Y(m.pos)+.5;}m.vx+=(X(m.pos)+.5-m.vx)*k;m.vy+=(Y(m.pos)+.5-m.vy)*k;list.push({ex:m.vx,ey:m.vy,kind:'mob',o:m,i:m.pos});}
+  for(const e of L.items)if(e.pos>=0&&L.vis[e.pos]&&!mobAt(e.pos))list.push({ex:X(e.pos)+.5,ey:Y(e.pos)+.5,kind:'item',o:e,i:e.pos});
+  for(const d of FP.dead)if(L.seen[d.i])list.push({ex:d.x,ey:d.y,kind:'dead',o:d,i:d.i});
+  if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'tube',o:n,i});});
+  for(const i of [L.exit,L.entry])if(i!=null&&i>=0&&L.seen[i]&&i!==h.pos&&L.map[i]!==T.WALL)list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'elev',o:L.map[i]===T.EXITL?'lock':i===L.entry?'down':'up',i});
   for(const b of list){const rx=b.ex-FP.x,ry=b.ey-FP.y;b.tx=inv*(dy*rx-dx*ry);b.ty=inv*(-py*rx+px*ry);}
   list.sort((a,b)=>b.ty-a.ty);
   const fr=(now/420|0)&1;
-  for(const b of list){if(b.ty<=.15)continue;const sxc=Math.round(RW/2*(1+b.tx/b.ty)),unit=U/b.ty,floorY=horizon+unit/2;
-    let img,wW,hH,yb=floorY;const s=shadeOf(b.i,b.ty);if(s<=0.02)continue;
-    if(b.kind==='mob'){img=mobSprite(b.o,fr);wW=unit*.95;hH=unit*.95;}
-    else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.42;hH=unit*.42;yb=floorY-unit*.02+Math.sin(now/350+b.i)*unit*.02;}
+  for(const b of list){if(b.ty<=.12)continue;const sxc=Math.round(RW/2*(1+b.tx/b.ty)),unit=U/b.ty,floorY=horizon+unit/2;let img,wW,hH,yb=floorY,tint=0;const s=shadeOf(b.i,b.ty);if(s<=.02)continue;
+    if(b.kind==='mob'){const [sc,lift]=fpScale(b.o);img=mobSprite(b.o,fr);wW=unit*sc*1.05;hH=unit*sc*1.05;yb=floorY-unit*lift;const ht=FP.hit[b.o.id];if(ht&&now-ht<140)tint=1;}
+    else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.38;hH=unit*.38;yb=floorY+Math.sin(now/350+b.i)*unit*.015;}
+    else if(b.kind==='dead'){const d=b.o,a=Math.min(1,(now-d.t)/420),[sc]=fpScale(d.m);img=mobSprite(d.m,0);wW=unit*sc*1.05;hH=unit*sc*1.05*(1-.78*a);if(a<1)tint=a<.3?1:0;}
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
-    else{const c=FP.tex['d'+b.i]||(FP.tex['d'+b.i]=(()=>{const c=cvs(16,16);c.getContext('2d').drawImage(RD.mapCv,X(b.i)*16,Y(b.i)*16,16,16,0,0,16,16);return c;})());img=c;wW=unit*.9;hH=unit*.75;}
-    const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH));
-    const iw=img.width,ih=img.height;
-    bg.globalAlpha=1;for(let x=Math.max(0,x0);x<Math.min(RW,x0+w);x++){if(FP.z[x]<b.ty)continue;const u=Math.floor((x-x0)/w*iw);bg.drawImage(img,u,0,1,ih,x,y0,1,hgt);}
-    if(s<.98){bg.globalAlpha=Math.min(.85,1-s);bg.globalCompositeOperation='source-atop';bg.fillStyle='#04040a';bg.fillRect(x0,y0,w,hgt);bg.globalCompositeOperation='source-over';bg.globalAlpha=1;}
-    if(b.kind==='mob'||b.kind==='item')FP.hits.push({x0:x0/RW,x1:(x0+w)/RW,y0:y0/RH,y1:(y0+hgt)/RH,i:b.i,d:b.ty});
+    else if(b.kind==='elev'){img=fpElevCv(b.o);wW=unit*.98;hH=unit*1.0;}
+    const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH)),iw=img.width,ih=img.height;
+    if(w>RW*3||hgt>RH*3)continue;
+    if(!FP.tmp||FP.tmp.width<w||FP.tmp.height<hgt){FP.tmp=cvs(Math.max(w,64),Math.max(hgt,64));}
+    const tg=FP.tmp.getContext('2d');tg.imageSmoothingEnabled=false;tg.globalCompositeOperation='source-over';tg.globalAlpha=1;tg.clearRect(0,0,w,hgt);let any=false;
+    for(let x=Math.max(0,x0);x<Math.min(RW,x0+w);x++){if(FP.z[x]<b.ty)continue;const u=Math.floor((x-x0)/w*iw);
+      let clip=hgt;if(FP.sd[x]<b.ty){clip=Math.max(0,Math.min(hgt,Math.round(FP.st[x]-y0)));}if(clip<=0)continue;
+      tg.drawImage(img,u,0,1,ih*clip/hgt,x-x0,0,1,clip);any=true;}
+    if(!any)continue;
+    const over=(c,a)=>{tg.globalAlpha=a;tg.globalCompositeOperation='source-atop';tg.fillStyle=c;tg.fillRect(0,0,w,hgt);tg.globalCompositeOperation='source-over';tg.globalAlpha=1;};
+    if(b.kind==='dead')over('#200008',.35);
+    if(tint)over(b.kind==='dead'?'#ff2a3a':'#ffffff',.7);
+    if(s<.98)over('#04040a',Math.min(.85,1-s));
+    bg.drawImage(FP.tmp,0,0,w,hgt,x0,y0,w,hgt);
+    if(b.kind==='mob'||b.kind==='item'||b.kind==='tube')FP.hits.push({x0:x0/RW,x1:(x0+w)/RW,y0:y0/RH,y1:(y0+hgt)/RH,i:b.i,d:b.ty,kind:b.kind});
   }
-  // present
   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.imageSmoothingEnabled=false;g.fillStyle='#040407';g.fillRect(0,0,RD.w,RD.h);g.drawImage(FP.buf,0,0,RW,RH,0,0,RD.w,RD.h);
-  // vignette, damage flash, crosshair, compass, control hints
   const W2=RD.w,H2=RD.h,u=Math.max(1,Math.round(W2/RW));
+  fpHands(g,W2,H2,u,now);
+  if(now-FP.slash<260){const a=1-(now-FP.slash)/260;g.save();g.globalAlpha=a;g.strokeStyle='#ff2a3a';g.lineWidth=6*u;g.shadowColor='#ff2a3a';g.shadowBlur=14*u;g.beginPath();g.moveTo(W2*.25,H2*.3);g.lineTo(W2*.75,H2*.62);g.stroke();g.lineWidth=2*u;g.strokeStyle='#ffd0d6';g.stroke();g.restore();}
   if(FP.flash>.02){g.globalAlpha=FP.flash*.45;g.fillStyle='#ff2040';g.fillRect(0,0,W2,H2);g.globalAlpha=1;}
   const ahead=h.pos+FPD[FP.dir][0]+FPD[FP.dir][1]*W,mob=mobAt(ahead);
-  g.globalAlpha=.85;g.fillStyle=mob&&!MOBS[mob.k].npc?'#ff3f5a':'#3af5f5';const cxp=W2/2,cyp=H2*.46;g.fillRect(cxp-u*3,cyp,u*2,u);g.fillRect(cxp+u,cyp,u*2,u);g.fillRect(cxp,cyp-u*3,u,u*2);g.fillRect(cxp,cyp+u,u,u*2);
-  g.globalAlpha=.9;g.font=`${7*u}px ui-monospace,monospace`;g.textAlign='center';g.fillStyle='#3af5f5';g.fillText(['N','E','S','W'][FP.dir],W2/2,H2*.17);
-  g.globalAlpha=.22;g.fillStyle='#ffffff';const ar=(x,y,dir)=>{g.beginPath();if(dir==='l'){g.moveTo(x+8*u,y-10*u);g.lineTo(x,y);g.lineTo(x+8*u,y+10*u);}else if(dir==='r'){g.moveTo(x-8*u,y-10*u);g.lineTo(x,y);g.lineTo(x-8*u,y+10*u);}else if(dir==='u'){g.moveTo(x-10*u,y+8*u);g.lineTo(x,y);g.lineTo(x+10*u,y+8*u);}else{g.moveTo(x-10*u,y-8*u);g.lineTo(x,y);g.lineTo(x+10*u,y-8*u);}g.lineWidth=2*u;g.strokeStyle='#ffffff';g.stroke();};
-  if(FP.set.hints&&FP.set.ctl!=='dpad'){ar(W2*.06,H2*.5,'l');ar(W2*.94,H2*.5,'r');ar(W2/2,H2*.62,'u');ar(W2/2,H2*.8,'d');}g.globalAlpha=1;g.textAlign='left';
+  if(mob&&!MOBS[mob.k].npc&&!MOBS[mob.k].ally){g.globalAlpha=.6+.3*Math.sin(now/120);g.fillStyle='#ff3b4e';const cx=W2/2,cy=H2*.55;g.beginPath();g.moveTo(cx-6*u,cy);g.lineTo(cx,cy+5*u);g.lineTo(cx+6*u,cy);g.lineTo(cx,cy+2*u);g.fill();g.globalAlpha=1;}
+  fpCompass(g,W2,H2,u,now);
+  g.globalAlpha=.2;g.strokeStyle='#ffffff';const ar=(x,y,dir)=>{g.beginPath();if(dir==='l'){g.moveTo(x+8*u,y-10*u);g.lineTo(x,y);g.lineTo(x+8*u,y+10*u);}else if(dir==='r'){g.moveTo(x-8*u,y-10*u);g.lineTo(x,y);g.lineTo(x-8*u,y+10*u);}else if(dir==='u'){g.moveTo(x-10*u,y+8*u);g.lineTo(x,y);g.lineTo(x+10*u,y+8*u);}else{g.moveTo(x-10*u,y-8*u);g.lineTo(x,y);g.lineTo(x+10*u,y-8*u);}g.lineWidth=2*u;g.stroke();};
+  if(FP.set.hints&&FP.set.ctl!=='dpad'){ar(W2*.06,H2*.5,'l');ar(W2*.94,H2*.5,'r');}g.globalAlpha=1;g.textAlign='left';
 }
+{const _ha=heroAttack;heroAttack=function(){FP.kick=performance.now();FP.lastAct='melee';return _ha.apply(this,arguments);};}
+{const _af=actFire;actFire=function(){FP.kick=performance.now();FP.lastAct='gun';return _af.apply(this,arguments);};}
+
 {const _rf=rdFrame;rdFrame=function(now){if(FP.on&&RD.on&&G&&G.L&&!G.over){requestAnimationFrame(rdFrame);try{fpFrame(now);}catch(e){console.warn('fp',e);FP.on=false;}return;}return _rf.apply(this,arguments);};}
 function fpTurn(d){FP.dir=(FP.dir+d+4)%4;}
-function fpStep(back){const h=G.hero,f=FPD[(FP.dir+(back?2:0))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
+function fpStep(back){const h=G.hero,L=G.L,f=FPD[(FP.dir+(back?2:0))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W||to<0||to>=N)return;stopWalk();
+  const m=mobAt(to);
+  if(m){const d=MOBS[m.k];if(d.npc||d.ally){const fixed=m.vt||d.boss||['captain','tailor','chef','barkeep','mayor','medic','cop','manager'].includes(m.k)||!pass(to);
+     if(!fixed){m.pos=h.pos;h.pos=to;afterMove();if(!G.over)spend(1);refresh();return;}
+     if(G.turn-(FP.hintT||-99)>15){FP.hintT=G.turn;log(`${npcName(m)} is in the way. Tap them to talk.`,'');}refresh();return;}}
+  if(L.map[to]===T.WINDOW&&!back){if(G.turn-(FP.winT||-99)>15){FP.winT=G.turn;log('Window. Tap it to look out.','');}refresh();return;}
+  onTap(to);refresh();}
 function fpStrafe(d){const h=G.hero,f=FPD[(FP.dir+(d>0?1:3))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
 function fpSetFromFacing(){FP.dir=(RD.face===-1)?3:1;FP.init=false;}
-function fpToggle(on){FP.on=on===undefined?!FP.on:on;try{localStorage.setItem('mtm_fp',FP.on?'1':'0');}catch(e){}if(FP.on)fpSetFromFacing();RD.dirty=true;const b=document.getElementById('fpBtn');if(b){b.textContent=FP.on?'MAP':'1ST';b.setAttribute('aria-pressed',FP.on?'true':'false');}fpUI();}
+function fpToggle(on){FP.on=on===undefined?!FP.on:on;try{localStorage.setItem('mtm_fp',FP.on?'1':'0');}catch(e){}if(FP.on)fpSetFromFacing();RD.dirty=true;const b=document.getElementById('fpBtn');if(b){b.textContent=FP.on?'EXIT 1ST':'1ST';b.setAttribute('aria-pressed',FP.on?'true':'false');}fpUI();setTimeout(()=>window.dispatchEvent(new Event('resize')),30);}
 // controls: capture taps on the game canvas while first-person is on
 
 // d-pad + settings panel
@@ -3738,7 +3808,7 @@ function fpBuildUI(host,b){
 #fpDone{position:fixed;z-index:26;display:none;min-height:32px;padding:4px 12px;background:#ffd23a;color:#14101c;border:0;border-radius:4px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.06em}
 #fpPad button:active{background:rgba(58,245,245,.28)}
 #fpPad .s{font-size:.95em;color:#9ad}
-#fpSet{position:absolute;z-index:40;width:min(250px,calc(100vw - 24px));background:rgba(8,10,18,.96);border:1px solid #2a6a7a;border-radius:6px;padding:10px 12px;color:#cfe;font:13px/1.4 ui-monospace,Menlo,monospace;display:none}
+#fpSet{position:fixed;z-index:60;max-height:calc(100vh - 140px);overflow:auto;width:min(250px,calc(100vw - 24px));background:rgba(8,10,18,.96);border:1px solid #2a6a7a;border-radius:6px;padding:10px 12px;color:#cfe;font:13px/1.4 ui-monospace,Menlo,monospace;display:none}
 #fpSet h4{margin:0 0 8px;color:#3af5f5;font-size:13px;letter-spacing:.08em}
 #fpSet .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:7px 0}
 #fpSet .seg{display:flex;gap:4px}
@@ -3746,8 +3816,8 @@ function fpBuildUI(host,b){
 #fpSet .seg button.on{background:#0e3a44;color:#3af5f5;border-color:#3af5f5}
 #fpSet small{display:block;color:#789;margin-top:8px}`;document.head.appendChild(css);
   const gear=document.createElement('button');gear.id='fpGear';gear.type='button';gear.textContent='⚙';gear.setAttribute('aria-label','First-person settings');host.appendChild(gear);
-  const pan=document.createElement('div');pan.id='fpSet';host.appendChild(pan);
-  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]],['padSize','Pad size',[['s','S'],['m','M'],['l','L']]],['padAlpha','Pad opacity',[['low','Low'],['mid','Mid'],['high','Full']]]];
+  const pan=document.createElement('div');pan.id='fpSet';document.body.appendChild(pan);
+  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]],['padSize','Pad size',[['s','S'],['m','M'],['l','L']]],['padAlpha','Pad opacity',[['low','Low'],['mid','Mid'],['high','Full']]],['compass','Compass',[[true,'On'],[false,'Off']]],['compSize','Compass size',[['s','S'],['m','M'],['l','L']]]];
   const draw=()=>{pan.innerHTML='<h4>FIRST-PERSON</h4>'+opts.map(([k,l,vs])=>`<div class="r"><span>${l}</span><span class="seg">${vs.map(([v,t])=>`<button type="button" data-k="${k}" data-v="${v}" class="${FP.set[k]===v?'on':''}">${t}</button>`).join('')}</span></div>`).join('')+'<div class="r"><span>Pad position</span><span class="seg"><button type="button" data-act="move">Move</button><button type="button" data-act="reset">Reset</button></span></div><small>Tap: middle = step, sides = turn, swipe works too. D-pad: ▲▼ step (hold to walk), ◀▶ turn, «» sidestep, ● wait. Move: drag the pad, then tap Done.</small>';};
   pan.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;e.stopPropagation();
     if(t.dataset.act==='move'){FP.edit=true;pan.style.display='none';fpUI();return;}if(t.dataset.act==='reset'){FP.set.padPos=null;fpSave();fpUI();return;}
@@ -3766,7 +3836,7 @@ function fpBuildUI(host,b){
   const stop=()=>{clearInterval(rep);rep=null;};['pointerup','pointercancel','pointerleave'].forEach(ev=>pad.addEventListener(ev,stop));
   document.body.appendChild(pad);
   const place2=()=>{const br=b.getBoundingClientRect(),hr=(b.offsetParent||document.body).getBoundingClientRect();gear.style.top=b.style.top;gear.style.right=`calc(${b.style.right||'6px'} + ${Math.round(br.width)+6}px)`;
-    if(!gear.style.right.includes('calc'))gear.style.right=(Math.round(br.width)+12)+'px';pan.style.top=(parseFloat(b.style.top)+br.height+6)+'px';pan.style.right='max(6px,env(safe-area-inset-right))';};
+    if(!gear.style.right.includes('calc'))gear.style.right=(Math.round(br.width)+12)+'px';pan.style.top=Math.round(br.bottom+6)+'px';pan.style.right=Math.max(6,Math.round(innerWidth-br.right))+'px';};
   place2();window.addEventListener('resize',place2);setInterval(()=>{place2();fpUI();},1500);fpUI();
 }
 function fpInstall(cv){let dn=null,lt=null;
@@ -3781,7 +3851,9 @@ function fpInstall(cv){let dn=null,lt=null;
     const fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
     // tapping a mob or item in view acts on it (attack, talk, fire, throw, pick up)
     const hit=FP.hits.filter(q=>fx>=q.x0&&fx<=q.x1&&fy>=q.y0&&fy<=q.y1).sort((a,b)=>a.d-b.d)[0];
+    if(hit&&hit.kind==='tube'){showInfo(hit.i);return;}
     if(hit&&(UI.mode||Math.abs(X(hit.i)-X(G.hero.pos))+Math.abs(Y(hit.i)-Y(G.hero.pos))<=1||mobAt(hit.i))){onTap(hit.i);refresh();return;}
+    {const f=FPD[FP.dir],ah=G.hero.pos+f[0]+f[1]*W;if(fx>=.28&&fx<=.72&&fy<=.72&&G.L.map[ah]===T.WINDOW){onTap(ah);refresh();return;}}
     if(FP.set.ctl==='dpad')return;
     if(fx<.28){fpTurn(-1);return;}if(fx>.72){fpTurn(1);return;}
     fpStep(fy>.72);};
@@ -3791,7 +3863,7 @@ function fpInstall(cv){let dn=null,lt=null;
     if(k==='arrowleft'||k==='a'){fpTurn(-1);e.preventDefault();e.stopImmediatePropagation();}else if(k==='arrowright'||k==='d'){fpTurn(1);e.preventDefault();e.stopImmediatePropagation();}
     else if(k==='arrowup'||k==='w'){fpStep(false);e.preventDefault();e.stopImmediatePropagation();}else if(k==='arrowdown'||k==='s'){fpStep(true);e.preventDefault();e.stopImmediatePropagation();}},true);
   // toggle button under the minimap
-  const b=document.createElement('button');b.id='fpBtn';b.type='button';b.textContent=FP.on?'MAP':'1ST';b.setAttribute('aria-label','Toggle first-person view');
+  const b=document.createElement('button');b.id='fpBtn';b.type='button';b.textContent=FP.on?'EXIT 1ST':'1ST';b.setAttribute('aria-label','Toggle first-person view');
   b.style.cssText='position:absolute;z-index:30;right:max(6px,env(safe-area-inset-right));min-width:46px;min-height:32px;padding:4px 8px;background:rgba(8,10,18,.85);color:#3af5f5;border:1px solid #2a6a7a;border-radius:4px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.08em;cursor:pointer';
   const place=()=>{const m=document.getElementById('mini');const r=m&&m.getBoundingClientRect();const host=m&&m.offsetParent||document.body;const hr=host.getBoundingClientRect();b.style.top=((r&&r.height?r.bottom-hr.top:100)+6)+'px';};
   const host=(document.getElementById('mini')||{}).parentNode||document.body;host.appendChild(b);place();window.addEventListener('resize',place);setInterval(place,1500);
@@ -3799,7 +3871,6 @@ function fpInstall(cv){let dn=null,lt=null;
   fpBuildUI(host,b);
 }
 {const _wait=setInterval(()=>{if(RD&&RD.cv){clearInterval(_wait);fpInstall(RD.cv);}},300);}
-
 
 // ---------- v0.29 saved residents: four ways it can go
 // most: number + elevator · some: bolt in a panic · some: ask to come along · rare: owe you one and turn up in a fight later
@@ -3850,6 +3921,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.30','FIRST PERSON, ROUND TWO: Walls use the same art as the map: bookshelves, screens, pipes, windows. Neon and screen pixels pulse, so displays feel alive again. Counters and other low furniture are waist-high, so you see over them. Lockers and pillars stay tall. Outside you get an open night sky with a skyline. Inside there\'s a real ceiling with light panels. The elevator is back as an actual elevator door: green when open, red when locked, amber for the way down. Everyone is sized properly: drones and the courier bot are small and float, cats and crabs are tiny, bosses tower over you. You have hands and your weapon on screen, with a swing or recoil kick and a muzzle flash. Enemies flash white when hit, then crumple into a dark body on the floor. Close kills get a red finisher slash and a screen shake. The dark boxes around objects and the old animations replaying when you switch back are fixed. A new neon compass shows the elevator, enemies, allies and NPCs (on/off and size in ⚙). The crosshair is gone: a red chevron shows only when a hostile is right in front of you. Walking forward into a friendly person swaps places. You talk by tapping them, and you look out a window by tapping it. The button reads EXIT 1ST while you\'re in first person. The settings panel no longer hides behind the D-pad. · Doc Sato talks to you in a real dialogue box after the mirror, with choices (who you are now, what you owe, the tower, or say nothing), then gives you his number. · Hand companions a weapon and armor from their panel (GEAR). It adds to their damage and armor and barely wears out. · Hurt companions call out ("I\'m hit bad!") so you can save them. · Survivors come out of real doors or sleeping capsules, never out of walls. · You can no longer talk to a bartender or vendor through a wall, only across a counter. · The general store splits into stalls: a fenced Ripper stall with his chair, and a separate store side with the goods. · The sector 1 wall pieces that looked like brown doors are now actual service pipes, and the rest are labelled as apartment windows. · Drinks hit harder: a stronger sway, blur and colour drift, lasting about a minute. · Tube dancers can be inspected (tap the tube, or analyze it). The tube base is one seamless neon stripe. · Sentinel Edge redrawn: a clean hooked blade, black grip and red edge, with no stray bump.'],
  ['v0.29','FIXES: First person now works everywhere, including the street where the game starts. · The ramen bowl no longer slides anywhere. The noodle stand has a set layout: a glass food case, bowls at the seats, a register, two burners with steam behind the counter, and a fridge. Plain counters no longer show food. · Captain Reyes knows an ex-cop when she sees one ("Oh thank god — you used to be a badge"), and her dialog no longer shows her name. · NOT IN MY HOUSE (and the bartender\'s shotgun line) only happens when you can see it. · Contacts show the real name, number and "Met on MT: Level X", and the old [object Object] entries are cleaned out. · Saved residents walk to the elevator and leave instead of standing still. · Survivor quips use their real name and stay on screen longer. · Random names no longer use Sato or Reyes. · Vendor and bartender dialogs show the same name as the tag over their head. · The security terminal shows only the console code, with no news on top. · The Mayor\'s ending line clears before the choice screen. · Cameras only spot you from the side of the wall they face. · Spotted: walking stops once when a new hostile appears and marks it with "!". Tap again and you keep moving, at the Combat Speed setting, which now works. · Helix guards come in through doors instead of appearing from nowhere. · Street NPCs never stand in the road. · NEW: You start with 300 creds. Ripper implant upgrades give +2. The minigun gets +5 shots per upgrade level. The Gunner starts with a Needler SMG +1 (self-charging and upgradable) instead of the tech pistol. · Saved residents now react in one of four ways. Most give you their number and head for the elevator. Some panic and bolt (still karma). Some ask to join. Rarely, one owes you and turns up once, later, when a fight goes bad. · Doc Sato pauses ("…") before he talks. · Chef Okabe has a real conversation: a first-visit line (he spots Sato\'s work, or an ex-cop), returning lines that change with your karma, a free bowl at high karma, Reyes eating there every night, free deliveries, a "…" option, and +1 karma the first time you buy a bowl.'],
  ['v0.28b','D-pad settings: Pad size (S, M or L) and Pad opacity (Low, Mid or Full). Pad position: tap Move, drag the pad anywhere on screen, then tap Done. Reset puts it back in the corner. Settings are remembered between sessions.'],
  ['v0.28','First-person mode. Tap 1ST under the minimap to walk the same floor from eye level, and tap MAP to go back. It uses the same map, turns, enemies and loot. The ⚙ button next to it opens the settings: Controls (Tap, D-pad or Both), which side the D-pad sits on, a Normal or Wide view, and hint arrows on or off. The D-pad has step forward and back (hold to keep walking), turn left and right, sidestep, and wait. With tap controls, tap the middle to step, tap the sides or swipe to turn, and tap the bottom to step back. Turning is free. Tap an enemy, NPC or item in view to attack, talk or pick it up, and guns and throws still aim by tapping a target. The floors use the real map art, and mobs, loot, counters and the tube dancers stand up in the view. The crosshair turns red when a hostile is right in front of you. On a keyboard, use arrows or WASD. The street level always uses the top-down view.'],
@@ -3933,7 +4005,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.29 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.30 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -5967,6 +6039,70 @@ const VEHDRAW={
 };
 const VEH_ORDER=['bike','sedan','trike','skater','hover'];
 const VEH_NAME={bike:'Sport bike',sedan:'Street car',trike:'Cargo trike',skater:'Skater',hover:'Two-up hover bike'};
+
+// ================= v0.30 =================
+// --- Doc Sato talks to you properly after the mirror (dialogue box with choices, not the log)
+function ripperIntro(){
+  if(!G||G.metRipper)return;G.metRipper=1;
+  const sd=G.L.mobs.find(m=>m.vt==='ripper');
+  const go=()=>{const mir=$('#mirror');if(mir&&mir.classList.contains('on')){setTimeout(go,400);return;}if(busy()){setTimeout(go,500);return;}
+    if(sd){fx({t:'txt',p:sd.pos,s:'...',c:'#e8eef4',dur:1200});}
+    setTimeout(()=>satoTalk(sd,0),sd?900:0);};
+  setTimeout(go,600);
+}
+function satoTalk(sd,stage){const h=G.hero,cop=h.cls==='enforcer',img=sd?`<img class="pix big" src="${urlOf(mobSprite(sd,0))}">`:'';
+  const say=(txt,btns)=>{const p=openModal(`<div class="mhead"><h2>DOC SATO</h2></div><div class="detail"><div class="dhead">${img}<div><small>STREET CLINIC</small><p>${txt}</p></div></div><div class="btns">${btns}</div></div>`,'shop');p.onclick=ev=>{const b=ev.target.closest('[data-s]');if(!b)return;satoTalk(sd,b.dataset.s);};};
+  if(!stage||stage==='0')say(`"Easy. Sit up slow — the new nerves haven't been told whose they are yet."${cop?' He glances at your old badge clip on the tray. "Metro trained. You\'ll want to reach for a holster that isn\'t there. Give it a week."':''}`,
+    `<button class="btn go" data-s="who">"WHO AM I NOW?"</button><button class="btn" data-s="owe">"WHAT DO I OWE YOU?"</button><button class="btn" data-s="tower">"WHAT HAPPENED TO THE TOWER?"</button><button class="btn" data-s="quiet">"…"</button>`);
+  else if(stage==='who')say(`"${esc(h.name)}. That's what the file says now. Whatever you were before, that file is closed — nobody up there is looking for this face."`,`<button class="btn go" data-s="num">"GOT IT."</button><button class="btn" data-s="0">BACK</button>`);
+  else if(stage==='owe')say('"The city\'s paying. Contractor package — they want bodies that can walk into that tower. Bring yourself back in one piece and we call it even."',`<button class="btn go" data-s="num">"FAIR."</button><button class="btn" data-s="0">BACK</button>`);
+  else if(stage==='tower')say('"Lockdown. Three nights now. The gangs are inside, Metro\'s outside, and I\'m the only one stitching up both sides. The captain at the cordon will tell you the rest."',`<button class="btn go" data-s="num">"I\'LL TALK TO HER."</button><button class="btn" data-s="0">BACK</button>`);
+  else if(stage==='quiet')say('He waits. You don\'t say anything. "Good. Quiet ones don\'t waste air in there."',`<button class="btn go" data-s="num">NOD</button>`);
+  else if(stage==='num'){say('"Put me in that wristband." He taps your Link Sync with a gloved finger. "You come back leaking, you call first — I keep a chair open."',`<button class="btn go" data-s="end">LEAVE THE CHAIR</button>`);addContact('Doc Sato','doc','7286');}
+  else if(stage==='end'){closeModal();refresh();}
+}
+// --- survivors come out of a real door or a sleeping capsule, never out of a wall
+function survivorSpawnPoint(){const L=G.L,h=G.hero;let best=-1,bd=1e9;
+  for(let i=0;i<N;i++){const t=L.map[i];if(t!==T.DOOR&&t!==T.POD)continue;const dd=dist(i,h.pos);if(dd<3||dd>9||!L.seen[i])continue;
+    const out=t===T.DOOR?(mobAt(i)?-1:i):DIRS.map(d=>i+d).find(j=>j>=0&&j<N&&pass(j)&&!mobAt(j)&&j!==h.pos);if(out==null||out<0)continue;if(dd<bd){bd=dd;best=out;}}
+  return best;}
+// --- companions you hand gear to: weapons and armor (they barely wear them out)
+function allyGearDmg(a){const w=a&&a.gear&&a.gear.melee;if(!w)return 0;const t=ITEMS[w.k].t||1;return rr(t,t*3)+(w.lvl||0);}
+function allyGearDR(a){const r=a&&a.gear&&a.gear.armor;if(!r)return 0;const t=ITEMS[r.k].t||1;return rr(0,t*2)+(r.lvl||0);}
+{const _ap=allyPanel;allyPanel=function(a){const r=_ap.apply(this,arguments);try{const d=MOBS[a.k];if(d.a!=='hum')return r;const h=G.hero,box=document.querySelector('#modal .detail');if(!box)return r;
+  a.gear=a.gear||{};const g=a.gear,near=dist(a.pos,h.pos)<=2;
+  const row=(slot,lab)=>{const cur=g[slot],opts=h.inv.filter(it=>ITEMS[it.k].type===slot);return `<div class="dbr lv2"><div style="flex:1"><h4>${lab}: ${cur?esc(itemName(cur)):'<span class="dim">none</span>'}</h4><div class="btns">${opts.slice(0,4).map((it)=>`<button class="btn sm ${near?'':'off'}" data-give="${slot}" data-i="${h.inv.indexOf(it)}">GIVE ${esc(itemName(it))}</button>`).join('')}${cur?`<button class="btn sm ${near?'':'off'}" data-take="${slot}">TAKE BACK</button>`:''}</div></div></div>`;};
+  const el=document.createElement('div');el.innerHTML=`<h5 class="h5">GEAR</h5>${row('melee','Weapon')}${row('armor','Armor')}<p class="dim">Gear you hand over adds to their damage and armor, and it barely wears out in their hands.${near?'':' Get within 2 tiles to hand things over.'}</p>`;box.appendChild(el);
+  el.addEventListener('click',ev=>{const b=ev.target.closest('[data-give],[data-take]');if(!b||b.classList.contains('off'))return;ev.stopPropagation();
+    if(b.dataset.give){const slot=b.dataset.give,it=h.inv[+b.dataset.i];if(!it)return;h.inv.splice(h.inv.indexOf(it),1);if(g[slot])addInv(g[slot]);g[slot]=it;log(`${npcName(a)} takes the ${itemName(it)}. "I'll put it to use."`,'hi');}
+    else{const slot=b.dataset.take;if(g[slot]){addInv(g[slot]);log(`${npcName(a)} hands back the ${itemName(g[slot])}.`);g[slot]=null;}}
+    closeModal();refresh();allyPanel(a);});}catch(e){}return r;};}
+// --- hurt companions speak up so you can save them
+function allyHurtCheck(){try{const L=G.L;for(const a of L.mobs){const d=MOBS[a.k];if(!d.ally||a.cower||!L.vis[a.pos])continue;
+  if(a.hp<a.mhp*.35&&G.turn-(a.hurtT||-99)>18){a.hurtT=G.turn;const s=d.robot?pick(['INTEGRITY LOW','!! DAMAGE !!']):pick(['I\'m hit bad!','Little help here!','Patch me up — please!','I can\'t take much more!']);
+    fx({t:'txt',p:a.pos,s,c:'#ff6a78',dur:2400});log(`${a.lk!=null?npcName(a):d.n}: "${s}"`,'warn');}}}catch(e){}}
+{const _wt2=worldTick;worldTick=function(){const r=_wt2.apply(this,arguments);allyHurtCheck();return r;};}
+// --- drinking hits harder and lasts about a minute of real time
+{const _dl=drunkLv;drunkLv=function(){const b=_dl.apply(this,arguments),rt=G&&G.drunkRT&&performance.now()<G.drunkRT.until?G.drunkRT.lv:0;return Math.max(b,rt);};}
+{const _du=drinkUp;drinkUp=function(n){const add=DRINK_STR[n]!==undefined?DRINK_STR[n]:14;const r=_du.apply(this,arguments);if(add>0){const h=G.hero;h.b.drunk=Math.min(120,(h.b.drunk||0)+add);G.drunkRT={lv:Math.min(120,(G.drunkRT&&performance.now()<G.drunkRT.until?G.drunkRT.lv:0)+add*1.6),until:performance.now()+60000};}return r;};}
+{let _t=0;const fxLoop=()=>{try{const d=G&&G.hero?drunkLv():0,cv=RD&&RD.cv;if(cv){if(d>0&&!G.over){_t+=.016;const s=d>60?1:d>30?.6:.3;cv.style.filter=`blur(${(.25+.6*s*(1+Math.sin(_t*1.7))/2).toFixed(2)}px) saturate(${1+.4*s}) hue-rotate(${(Math.sin(_t*.8)*14*s).toFixed(1)}deg)`;
+  if(FP.on){FP.ang+=Math.sin(_t*1.3)*.004*s*10;}}else if(cv.style.filter)cv.style.filter='';}}catch(e){}requestAnimationFrame(fxLoop);};if(typeof requestAnimationFrame==='function')requestAnimationFrame(fxLoop);}
+// --- tube dancers can be inspected (tap or analyze)
+function dancerInfo(i){const L=G.L,seed=(i*13+(L.depth||0)*5)%64,look=MTMDancer.lookFor(barThemeOf(L,i),seed),nm=NM_F[(seed*7+3)%NM_F.length];
+  const hair={afro:'an afro',bob:'a sharp bob',pixie:'a pixie cut',short:'a short crop'}[look.hair];
+  toast(`<b style="color:#ff8fe0">Tube dancer · "${nm}"</b><br>Floats in warm ${look.theme} water with ${hair}, matching swimsuit, eyes half closed. Paid by the hour. The tube's warmer than the bar.`);}
+{const _si=showInfo;showInfo=function(i){if(G&&G.L&&G.L.holo&&G.L.holo.includes(i)){dancerInfo(i);return;}return _si.apply(this,arguments);};}
+{const _pu=propUse;propUse=function(i){const p=G.L.props&&G.L.props[i];if(p&&p.k==='tube'){dancerInfo(i);return;}return _pu.apply(this,arguments);};}
+// --- Sentinel Edge redraw: clean hooked mono-steel blade, black grip, red sentry edge
+ICON2.s_edge=function(R){
+  R(2,13,2,2,'#0e0f14');R(2,13,1,1,'#3a3f48');R(4,12,1,1,'#ff2a3a');R(4,11,2,1,'#1a1c22');R(5,10,2,1,'#1a1c22');R(6,9,1,1,'#ff2a3a');
+  R(5,8,4,1,'#5a626e');R(5,8,1,1,'#8c96a2');
+  const bl=[[7,7],[8,6],[9,5],[10,4],[10,3],[11,2]];for(const [x,y] of bl){R(x,y,2,1,'#c8d0d8');R(x+1,y,1,1,'#ffffff');}
+  R(12,1,2,1,'#e8eef4');R(13,2,1,2,'#a7b0bb');R(12,3,1,1,'#8c96a2');
+  for(const [x,y] of bl.slice(0,4))R(x,y+1,1,1,'rgba(255,42,58,.75)');};
+{const _dh2=drawHeld;drawHeld=function(R,k,o,f,c){
+  if(k==='s_edge'){R(12,10+o,2,2,'#1a1c22');R(12,11+o,1,1,'#ff2a3a');R(11,9+o,4,1,'#5a626e');R(13,3+o,1,6,'#c8d0d8');R(14,4+o,1,5,'#ffffff');R(12,2+o,2,1,'#e8eef4');R(11,3+o,1,1,'#a7b0bb');R(12,9+o,1,1,'#1a1c22');R(15,5+o,1,3,'rgba(255,42,58,.45)');return;}
+  return _dh2.apply(this,arguments);};}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
