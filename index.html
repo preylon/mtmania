@@ -3633,14 +3633,30 @@ function fpWinTex(){if(FP.tex.win)return FP.tex.win;const c=cvs(16,16),g=c.getCo
   g.fillStyle='#3fe8ff';for(const [x,y] of [[4,4],[9,6],[6,10],[11,11],[3,12]])g.fillRect(x,y,1,1);g.fillStyle='#ff3fa4';g.fillRect(8,3,3,1);g.fillStyle='#2a3a4a';g.fillRect(7,2,1,12);g.fillRect(2,8,12,1);return FP.tex.win=g.getImageData(0,0,16,16).data;}
 function fpTubeCanvas(look,now,seed){if(!FP.tubeCv)FP.tubeCv=cvs(16,40);const g=FP.tubeCv.getContext('2d');g.clearRect(0,0,16,40);MTMDancer.drawTube(g,0,22,1,look,now,seed);return FP.tubeCv;}
 // ---- v0.30 renderer: real wall art, low counters, sky/ceiling, elevator, sized sprites, hits/deaths, hands, compass
-FP.dead=[];FP.hit={};FP.kick=0;FP.slash=0;FP.lastAct='melee';FP.bob=0;
+FP.dead=[];FP.hit={};FP.fxl=[];FP.kick=0;FP.slash=0;FP.lastAct='melee';FP.bob=0;
 function fpScale(m){const d=MOBS[m.k]||{},a=d.a;let h=1,lift=0;
   if(a==='hum')h=d.boss?1.35:d.big?1.18:1;else if(a==='drone'){h=.5;lift=.42;}else if(a==='swarm'){h=.45;lift=.4;}else if(a==='crab')h=.34;else if(a==='cat')h=.34;
   else if(a==='razor')h=d.big?.72:.6;else if(a==='turret')h=.62;else if(a==='mech')h=d.boss?1.6:d.big?1.3:1.1;else if(a==='courier')h=.56;else if(a==='quad')h=.55;
   return [h,lift];}
 // low blocking decor: [height] — taller than eye level (.5) only for lockers/clones/pillars
-function fpLow(L,i){const t=L.map[i];if(wallish(L,i)||t===T.DOOR||t===T.LOCKED)return 0;if(L.props&&L.props[i]&&L.props[i].k==='tube')return 0;if(pass(i)||mobAt(i))return 0;
-  return t===T.COUNTER?.42:t===T.PILLAR?1:t===T.LOCKER?.85:t===T.CLONE?.9:t===T.TERM?.55:t===T.POD?.5:t===T.CART?.4:t===T.CHAIR?.3:t===T.CAR?.5:t===T.BIKE?.4:t===T.TREE?.9:.45;}
+function fpLow(L,i){const t=L.map[i];if(t===T.PILLAR)return 1;if(t===T.COUNTER&&!(L.props&&L.props[i]))return .42;return 0;}
+const FP_DH={[T.TERM]:.62,[T.POD]:.55,[T.LOCKER]:.95,[T.CLONE]:1,[T.CART]:.45,[T.CHAIR]:.38,[T.CAR]:.55,[T.BIKE]:.45,[T.TREE]:1.15};
+const FP_PH={crate:.55,lock:.42,safe:.72,vault:.95,sec:.7,bench:.35,kiosk:.9,cruiser:.6};
+function fpDecorTile(L,i){const t=L.map[i];return !wallish(L,i)&&t!==T.DOOR&&t!==T.LOCKED&&t!==T.COUNTER&&t!==T.PILLAR&&FP_DH[t]>0&&!pass(i);}
+function fpCut(c){if(c._bb)return c._bb;const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let x0=c.width,y0=c.height,x1=-1,y1=-1;
+  for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(d[(y*c.width+x)*4+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  return c._bb=x1<0?[0,0,c.width,c.height]:[x0,y0,x1-x0+1,y1-y0+1];}
+function fpDecorSprite(L,i){const key='dk'+i+'_'+L.map[i]+'_'+FP.mapVer;if(FP.tex[key])return FP.tex[key];
+  const sec=secOf(G.depth),si=G.depth<=0?9:sectorOf(G.depth),a=cvs(16,16),b=cvs(16,16),ga=a.getContext('2d'),gb=b.getContext('2d');
+  ga.save();ga.translate(-X(i)*16,-Y(i)*16);drawTile(ga,L,i,sec,si);ga.restore();
+  const t0=L.map[i];L.map[i]=T.FLOOR;gb.save();gb.translate(-X(i)*16,-Y(i)*16);try{drawTile(gb,L,i,sec,si);}finally{L.map[i]=t0;gb.restore();}
+  const da=ga.getImageData(0,0,16,16),db=gb.getImageData(0,0,16,16).data,lut=RD.lut;
+  for(let p=0;p<da.data.length;p+=4){if(Math.abs(da.data[p]-db[p])+Math.abs(da.data[p+1]-db[p+1])+Math.abs(da.data[p+2]-db[p+2])<6)da.data[p+3]=0;else if(lut){da.data[p]=lut[da.data[p]];da.data[p+1]=lut[da.data[p+1]];da.data[p+2]=lut[da.data[p+2]];}}
+  ga.putImageData(da,0,0);for(const k in FP.tex)if(k.startsWith('dk'+i+'_'))delete FP.tex[k];return FP.tex[key]=a;}
+function fpPropSprite(p,i,now){const key='pr'+i+'_'+p.k+(p.open?1:0)+(p.off?1:0)+(p.broke?1:0)+(p.unl?1:0)+((now/400|0)%2)+(p.k==='scr'?'_'+(now/120|0):'');
+  if(FP.tex[key])return FP.tex[key];for(const k in FP.tex)if(k.startsWith('pr'+i+'_'))delete FP.tex[k];return FP.tex[key]=propArt(p,i,now);}
+function fpIsElev(L,i){return (i===L.exit||i===L.entry)&&(L.map[i]===T.EXIT||L.map[i]===T.EXITL)&&G.hero.pos!==i;}
+function fpElevData(kind){const k='ed'+kind;if(FP.tex[k])return FP.tex[k];const c=fpElevCv(kind);return FP.tex[k]=c.getContext('2d').getImageData(0,0,16,24).data;}
 function fpElevCv(kind){const k='elev'+kind;if(FP.tex[k])return FP.tex[k];const c=cvs(16,24),g=c.getContext('2d');
   g.fillStyle='#2a2e36';g.fillRect(0,0,16,24);g.fillStyle='#5a626e';g.fillRect(0,0,16,1);g.fillRect(0,0,1,24);g.fillRect(15,0,1,24);
   g.fillStyle='#8c96a2';g.fillRect(2,4,6,20);g.fillRect(8,4,6,20);g.fillStyle='#a8b2be';g.fillRect(2,4,6,1);g.fillRect(8,4,6,1);g.fillStyle='#3a3f48';g.fillRect(7,4,2,20);
@@ -3650,8 +3666,11 @@ function fpFaceList(L){if(FP.faceL===L)return FP.faces;const f=[];for(let i=W;i<
 function fpHands(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');const it=gunMode?(h.eq.gun||h.eq.melee):(h.eq.melee||null);
   const skin=(heroLook().skin)||'#c99a7a',k=Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,P=Math.max(2,Math.round(u*3.4)),base=H2*.8;
   g.save();g.imageSmoothingEnabled=false;
-  if(gunMode&&it){const ic=itemIcon(it),w=16*P,x=W2/2-w/2+bob,y=base-12*P+k*3*P;g.fillStyle=skin;g.fillRect(x+2*P,y+10*P,4*P,5*P);g.fillRect(x+10*P,y+11*P,4*P,4*P);g.drawImage(ic,x,y-k*2*P,w,w);
-    if(k>.6){g.globalAlpha=(k-.6)*2;g.fillStyle='#ffe9a0';g.fillRect(x+6*P,y-4*P-k*2*P,4*P,4*P);g.globalAlpha=1;}}
+  if(gunMode&&it){const col=ITEMS[it.k].c||'#8a8f9a',big=ITEMS[it.k].icon==='gun3'||it.k==='minigun',cx=W2*.57+bob,by=base+2*P+k*3*P,B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(cx+x*P,by+y*P,w*P,h*P);};
+    if(big){B(-3,-17,6,9,shade(col,-.15));B(-3,-17,6,1,shade(col,.3));B(-2,-19,4,2,'#14161c');B(-4,-9,8,8,col);B(-4,-9,8,1,shade(col,.3));B(3,-9,1,8,shade(col,-.4));B(-1,-6,2,2,'#3fe8ff');}
+    else{B(-1,-17,2,8,shade(col,-.2));B(-1,-18,2,1,'#14161c');B(-3,-10,6,7,col);B(-3,-10,6,1,shade(col,.35));B(2,-10,1,7,shade(col,-.4));B(-1,-8,2,1,'#3fe8ff');}
+    B(-2,-3,4,5,'#1a1c22');B(-6,-2,4,5,skin);B(-6,2,4,1,shade(skin,-.25));B(2,-1,4,5,skin);B(2,3,4,1,shade(skin,-.25));
+    if(k>.55){g.globalAlpha=(k-.55)*2.2;g.fillStyle='#ffe9a0';g.shadowColor='#ffb03c';g.shadowBlur=18*u;const fx0=cx,fy0=by-(big?20:19)*P;g.beginPath();g.arc(fx0,fy0,5*P*k,0,7);g.fill();g.fillStyle='#fff';g.fillRect(fx0-P,fy0-P,2*P,2*P);g.shadowBlur=0;g.globalAlpha=1;}}
   else{const x=W2*.64+bob-k*10*P,y=base-14*P+k*4*P;g.translate(x+8*P,y+12*P);g.rotate(-.35-k*.9);
     if(it){g.drawImage(itemIcon(it),-8*P,-14*P,16*P,16*P);}g.fillStyle=skin;g.fillRect(-3*P,0,6*P,7*P);g.fillStyle=shade(skin,-.25);g.fillRect(-3*P,5*P,6*P,2*P);
     g.setTransform(1,0,0,1,0,0);const lx=W2*.22-bob*.5,ly=base-4*P+Math.sin(FP.bob+1)*2*u;g.fillStyle=skin;g.fillRect(lx,ly,6*P,8*P);g.fillStyle=shade(skin,-.25);g.fillRect(lx,ly+6*P,6*P,2*P);}
@@ -3675,8 +3694,13 @@ function fpFrame(now){
   if(RD.dirty){rdMap();RD.dirty=false;}
   if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;}
   // drain the top-down effect queue so nothing replays when you switch back
-  for(const f of FX.splice(0)){if(f.t==='die'){const adj=dist(f.p,h.pos)<=1;FP.dead.push({x:X(f.p)+.5,y:Y(f.p)+.5,i:f.p,m:Object.assign({id:f.id,b:{}},f.m||{k:f.k}),t:now});if(FP.dead.length>40)FP.dead.shift();if(adj){FP.slash=now;RD.shake=5;}}
-    else if(f.t==='hit'&&f.id!=null)FP.hit[f.id]=now;else if(f.t==='boom')RD.shake=Math.min(8,(RD.shake||0)+(f.r||1)*2);}
+  for(const f of FX.splice(0)){if(f.t==='die'){const adj=dist(f.p,h.pos)<=1;FP.dead.push({x:X(f.p)+.5,y:Y(f.p)+.5,i:f.p,m:Object.assign({id:f.id,b:{}},f.m||{k:f.k}),t:now});if(FP.dead.length>40)FP.dead.shift();if(adj){FP.slash=now;RD.shake=7;FP.fxl.push({k:'blood',i:f.p,w:0,t:now,big:1});}}
+    else if(f.t==='hit'){if(f.id!=null)FP.hit[f.id]=now;FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now});}
+    else if(f.t==='txt')FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now,dur:f.dur||900});
+    else if(f.t==='blood')FP.fxl.push({k:'blood',i:f.p,w:f.w,t:now});
+    else if(f.t==='beam')FP.fxl.push({k:'beam',a:f.a,b:f.b,c:f.c||'#ffe9a0',t:now});
+    else if(f.t==='boom'){FP.fxl.push({k:'boom',i:f.p,c:f.c||'#ff9a3c',r:f.r||1,t:now});RD.shake=Math.min(8,(RD.shake||0)+(f.r||1)*2);}}
+  if(FP.fxl.length>60)FP.fxl.splice(0,FP.fxl.length-60);
   const hx=X(h.pos)+.5,hy=Y(h.pos)+.5,dt=Math.min(.05,(now-(FP.last||now))/1000);FP.last=now;
   if(!FP.init||Math.hypot(FP.x-hx,FP.y-hy)>2.5){FP.x=hx;FP.y=hy;FP.ang=FP.dir*Math.PI/2;FP.init=true;}
   const k=Math.min(1,dt*12),mv=Math.hypot(hx-FP.x,hy-FP.y);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;if(mv>.02)FP.bob+=dt*12;
@@ -3685,21 +3709,22 @@ function fpFrame(now){
   const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
   if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);FP.sd=new Float32Array(RW);FP.st=new Float32Array(RW);}
   const shk=(RD.shake||0)>0?(Math.random()-.5)*RD.shake:0;RD.shake=Math.max(0,(RD.shake||0)-dt*20);
-  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46+shk),fov=FP.set.fov==='wide'?.85:.72,U=RW/(2*fov),out=!!L.street;
+  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46+shk),fov={narrow:.58,normal:.72,wide:.85,ultra:1.0}[FP.set.fov]||.72,U=RW/(2*fov),out=!!L.street;
   const dx=Math.sin(FP.ang),dy=-Math.cos(FP.ang),px=-dy*fov,py=dx*fov;
   const shadeOf=(i,dist)=>{if(!L.seen[i])return 0;let s=L.vis&&L.vis[i]?1:.4;return s/(1+dist*dist*.03);};
   const faces=fpFaceList(L),pulse=t=>.78+.22*Math.sin(now/260+t);
+  let OUT=null;if(out){if(FP.outL!==L){const o=new Uint8Array(N),q=[];for(let i=0;i<N;i++)if(L.road&&Y(i)>=L.road[0]&&Y(i)<=L.road[1]&&!wallish(L,i)){o[i]=1;q.push(i);}
+      while(q.length){const c=q.pop();for(const d of [1,-1,W,-W]){const j=c+d;if(j<0||j>=N||o[j]||Math.abs(X(j)-X(c))>1)continue;if(wallish(L,j)||L.map[j]===T.DOOR)continue;o[j]=1;q.push(j);}}FP.outL=L;FP.out=o;}OUT=FP.out;}
+  if(!FP.SK||FP.SK.length!==RW){FP.SK=new Float32Array(RW);FP.BH=new Float32Array(RW);}const SK=FP.SK,BH=FP.BH;
+  for(let x=0;x<RW;x++){const a=FP.ang+(x/RW-.5)*fov*1.6;SK[x]=((Math.sin(a*37.1)*43758.5)%1+1)%1;BH[x]=horizon-(8+((Math.sin(a*11.3)*9137.2)%1+1)%1*34);}
   for(let y=0;y<RH;y++){
     const floor=y>horizon,p=floor?(y-horizon):(horizon-y),o0=y*RW*4;if(p===0)continue;
-    if(!floor&&out){ // open sky outside: gradient, stars, skyline glow
-      const f=y/horizon;for(let x=0,o=o0;x<RW;x++,o+=4){const a=FP.ang+(x/RW-.5)*fov*1.6,sk=((Math.sin(a*37.1)*43758.5)%1+1)%1,bh=horizon-(8+((Math.sin(a*11.3)*9137.2)%1+1)%1*34);
-        let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;if(((x*7+y*13)%23===0)&&sk>.4){r=255;gg=210;b=120;}}else if(sk>.985&&y<horizon*.6&&(x+y)%5===0){r=gg=b=200;}
-        D[o]=r;D[o+1]=gg;D[o+2]=b;D[o+3]=255;}continue;}
     const dist=(U*.5)/p,rx0=dx-px,ry0=dy-py,rx1=dx+px,ry1=dy+py,sx=dist*(rx1-rx0)/RW,sy=dist*(ry1-ry0)/RW;let fx_=FP.x+dist*rx0,fy_=FP.y+dist*ry0;
     for(let x=0,o=o0;x<RW;x++,fx_+=sx,fy_+=sy,o+=4){const tx=Math.floor(fx_),ty=Math.floor(fy_);
       if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
       const i=ty*W+tx,s=shadeOf(i,dist),u=((fx_-tx)*16)|0,v=((fy_-ty)*16)|0;
       if(floor){const m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
+      else if(out&&OUT&&OUT[i]){const f=y/horizon,sk=SK[x],bh=BH[x];let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;if(((x*7+y*13)%23===0)&&sk>.4){r=255;gg=210;b=120;}}else if(sk>.985&&y<horizon*.6&&(x+y)%5===0){r=gg=b=200;}D[o]=r;D[o+1]=gg;D[o+2]=b;}
       else{let r=22,gg=20,b=30;if(u===0||v===0){r=12;gg=11;b=18;}if(L.map[i]===T.SKY){r=14;gg=12;b=40;}else if((tx*3+ty*5)%7===0&&u>3&&u<12&&v>5&&v<10){r=150;gg=230;b=235;}else if((tx+ty)%11===0&&u>5&&u<10&&v>5&&v<10){r=255;gg=190;b=120;}
         const sc=Math.max(s,.18);D[o]=r*sc+3;D[o+1]=gg*sc+3;D[o+2]=b*sc+5;}
       D[o+3]=255;}
@@ -3713,21 +3738,26 @@ function fpFrame(now){
     if(ry<0){sty=-1;sdy=(FP.y-my)*ddy;}else{sty=1;sdy=(my+1-FP.y)*ddy;}
     FP.sd[x]=1e9;
     for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;
-      if(fpSolid(L,i)){hit=i;break;}
-      if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh};}}}
+      if(fpSolid(L,i)||fpIsElev(L,i)){hit=i;break;}
+      if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh,pout:Math.min(sdx,sdy),rx,ry};}}}
     if(slab){slabs.push([x,slab]);FP.sd[x]=slab.pd;}
     if(hit<0){FP.z[x]=1e9;continue;}
     const pd=side===0?(sdx-ddx):(sdy-ddy),lh=Math.round(U/pd);FP.z[x]=pd;
     let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);let tu=(wx*16)|0;if((side===0&&rx>0)||(side===1&&ry<0))tu=15-tu;
     const t=L.map[hit];let tex=null,src=hit;
-    if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();
+    let etex=null;if(fpIsElev(L,hit))etex=fpElevData(L.map[hit]===T.EXITL?'lock':hit===L.entry&&G.depth>0?'down':'up');
+    const pr=L.props&&L.props[hit],wart=pr&&(pr.k==='cam'||pr.k==='scr')&&side===1&&ry<0?fpPropSprite(pr,hit,now):null,wd=wart?(wart._d||(wart._d=wart.getContext('2d').getImageData(0,0,16,16).data)):null;
+    if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();
     else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
     const s=shadeOf(hit,pd)*(side?0.8:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
-      if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
+      if(etex){const q=((Math.min(23,(tv*1.5)|0))*16+tu)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
+      if(wd){let sv=tv,su=tu;if(pr.k==='cam'){if(tu<3||tu>12||tv>9)sv=99;else{su=5+((tu-3)*.62|0);sv=10+(tv*.62|0);}}if(sv<16){const q=(sv*16+su)*4;if(wd[q+3]>8){r=wd[q];gg=wd[q+1];b=wd[q+2];}}}
       D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
   }
-  for(const [x,sl] of slabs){if(sl.pd>=FP.z[x])continue;const lh=U/sl.pd,bot=horizon+lh/2,top=bot-lh*sl.h,y0=Math.max(0,Math.round(top)),y1=Math.min(RH-1,Math.round(bot));FP.st[x]=top;
+  for(const [x,sl] of slabs){if(sl.pd>=FP.z[x])continue;const lh=U/sl.pd,bot=horizon+lh/2,top=bot-lh*sl.h,y0=Math.max(0,Math.round(top)),y1=Math.min(RH-1,Math.round(bot));
+    {const farTop=horizon+(U/Math.min(sl.pout,FP.z[x]))*(.5-sl.h),ty0=Math.max(0,Math.round(farTop));FP.st[x]=Math.min(top,farTop);const hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
+     for(let y=ty0;y<y0&&y<RH;y++){const dd=U*(.5-sl.h)/Math.max(.5,(y-horizon)),wx=FP.x+sl.rx*dd,wy=FP.y+sl.ry*dd,tu=Math.min(15,Math.max(0,((wx-Math.floor(wx))*16)|0)),tvv=Math.min(5,Math.max(0,((wy-Math.floor(wy))*6)|0)),m=((hy0+tvv)*MW+hx0+tu)*4,o=(y*RW+x)*4,s2=shadeOf(sl.i,dd)*1.1;D[o]=Math.min(255,M[m]*s2);D[o+1]=Math.min(255,M[m+1]*s2);D[o+2]=Math.min(255,M[m+2]*s2);D[o+3]=255;}}
     const s=shadeOf(sl.i,sl.pd)*(sl.side?.8:1),hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-top)/(bot-top))*12+2)|0)),m=((hy0+tv)*MW+hx0+Math.min(15,sl.u))*4,o=(y*RW+x)*4;const edge=y-y0<1?1.35:1;D[o]=Math.min(255,M[m]*s*edge);D[o+1]=Math.min(255,M[m+1]*s*edge);D[o+2]=Math.min(255,M[m+2]*s*edge);D[o+3]=255;}}
   FP.buf.getContext('2d').putImageData(FP.img,0,0);
@@ -3737,7 +3767,13 @@ function fpFrame(now){
   for(const e of L.items)if(e.pos>=0&&L.vis[e.pos]&&!mobAt(e.pos))list.push({ex:X(e.pos)+.5,ey:Y(e.pos)+.5,kind:'item',o:e,i:e.pos});
   for(const d of FP.dead)if(L.seen[d.i])list.push({ex:d.x,ey:d.y,kind:'dead',o:d,i:d.i});
   if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'tube',o:n,i});});
-  for(const i of [L.exit,L.entry])if(i!=null&&i>=0&&L.seen[i]&&i!==h.pos&&L.map[i]!==T.WALL)list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'elev',o:L.map[i]===T.EXITL?'lock':i===L.entry?'down':'up',i});
+  {const x0=Math.max(0,Math.floor(FP.x)-14),x1=Math.min(W-1,Math.floor(FP.x)+14),y0=Math.max(0,Math.floor(FP.y)-14),y1=Math.min(H-1,Math.floor(FP.y)+14);
+   for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++){const i=yy*W+xx;if(!L.seen[i])continue;const p=L.props&&L.props[i];
+     if(p&&(p.b||p.k==='cam')&&p.k!=='tube'&&p.k!=='scr'&&!wallish(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'prop',o:p,i});
+     else if(!p&&fpDecorTile(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'decor',o:L.map[i],i});}}
+  if(L.street&&L.road){const S=RD.S,span=W*16*S,lanes=[['bike',L.road[0],96,0,70],['sedan',L.road[0],118,23000,70],['trike',L.road[1],44,11000,110],['hover',L.road[1],76,33000,110]];
+    for(const [key,row,sp,ofs,fd] of lanes){const xpx=((now*sp*S/1000+ofs)%(span+72*S))-36*S,ex=xpx/(16*S)+1.25,ey=row+.45;list.push({ex,ey,kind:'veh',o:{key,fr:Math.floor(now/fd)%4},i:idx(Math.max(0,Math.min(W-1,Math.floor(ex))),row)});
+      if(Y(h.pos)===row&&Math.abs(ex-(X(h.pos)+.5))<1.1&&typeof carHit==='function')carHit(1);}}
   for(const b of list){const rx=b.ex-FP.x,ry=b.ey-FP.y;b.tx=inv*(dy*rx-dx*ry);b.ty=inv*(-py*rx+px*ry);}
   list.sort((a,b)=>b.ty-a.ty);
   const fr=(now/420|0)&1;
@@ -3746,14 +3782,17 @@ function fpFrame(now){
     else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.38;hH=unit*.38;yb=floorY+Math.sin(now/350+b.i)*unit*.015;}
     else if(b.kind==='dead'){const d=b.o,a=Math.min(1,(now-d.t)/420),[sc]=fpScale(d.m);img=mobSprite(d.m,0);wW=unit*sc*1.05;hH=unit*sc*1.05*(1-.78*a);if(a<1)tint=a<.3?1:0;}
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
-    else if(b.kind==='elev'){img=fpElevCv(b.o);wW=unit*.98;hH=unit*1.0;}
-    const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH)),iw=img.width,ih=img.height;
+    else if(b.kind==='decor'){img=fpDecorSprite(L,b.i);const hh=FP_DH[b.o]||.5;wW=unit*.95;hH=unit*hh;}
+    else if(b.kind==='prop'){img=fpPropSprite(b.o,b.i,now);const hh=FP_PH[b.o.k]||.55;wW=unit*.95;hH=unit*hh;if(b.o.k==='cam'){hH=unit*.35;yb=floorY-unit*.68;}}
+    else if(b.kind==='veh'){img=vehSprite(b.o.key,b.o.fr);wW=unit*2.5;hH=unit*1.25;}
+    let sx0=0,sy0=0,iw=img.width,ih=img.height;if(b.kind==='decor'||b.kind==='prop'){const bb=fpCut(img);sx0=bb[0];sy0=bb[1];iw=bb[2];ih=bb[3];wW=Math.min(wW,unit*.95*iw/12+unit*.1);}
+    const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH));
     if(w>RW*3||hgt>RH*3)continue;
     if(!FP.tmp||FP.tmp.width<w||FP.tmp.height<hgt){FP.tmp=cvs(Math.max(w,64),Math.max(hgt,64));}
     const tg=FP.tmp.getContext('2d');tg.imageSmoothingEnabled=false;tg.globalCompositeOperation='source-over';tg.globalAlpha=1;tg.clearRect(0,0,w,hgt);let any=false;
     for(let x=Math.max(0,x0);x<Math.min(RW,x0+w);x++){if(FP.z[x]<b.ty)continue;const u=Math.floor((x-x0)/w*iw);
       let clip=hgt;if(FP.sd[x]<b.ty){clip=Math.max(0,Math.min(hgt,Math.round(FP.st[x]-y0)));}if(clip<=0)continue;
-      tg.drawImage(img,u,0,1,ih*clip/hgt,x-x0,0,1,clip);any=true;}
+      tg.drawImage(img,sx0+u,sy0,1,ih*clip/hgt,x-x0,0,1,clip);any=true;}
     if(!any)continue;
     const over=(c,a)=>{tg.globalAlpha=a;tg.globalCompositeOperation='source-atop';tg.fillStyle=c;tg.fillRect(0,0,w,hgt);tg.globalCompositeOperation='source-over';tg.globalAlpha=1;};
     if(b.kind==='dead')over('#200008',.35);
@@ -3764,6 +3803,15 @@ function fpFrame(now){
   }
   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.imageSmoothingEnabled=false;g.fillStyle='#040407';g.fillRect(0,0,RD.w,RD.h);g.drawImage(FP.buf,0,0,RW,RH,0,0,RD.w,RD.h);
   const W2=RD.w,H2=RD.h,u=Math.max(1,Math.round(W2/RW));
+  {const sxs=W2/RW,sys=H2/RH,proj=(ex,ey,hh)=>{const rx=ex-FP.x,ry=ey-FP.y,tx=inv*(dy*rx-dx*ry),ty=inv*(-py*rx+px*ry);if(ty<=.15)return null;const bx=RW/2*(1+tx/ty);if(bx<0||bx>=RW||FP.z[bx|0]<ty-.3)return null;return [bx*sxs,(horizon+(U/ty)*(.5-hh))*sys,U/ty*sys,ty];};
+   FP.fxl=FP.fxl.filter(e=>{const a=now-e.t;g.save();
+     if(e.k==='num'){const du=e.dur||800;if(a>du){g.restore();return false;}const p=proj(X(e.i)+.5,Y(e.i)+.5,.95);if(p){g.globalAlpha=a>du*.7?1-(a-du*.7)/(du*.3):1;g.font=`bold ${Math.max(10,Math.round(p[2]*.16))}px ui-monospace,monospace`;g.textAlign='center';g.fillStyle='#000';g.fillText(e.s,p[0]+2,p[1]-a*.04+2);g.fillStyle=e.c||'#fff';g.fillText(e.s,p[0],p[1]-a*.04);}}
+     else if(e.k==='blood'){const du=e.big?700:450;if(a>du){g.restore();return false;}const p=proj(X(e.i)+.5,Y(e.i)+.5,.55);if(p){const n=e.big?22:10,sc=p[2]*.012;for(let q=0;q<n;q++){const an=q*2.399+e.i,sp=(.6+(q%5)*.25)*sc*(e.big?1.6:1),t=a/1000,x=p[0]+Math.cos(an)*sp*t*90,y=p[1]+Math.sin(an)*sp*t*60+t*t*p[2]*.9;g.globalAlpha=1-a/du;g.fillStyle=e.w?'#e8eef4':q%3?'#c8102e':'#ff3b4e';const z=Math.max(2,sc*3);g.fillRect(x,y,z,z);}}}
+     else if(e.k==='beam'){if(a>180){g.restore();return false;}const h0=G.hero.pos,src=e.a===h0?[W2*.55,H2*.72]:(()=>{const q=proj(X(e.a)+.5,Y(e.a)+.5,.55);return q?[q[0],q[1]]:null;})(),dst=e.b===h0?[W2*.5,H2*.62]:(()=>{const q=proj(X(e.b)+.5,Y(e.b)+.5,.55);return q?[q[0],q[1]]:null;})();
+       if(src&&dst){g.globalAlpha=1-a/180;g.strokeStyle=e.c;g.lineWidth=3*u;g.shadowColor=e.c;g.shadowBlur=10*u;g.beginPath();g.moveTo(src[0],src[1]);g.lineTo(dst[0],dst[1]);g.stroke();g.lineWidth=u;g.strokeStyle='#fff';g.stroke();}
+       if(e.b===h0&&a<120){g.globalAlpha=.35*(1-a/120);g.fillStyle=e.c;g.fillRect(0,0,W2,H2);}}
+     else if(e.k==='boom'){if(a>500){g.restore();return false;}const p=proj(X(e.i)+.5,Y(e.i)+.5,.3);if(p){const rr_=p[2]*.5*e.r*(.3+a/500);g.globalAlpha=1-a/500;g.fillStyle=e.c;g.shadowColor=e.c;g.shadowBlur=20*u;g.beginPath();g.arc(p[0],p[1],rr_,0,7);g.fill();g.fillStyle='#fff6d0';g.beginPath();g.arc(p[0],p[1],rr_*.45,0,7);g.fill();}}
+     g.restore();return true;});}
   fpHands(g,W2,H2,u,now);
   if(now-FP.slash<260){const a=1-(now-FP.slash)/260;g.save();g.globalAlpha=a;g.strokeStyle='#ff2a3a';g.lineWidth=6*u;g.shadowColor='#ff2a3a';g.shadowBlur=14*u;g.beginPath();g.moveTo(W2*.25,H2*.3);g.lineTo(W2*.75,H2*.62);g.stroke();g.lineWidth=2*u;g.strokeStyle='#ffd0d6';g.stroke();g.restore();}
   if(FP.flash>.02){g.globalAlpha=FP.flash*.45;g.fillStyle='#ff2040';g.fillRect(0,0,W2,H2);g.globalAlpha=1;}
@@ -3817,7 +3865,7 @@ function fpBuildUI(host,b){
 #fpSet small{display:block;color:#789;margin-top:8px}`;document.head.appendChild(css);
   const gear=document.createElement('button');gear.id='fpGear';gear.type='button';gear.textContent='⚙';gear.setAttribute('aria-label','First-person settings');host.appendChild(gear);
   const pan=document.createElement('div');pan.id='fpSet';document.body.appendChild(pan);
-  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','View',[['normal','Normal'],['wide','Wide']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]],['padSize','Pad size',[['s','S'],['m','M'],['l','L']]],['padAlpha','Pad opacity',[['low','Low'],['mid','Mid'],['high','Full']]],['compass','Compass',[[true,'On'],[false,'Off']]],['compSize','Compass size',[['s','S'],['m','M'],['l','L']]]];
+  const opts=[['ctl','Controls',[['tap','Tap'],['dpad','D-pad'],['both','Both']]],['side','D-pad side',[['left','Left'],['right','Right']]],['fov','Field of view',[['narrow','70°'],['normal','85°'],['wide','100°'],['ultra','115°']]],['hints','Hint arrows',[[true,'On'],[false,'Off']]],['padSize','Pad size',[['s','S'],['m','M'],['l','L']]],['padAlpha','Pad opacity',[['low','Low'],['mid','Mid'],['high','Full']]],['compass','Compass',[[true,'On'],[false,'Off']]],['compSize','Compass size',[['s','S'],['m','M'],['l','L']]]];
   const draw=()=>{pan.innerHTML='<h4>FIRST-PERSON</h4>'+opts.map(([k,l,vs])=>`<div class="r"><span>${l}</span><span class="seg">${vs.map(([v,t])=>`<button type="button" data-k="${k}" data-v="${v}" class="${FP.set[k]===v?'on':''}">${t}</button>`).join('')}</span></div>`).join('')+'<div class="r"><span>Pad position</span><span class="seg"><button type="button" data-act="move">Move</button><button type="button" data-act="reset">Reset</button></span></div><small>Tap: middle = step, sides = turn, swipe works too. D-pad: ▲▼ step (hold to walk), ◀▶ turn, «» sidestep, ● wait. Move: drag the pad, then tap Done.</small>';};
   pan.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;e.stopPropagation();
     if(t.dataset.act==='move'){FP.edit=true;pan.style.display='none';fpUI();return;}if(t.dataset.act==='reset'){FP.set.padPos=null;fpSave();fpUI();return;}
@@ -3921,6 +3969,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.31','FIRST PERSON, ROUND THREE: Elevators are built into the wall — walk into the doors to ride. Crates, safes, vaults, consoles, terminals, pods and lockers are drawn as real objects instead of flat purple slabs. Wall cameras and screens show up in first person. Traffic runs on the street. Shops and the tower lobby have ceilings; only the open street gets sky. Field of view has four settings (70° to 115°). Guns point forward in both hands. Hits show damage numbers, blood, tracers and blasts; finishers spray harder. SHOPS: vendors keep their stock on the stand — buy from the menu, nothing scattered on the floor. Fixers no longer sell implants; the ripperdoc does. Every implant you buy gets installed on the table, with the surgery cutscene. Fixed: creds could show NaN.'],
  ['v0.30','FIRST PERSON, ROUND TWO: Walls use the same art as the map: bookshelves, screens, pipes, windows. Neon and screen pixels pulse, so displays feel alive again. Counters and other low furniture are waist-high, so you see over them. Lockers and pillars stay tall. Outside you get an open night sky with a skyline. Inside there\'s a real ceiling with light panels. The elevator is back as an actual elevator door: green when open, red when locked, amber for the way down. Everyone is sized properly: drones and the courier bot are small and float, cats and crabs are tiny, bosses tower over you. You have hands and your weapon on screen, with a swing or recoil kick and a muzzle flash. Enemies flash white when hit, then crumple into a dark body on the floor. Close kills get a red finisher slash and a screen shake. The dark boxes around objects and the old animations replaying when you switch back are fixed. A new neon compass shows the elevator, enemies, allies and NPCs (on/off and size in ⚙). The crosshair is gone: a red chevron shows only when a hostile is right in front of you. Walking forward into a friendly person swaps places. You talk by tapping them, and you look out a window by tapping it. The button reads EXIT 1ST while you\'re in first person. The settings panel no longer hides behind the D-pad. · Doc Sato talks to you in a real dialogue box after the mirror, with choices (who you are now, what you owe, the tower, or say nothing), then gives you his number. · Hand companions a weapon and armor from their panel (GEAR). It adds to their damage and armor and barely wears out. · Hurt companions call out ("I\'m hit bad!") so you can save them. · Survivors come out of real doors or sleeping capsules, never out of walls. · You can no longer talk to a bartender or vendor through a wall, only across a counter. · The general store splits into stalls: a fenced Ripper stall with his chair, and a separate store side with the goods. · The sector 1 wall pieces that looked like brown doors are now actual service pipes, and the rest are labelled as apartment windows. · Drinks hit harder: a stronger sway, blur and colour drift, lasting about a minute. · Tube dancers can be inspected (tap the tube, or analyze it). The tube base is one seamless neon stripe. · Sentinel Edge redrawn: a clean hooked blade, black grip and red edge, with no stray bump.'],
  ['v0.29','FIXES: First person now works everywhere, including the street where the game starts. · The ramen bowl no longer slides anywhere. The noodle stand has a set layout: a glass food case, bowls at the seats, a register, two burners with steam behind the counter, and a fridge. Plain counters no longer show food. · Captain Reyes knows an ex-cop when she sees one ("Oh thank god — you used to be a badge"), and her dialog no longer shows her name. · NOT IN MY HOUSE (and the bartender\'s shotgun line) only happens when you can see it. · Contacts show the real name, number and "Met on MT: Level X", and the old [object Object] entries are cleaned out. · Saved residents walk to the elevator and leave instead of standing still. · Survivor quips use their real name and stay on screen longer. · Random names no longer use Sato or Reyes. · Vendor and bartender dialogs show the same name as the tag over their head. · The security terminal shows only the console code, with no news on top. · The Mayor\'s ending line clears before the choice screen. · Cameras only spot you from the side of the wall they face. · Spotted: walking stops once when a new hostile appears and marks it with "!". Tap again and you keep moving, at the Combat Speed setting, which now works. · Helix guards come in through doors instead of appearing from nowhere. · Street NPCs never stand in the road. · NEW: You start with 300 creds. Ripper implant upgrades give +2. The minigun gets +5 shots per upgrade level. The Gunner starts with a Needler SMG +1 (self-charging and upgradable) instead of the tech pistol. · Saved residents now react in one of four ways. Most give you their number and head for the elevator. Some panic and bolt (still karma). Some ask to join. Rarely, one owes you and turns up once, later, when a fight goes bad. · Doc Sato pauses ("…") before he talks. · Chef Okabe has a real conversation: a first-visit line (he spots Sato\'s work, or an ex-cop), returning lines that change with your karma, a free bowl at high karma, Reyes eating there every night, free deliveries, a "…" option, and +1 karma the first time you buy a bowl.'],
  ['v0.28b','D-pad settings: Pad size (S, M or L) and Pad opacity (Low, Mid or Full). Pad position: tap Move, drag the pad anywhere on screen, then tap Done. Reset puts it back in the corner. Settings are remembered between sessions.'],
@@ -4005,7 +4054,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.30 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.31 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4570,7 +4619,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
 // tap support
 {const _tk=tapKind;tapKind=function(i){const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.seen[i])return 'use';return _tk.apply(this,arguments);};}
 // ---------- drawing
-{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||!G||!G.L||!G.L.props)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||!G.L.props)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
   for(const k in L.props){const i=+k,p=L.props[k];if(!L.seen[i])continue;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-TS||py<-TS||px>RD.w||py>RD.h)continue;g.globalAlpha=L.vis[i]?1:.45;
     const B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(px+x*S,py+y*S,w*S,h*S);},bl=Math.floor(now/400+i)%2;
     if(p.k==='crate'){const tc=['#8c96a2','#39ff7a','#ffab2e','#ff3b4e'][Math.max(0,Math.min(3,(p.t||1)-1))];B(1,13,14,2,'rgba(0,0,0,.45)');
@@ -4812,7 +4861,7 @@ const VOSS_CAM=['"I see you."','"Every floor you clear, I watch the replay."','"
   for(const k in L.props){const p=L.props[k],i=+k;if(!L.seen[i]||p.open||p.k==='scr'||p.k==='bench'||p.k==='kiosk')continue;g.fillStyle=p.k==='cam'?(p.off?'#444':'#ff3b4e'):p.k==='vault'?SEC_COL[p.s]:p.k==='sec'?'#3fe8ff':'#ffab2e';g.fillRect(X(i)*s,Y(i)*s,Math.max(2,s),Math.max(2,s));}
   for(const d of (L.secDoors||[]))if(L.seen[d]&&L.map[d]===T.LOCKED){g.fillStyle='#ff3b4e';g.fillRect(X(d)*s-1,Y(d)*s-1,Math.max(3,s+2),Math.max(3,s+2));}}catch(e){}};}
 // ---- overlays: steam, cop lights, tape, benches, kiosk, bar grates, LED glass rims
-{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||!G||!G.L)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
   const at=(i,fn)=>{if(!L.seen[i])return;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-TS||py<-TS||px>RD.w||py>RD.h)return;g.globalAlpha=L.vis[i]?1:.45;fn(px,py,(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(px+x*S,py+y*S,w*S,h*S);});g.globalAlpha=1;};
   for(const i of (L.steam||[]))at(i,(px,py,B)=>{const occ=i===G.hero.pos||L.mobs.some(m=>m.pos===i);if(!occ){B(3,9,10,5,'#1a1c20');B(4,10,8,3,'#2a2e36');for(let x=4;x<12;x+=2)B(x,11,1,1,'#14161a');}for(let n=0;n<3;n++){const ph=((now/1400)+n/3+i*.13)%1;g.globalAlpha=(1-ph)*.35*(L.vis[i]?1:.4);g.fillStyle='#d8e0e8';g.beginPath();g.arc(px+(8+Math.sin(ph*6+n)*3)*S,py+(7-ph*14)*S,(2+ph*4)*S,0,7);g.fill();}});
   for(const i of (L.cops0||[]))at(i,(px,py,B)=>{const ph=Math.floor(now/220)%2;B(5,4,6,1,ph?'#ff2a3a':'#2a6aff');B(4,4,1,1,ph?'#2a6aff':'#ff2a3a');B(11,4,1,1,ph?'#ff2a3a':'#2a6aff');g.globalAlpha=.18;g.fillStyle=ph?'#ff2a3a':'#2a6aff';g.beginPath();g.arc(px+8*S,py+5*S,9*S,0,7);g.fill();g.globalAlpha=1;B(3,9,10,1,'#e8eef4');});
@@ -4903,7 +4952,7 @@ function drawTape(g,S,TS,L,now){for(const [x0,y,x1] of L.tape){const px0=RD.ox+x
   const stp=10*S;for(let x=0;x<w;x+=stp*3){g.fillRect(px0+x,py-3*S,stp*.35,4*S);}g.save();g.beginPath();g.rect(px0,py-3*S,w,4*S);g.clip();g.font=`${Math.round(3.6*S)}px 'Press Start 2P',monospace`;g.textBaseline='middle';g.fillStyle='#14161a';
   const msg='POLICE LINE · DO NOT CROSS · CAUTION · ',mw=g.measureText(msg).width,off=(now/40)%mw;for(let x=-off;x<w;x+=mw)g.fillText(msg,px0+x,py-1*S);g.restore();g.globalAlpha=1;}}
 window.drawTape=drawTape;
-{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||!G||!G.L||G.depth!==0)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||G.depth!==0)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
   // cruisers (2 tiles wide, side view)
   for(const k in (L.props||{})){const p=L.props[k];if(p.k!=='cruiser'||p.part!==0||!L.seen[+k])continue;const px=RD.ox+X(+k)*TS,py=RD.oy+Y(+k)*TS,B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(px+x*S,py+y*S,w*S,h*S);},ph=Math.floor(now/200)%2;
     B(1,13,30,2,'rgba(0,0,0,.45)');B(2,6,28,6,'#e8eef4');B(1,8,30,4,'#14161a');B(1,9,30,2,'#22386a');B(8,3,15,4,'#e8eef4');B(10,4,5,2,'#5a8ab0');B(16,4,5,2,'#5a8ab0');B(15,4,1,2,'#e8eef4');
@@ -6103,6 +6152,99 @@ ICON2.s_edge=function(R){
 {const _dh2=drawHeld;drawHeld=function(R,k,o,f,c){
   if(k==='s_edge'){R(12,10+o,2,2,'#1a1c22');R(12,11+o,1,1,'#ff2a3a');R(11,9+o,4,1,'#5a626e');R(13,3+o,1,6,'#c8d0d8');R(14,4+o,1,5,'#ffffff');R(12,2+o,2,1,'#e8eef4');R(11,3+o,1,1,'#a7b0bb');R(12,9+o,1,1,'#1a1c22');R(15,5+o,1,3,'rgba(255,42,58,.45)');return;}
   return _dh2.apply(this,arguments);};}
+// ---------- v0.31 tail
+// prop art as a standalone 16x16 sprite (first-person cutouts reuse the top-down art)
+function propArt(p,i,now){const c=cvs(16,16),g0=c.getContext('2d'),L=G.L;
+  const g={set globalAlpha(v){g0.globalAlpha=v;},get globalAlpha(){return g0.globalAlpha;}};
+  const B=(x,y,w,h,col)=>{g0.fillStyle=col;g0.fillRect(x,y,w,h);},bl=Math.floor(now/400+i)%2;
+  try{
+    if(p.k==='crate'){const tc=['#8c96a2','#39ff7a','#ffab2e','#ff3b4e'][Math.max(0,Math.min(3,(p.t||1)-1))];B(1,13,14,2,'rgba(0,0,0,.45)');
+      if(p.hz){B(1,5,14,9,'#14161a');for(let x=0;x<14;x+=3)B(1+x,6,2,7,'#e8c020');B(1,5,14,1,'#2a2e36');B(1,13,14,1,'#0a0b0e');B(6,8,4,3,'#2a2e36');B(7,9,2,1,p.open?'#333':bl?'#ff3b4e':'#5a1a1a');}
+      else{B(1,5,14,9,'#2e343e');B(1,5,14,1,'#5a6472');B(1,13,14,1,'#14161a');B(1,5,1,9,'#4a525e');B(14,5,1,9,'#1a1e26');B(1,8,14,2,tc);B(1,8,14,1,shade(tc,.3));B(3,11,1,1,'#c8d0d8');B(5,11,1,1,'#c8d0d8');B(7,11,2,1,'#c8d0d8');B(10,11,1,1,'#c8d0d8');B(2,6,1,1,'#8c96a2');B(13,6,1,1,'#8c96a2');B(2,12,1,1,'#8c96a2');B(13,12,1,1,'#8c96a2');B(12,6,1,1,p.open?'#333':bl?tc:'#14161a');}
+      if(p.open){B(1,2,14,3,'#3a414c');B(2,5,12,2,'#05060a');g.globalAlpha*=.5;B(3,4,10,1,tc);g.globalAlpha=1;}}
+    else if(p.k==='scr'){const t=now/1000,w=p.w||1,j=p.j||0;B(0,2,16,13,'#0a0c10');B(0,2,16,1,'#5a6472');B(0,14,16,1,'#5a6472');if(j===0)B(0,2,1,13,'#5a6472');if(j===w-1)B(15,2,1,13,'#5a6472');
+      const unl=Object.values(L.props).some(q=>q.k==='sec'&&q.unl);
+      for(let y=3;y<14;y++)for(let x=(j===0?1:0);x<(j===w-1?15:16);x++){const gx=j*16+x,v=Math.sin(gx*.35+t*1.6)+Math.cos(y*.7-t*1.1);if(unl){if(((gx>>3)+(y>>2))%5===0&&v>.2)B(x,y,1,1,'#ff3b4e');else if(v>1.1)B(x,y,1,1,'#3fe8ff');else if((gx+y+Math.floor(t*6))%11===0)B(x,y,1,1,'#1a6a7a');}else if((gx*7+y*3+Math.floor(t*3))%23===0)B(x,y,1,1,'#123040');}
+      if(unl&&j===Math.floor(w/2)){B(5,6,6,4,'rgba(255,59,78,.25)');B(7,7,2,2,'#ff3b4e');}B(0,8,16,1,'rgba(0,0,0,.35)');}
+    else if(p.k==='sec'){B(0,7,16,7,'#20242c');B(0,7,16,1,'#5a6472');B(1,9,14,3,'#14161a');for(let x=2;x<14;x+=2)B(x,10,1,1,bl&&x%4?'#3fe8ff':'#3a404a');B(3,3,4,4,'#0a1a24');B(9,3,4,4,'#0a1a24');B(4,4,2,2,p.unl?'#39ff7a':bl?'#ff3b4e':'#5a1a1a');B(10,4,2,2,p.unl?'#3fe8ff':'#123040');B(5,7,1,1,'#3a404a');B(11,7,1,1,'#3a404a');}
+    else if(p.k==='lock'){B(3,8,10,6,'#3a3f48');B(3,8,10,1,'#6a727e');B(7,10,2,2,p.open?'#555':bl?'#3fe8ff':'#1a5a6a');}
+    else if(p.k==='safe'){B(2,3,12,11,'#2a2e36');B(3,4,10,9,p.open?'#0a0b0e':'#3a404a');if(!p.open){B(9,6,3,4,'#14161a');B(10,7,1,1,bl?'#39ff7a':'#1a5a2a');B(4,7,3,3,'#8c96a2');}}
+    else if(p.k==='vault'){const c=SEC_COL[p.s];B(1,1,14,14,'#1a1d24');B(2,2,12,12,p.open?'#050608':'#3a404a');if(!p.open){B(6,6,4,4,'#8c96a2');B(7,7,2,2,'#2a2e36');B(3,3,10,1,c);}B(12,13,2,1,p.dead?'#ff3b4e':bl?c:'#222');}
+    else if(p.k==='cam'){B(5,10,6,3,p.broke?'#0e0f12':'#1a1c22');B(6,12,4,2,'#3a3f48');B(7,13,1,1,p.off?'#333':bl?'#ff3b4e':'#5a1a1a');B(6,14,4,2,'#20242c');B(6,14,1,1,'#5a6472');B(8,14,1,1,'#5a6472');B(7,15,1,1,'#5a6472');B(9,15,1,1,'#5a6472');if(p.broke&&Math.floor(now/300+i)%7===0)B(9,12,1,1,'#7ae0ff');if(L.paCam===i&&now-(L.paT||0)<2500){B(11,14,1,1,'#ffe14a');B(12,13,1,3,'rgba(255,225,74,.5)');}}
+    else if(p.k==='bench'){B(1,8,14,3,'#5a4030');B(1,8,14,1,'#7a5a40');B(2,11,2,3,'#2a2e36');B(12,11,2,3,'#2a2e36');B(1,5,14,2,'#4a3428');}
+    else if(p.k==='kiosk'){B(5,3,6,11,'#20242c');B(6,4,4,5,(Math.floor(now/600)%2)?'#3fe8ff':'#1a6a7a');B(6,10,4,1,'#ff3b4e');B(4,13,8,2,'#14161a');}
+    else if(p.k==='cruiser'){B(0,6,16,7,'#1a1c24');B(1,5,14,2,'#e8eef4');B(3,3,10,3,'#20242c');B(4,4,8,1,'#5a8ab0');B(5,2,6,1,bl?'#ff2a3a':'#2a6aff');B(1,12,3,3,'#0a0b0e');B(12,12,3,3,'#0a0b0e');}
+  }catch(e){}
+  g0.globalAlpha=1;
+  if(RD.lut){const d=g0.getImageData(0,0,16,16),lut=RD.lut;for(let q=0;q<d.data.length;q+=4){d.data[q]=lut[d.data[q]];d.data[q+1]=lut[d.data[q+1]];d.data[q+2]=lut[d.data[q+2]];}g0.putImageData(d,0,0);}
+  return c;}
+
+// money guard: no NaN creds, ever
+{const _iv=itemValue;itemValue=function(it){let v=_iv.apply(this,arguments);if(!isFinite(v)){const d=ITEMS[it&&it.k]||{};v=Math.max(1,Math.round(d.val||10))*((it&&it.q)||1);}return v;};}
+{const _rf=refresh;refresh=function(){try{const h=G&&G.hero;if(h){if(!isFinite(h.creds)){h.creds=isFinite(G._goodCr)?G._goodCr:0;G.nanHits=(G.nanHits||0)+1;console.warn('creds NaN repaired',new Error().stack);}else G._goodCr=h.creds;}}catch(e){}return _rf.apply(this,arguments);};}
+
+// fixers and the rest stop selling chrome — implants come from the ripperdoc
+{const _ss=shopStock;shopStock=function(vt){const r=_ss.apply(this,arguments);return vt==='ripper'?r:r.filter(it=>ITEMS[it.k]&&ITEMS[it.k].type!=='implant');};}
+
+// getting chipped: every implant you buy goes straight into a free port, on the table
+function chipIn(it){const h=G.hero;if(!it||!ITEMS[it.k]||ITEMS[it.k].type!=='implant')return false;
+  if(h.inv.indexOf(it)<0)return false;
+  if(!h.eq.imp.includes(null)){toast(`<b>${esc(itemName(it))}</b><br>No free port. It's in your pack — pull something at the surgery chair to make room.`);return false;}
+  const fee=surgCost('install');h.creds+=fee;
+  if(!actSurgery('install',it)){h.creds-=fee;return false;}
+  const nm=itemName(it);closeModal();
+  blackout(['CHROME // '+nm.toUpperCase(),'The ripper straps your arm down.','"Count backwards from ten. You will not reach seven."'].concat(surgLines()),()=>{RD.hp&&(RD.hp.init=false);refresh();toast(`<b style="color:#39ffb0">CHIPPED IN</b><br>${esc(nm)} is online.`);try{SFX.lvl();}catch(e){}});
+  return true;}
+{const _ab=actBuy;actBuy=function(e,equip){const it=e&&e.it,imp=it&&ITEMS[it.k]&&ITEMS[it.k].type==='implant';const r=_ab.apply(this,arguments);
+  if(r&&imp&&!UI.noChip){if(equip){closeModal();blackout(surgLines(),()=>{refresh();toast(`<b style="color:#39ffb0">CHIPPED IN</b><br>${esc(itemName(it))} is online.`);});}else setTimeout(()=>chipIn(it),80);}
+  return r;};}
+implantShop=function(m){
+  const h=G.hero,k=G.karma||0,mult=(1+sectorOf(G.depth)*.35)*(k>=3?.9:k<=-3?1.15:1);
+  const st=ripperStock(m).filter(it=>!it._sold),pr=it=>{const v=Math.round(itemValue(it)*mult*1.1);return isFinite(v)?v:999;};
+  const free=h.eq.imp.includes(null);
+  const rows=st.length?st.map((it,i)=>`<button class="btn ${h.creds>=pr(it)?'':'off'}" data-buy="${i}" style="text-align:left"><img class="pix" src="${itemURL(it)}" style="width:20px;vertical-align:-5px"> ${esc(itemName(it))} · ${pr(it)}◈</button>`).join(''):'<p class="dim">Case is empty. Come back when I have restocked.</p>';
+  const p=openModal(`<div class="mhead"><h2>CHROME CASE</h2><span class="cr">◈ ${h.creds}</span><button class="x" data-act="close">✕</button></div><div class="detail"><p class="dim">"Buy it off me and it goes in today. Installation is on the house."${free?'':' <span class="bad">Every port is full — anything you buy waits in your pack.</span>'}</p>${rows}<div class="btns"><button class="btn" data-act="close">LEAVE</button></div></div>`,'shop');
+  p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();refresh();return;}
+    const b=ev.target.closest('[data-buy]');if(!b||b.classList.contains('off'))return;const it=st[+b.dataset.buy];if(!it)return;const price=pr(it);
+    if(h.creds<price){log('Not enough creds.','warn');return;}
+    if(h.inv.length>=packCap()&&!h.eq.imp.includes(null)){toast('Pack full and no free port.');return;}
+    h.creds-=price;it._sold=1;note('i',it.k,2);log(`You buy the ${itemName(it)} for ${price} creds.`,'cred');sfx('coin');
+    if(h.inv.length>=packCap()){h.inv.push(it);}else addInv(it);
+    closeModal();if(!chipIn(it))refresh();};
+};
+
+// vendor stands: stock lives behind the counter, not scattered on the floor
+function vendorStand(L){if(!L||!L.items||!L.mobs)return;const vs=L.mobs.filter(m=>m.k==='vendor'&&m.vt);if(!vs.length)return;
+  for(const e of L.items.slice()){if(e.price==null||!e.it||!ITEMS[e.it.k])continue;let best=null,bd=99;const own=L.vt&&vs.find(m=>m.vt===L.vt),R=L.shopR,inR=R&&X(e.pos)>=R[0]&&X(e.pos)<=R[2]&&Y(e.pos)>=R[1]&&Y(e.pos)<=R[3];if(own&&inR){best=own;bd=0;}else for(const m of vs){const d=dist(m.pos,e.pos);if(d<bd){bd=d;best=m;}}
+    if(!best||bd>10)continue;L.items.splice(L.items.indexOf(e),1);
+    if(L.stood||(best.vt!=='ripper'&&ITEMS[e.it.k].type==='implant'))continue;
+    (best.stock=best.stock||[]).push({it:e.it,price:e.price});}
+  L.stood=1;mapChanged&&mapChanged();}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{vendorStand(G.L);}catch(e){}return r;};}
+{const _vt=vendorTalk;vendorTalk=function(m){
+  if(!m||m.k!=='vendor'||!m.vt||!VENDORS[m.vt])return _vt.apply(this,arguments);
+  try{vendorStand(G.L);}catch(e){}
+  const r=_vt.apply(this,arguments);
+  try{const pn=$('#modal .panel'),det=pn&&pn.querySelector('.detail');if(!det)return r;UI.vendM=m;const h=G.hero,st=m.stock||[];
+    const dim=det.querySelector('p.dim');if(dim)dim.innerHTML=dim.innerHTML.replace(/Everything laid out on the floor is for sale[^.]*\./,'Everything on the stand is for sale.').replace(/, and the chair in the corner is open: implants installed, upgraded or cut out, and a new face if you want one/,m.vt==='ripper'?', and the chair in the corner is open: implants installed, upgraded or cut out, and a new face if you want one':'');
+    if(m.vt!=='ripper')det.querySelectorAll('[data-act="imps"],[data-act="surg"]').forEach(b=>b.remove());
+    const free=h.eq.imp.includes(null);
+    const rows=st.length?st.map((s,i)=>{const pr=priceOf({price:s.price}),imp=ITEMS[s.it.k].type==='implant';return `<button class="btn ${h.creds>=pr?'':'off'}" data-vbuy="${i}" style="text-align:left;display:flex;align-items:center;gap:8px;width:100%"><img class="pix" src="${itemURL(s.it)}" style="width:22px"><span style="flex:1">${esc(itemName(s.it))}${imp&&free?' <em style="color:#39ffb0">+ INSTALL</em>':''}</span><b>${pr}◈</b></button>`;}).join(''):'<p class="dim">Stand is picked clean.</p>';
+    const ib=det.querySelector('[data-act="imps"]');if(ib)ib.textContent='BUY CHROME · INSTALLED FREE';
+    if(!st.length&&m.vt==='ripper')return r;
+    const box=document.createElement('div');box.innerHTML=`<h5 class="h5">ON THE STAND <span style="float:right;color:#ffe14a">◈ ${h.creds}</span></h5><div style="display:grid;gap:4px;margin-bottom:8px">${rows}</div>`;
+    const bt=det.querySelector('.btns');det.insertBefore(box,bt);
+  }catch(e){console.warn(e);}
+  return r;};}
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-vbuy]');if(!b)return;ev.stopPropagation();if(b.classList.contains('off')){toast('Not enough creds.');return;}
+  const m=UI.vendM,L=G&&G.L;if(!m||!L||!m.stock)return;const s=m.stock[+b.dataset.vbuy];if(!s)return;
+  const imp=ITEMS[s.it.k].type==='implant',e={pos:G.hero.pos,it:s.it,price:s.price};L.items.push(e);
+  UI.noChip=1;let ok=false;try{ok=actBuy(e);}finally{UI.noChip=0;}
+  if(!ok){const j=L.items.indexOf(e);if(j>=0)L.items.splice(j,1);toast(esc(G.log[G.log.length-1].m));return;}
+  m.stock.splice(m.stock.indexOf(s),1);
+  if(imp&&chipIn(s.it))return;
+  refresh();vendorTalk(m);},true);
+
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}</script>
