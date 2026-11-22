@@ -1086,7 +1086,7 @@ function dmgMob(m,n,quiet){
 }
 function killMob(m){
   const L=G.L,d=MOBS[m.k],h=G.hero,i=L.mobs.indexOf(m);if(i>=0)L.mobs.splice(i,1);
-  fx({t:'die',p:m.pos,k:m.k,id:m.id,m:{k:m.k,vt:m.vt,lk:m.lk}});sfx(d.boss?'bossdie':d.robot?'boom':'kill');
+  fx({t:'die',p:m.pos,k:m.k,id:m.id,m:{k:m.k,vt:m.vt,lk:m.lk,id:m.id,b:m.b}});sfx(d.boss?'bossdie':d.robot?'boom':'kill');
   if(d.ally){log(m.cower?'You were too late. The civilian is dead.':d.civ?'The survivor who followed you is dead.':`Your ${d.n} is destroyed.`,'bad');return;}
   if(d.bomb){fx({t:'boom',p:m.pos,c:'#ff7a2a',r:1.8});sfx('boom');if(dist(m.pos,h.pos)<=1)dmgHero(rr(6,12)+G.depth,'a Bomber Drone');for(const o of L.mobs.slice())if(o!==m&&dist(o.pos,m.pos)<=1&&!MOBS[o.k].boss)dmgMob(o,rr(6,12));}
   if(m.k==='node'){const b=L.mobs.find(x=>x.k==='b5');if(b){const left=L.mobs.filter(x=>x.k==='node').length;if(!left){b.inv=0;b.exp=20;log('ALL SUBSYSTEMS DOWN. The Architect core is exposed — 20 turns. HIT IT.','hi');fx({t:'boom',p:b.pos,c:'#ffffff',r:3});}else log(`Subsystem destroyed. ${left} left.`,'hi');}}
@@ -1354,7 +1354,7 @@ function actView(kind){
   else{const it=h.inv.find(i=>ITEMS[i.k].drink);if(!it)return false;const d=ITEMS[it.k];consume(it);const w=h.hp;h.hunger=Math.max(0,h.hunger-d.food);h.hp=Math.min(h.mhp,h.hp+Math.ceil(h.mhp*d.hp));h.b.calm=90;if(d.buzz)h.b.haste=Math.max(h.b.haste||0,d.buzz);log(`You drink and watch the city. +${h.hp-w} HP. Clear head: +10% accuracy and evasion for a while.`,'hi');}
   spend(3);return true;
 }
-function actDrop(it,n){const h=G.hero;if(n&&it.q>n){it=splitStack(it,n);}const i=h.inv.indexOf(it);if(i<0||G.over)return false;const others=G.L.items.filter(e=>e.pos===h.pos&&!e.price);h.inv.splice(i,1);G.L.items.push({pos:h.pos,it});log(`Dropped ${itemName(it)}.`);for(const e of others)pickUp(e);spend(.5);return true;}
+function actDrop(it,n){const h=G.hero;if(n&&it.q>n){it=splitStack(it,n);}const i=h.inv.indexOf(it);if(i<0||G.over)return false;const others=G.L.items.filter(e=>e.pos===h.pos&&!e.price);h.inv.splice(i,1);G.L.items.push({pos:h.pos,it});log(`Dropped ${itemName(it)}.`);void others;spend(.5);return true;}
 function actBuy(e,equip){
   const h=G.hero,L=G.L,d=ITEMS[e.it.k];if(L.items.indexOf(e)<0)return false;
   const price=priceOf(e);if(h.creds<price){log('Not enough creds.','warn');return false;}
@@ -3750,7 +3750,7 @@ function fpFrame(now){
     let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);let tu=(wx*16)|0;if((side===0&&rx>0)||(side===1&&ry<0))tu=15-tu;
     const t=L.map[hit];let tex=null,src=hit;
     let etex=null;if(fpIsElev(L,hit))etex=fpElevData(L.map[hit]===T.EXITL?'lock':hit===L.entry&&G.depth>0?'down':'up');
-    const pr=L.props&&L.props[hit],wart=pr&&(pr.k==='cam'||pr.k==='scr')&&side===1&&ry<0?fpPropSprite(pr,hit,now):null,wd=wart?(wart._d||(wart._d=wart.getContext('2d').getImageData(0,0,16,16).data)):null;
+    const pr=L.props&&L.props[hit],wart=pr&&pr.k==='scr'&&side===1&&ry<0?fpPropSprite(pr,hit,now):null,wd=wart?(wart._d||(wart._d=wart.getContext('2d').getImageData(0,0,16,16).data)):null;
     if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();
     else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
     const s=shadeOf(hit,pd)*(side?0.8:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
@@ -3773,7 +3773,8 @@ function fpFrame(now){
   if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'tube',o:n,i});});
   {const x0=Math.max(0,Math.floor(FP.x)-14),x1=Math.min(W-1,Math.floor(FP.x)+14),y0=Math.max(0,Math.floor(FP.y)-14),y1=Math.min(H-1,Math.floor(FP.y)+14);
    for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++){const i=yy*W+xx;if(!L.seen[i])continue;const p=L.props&&L.props[i];
-     if(p&&(p.b||p.k==='cam')&&p.k!=='tube'&&p.k!=='scr'&&!wallish(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'prop',o:p,i});
+     if(p&&p.k==='cam'&&wallish(L,i)&&i+W<N&&!wallish(L,i+W)){if(Math.hypot(xx+.5-FP.x,yy+1.1-FP.y)>1.25)list.push({ex:xx+.5,ey:yy+1.1,kind:'prop',o:p,i});}
+     else if(p&&(p.b||p.k==='cam')&&p.k!=='tube'&&p.k!=='scr'&&!wallish(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'prop',o:p,i});
      else if(!p&&fpDecorTile(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'decor',o:L.map[i],i});}}
   if(L.street&&L.road){const S=RD.S,span=W*16*S,lanes=[['bike',L.road[0],96,0,70],['sedan',L.road[0],118,23000,70],['trike',L.road[1],44,11000,110],['hover',L.road[1],76,33000,110]];
     for(const [key,row,sp,ofs,fd] of lanes){const xpx=((now*sp*S/1000+ofs)%(span+72*S))-36*S,ex=xpx/(16*S)+1.25,ey=row+.45;list.push({ex,ey,kind:'veh',o:{key,fr:Math.floor(now/fd)%4},i:idx(Math.max(0,Math.min(W-1,Math.floor(ex))),row)});
@@ -3788,7 +3789,7 @@ function fpFrame(now){
     else if(b.kind==='dead'){const d=b.o,a=Math.min(1,(now-d.t)/420),[sc]=fpScale(d.m);img=mobSprite(d.m,0);wW=unit*sc*1.05;hH=unit*sc*1.05*(1-.78*a);if(a<1)tint=a<.3?1:0;}
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
     else if(b.kind==='decor'){img=fpDecorSprite(L,b.i);const hh=FP_DH[b.o]||.5;wW=unit*.95;hH=unit*hh;}
-    else if(b.kind==='prop'){img=fpPropSprite(b.o,b.i,now);const hh=FP_PH[b.o.k]||.55;wW=unit*.95;hH=unit*hh;if(b.o.k==='cam'){hH=unit*.35;yb=floorY-unit*.68;}}
+    else if(b.kind==='prop'){img=fpPropSprite(b.o,b.i,now);const hh=FP_PH[b.o.k]||.55;wW=unit*.95;hH=unit*hh;if(b.o.k==='cam'){wW=unit*.55;hH=unit*.55;yb=floorY-unit*.52;}}
     else if(b.kind==='veh'){img=vehSprite(b.o.key,b.o.fr);wW=unit*2.5;hH=unit*1.25;}
     let sx0=0,sy0=0,iw=img.width,ih=img.height;if(b.kind==='decor'||b.kind==='prop'){const bb=fpCut(img);sx0=bb[0];sy0=bb[1];iw=bb[2];ih=bb[3];wW=Math.min(wW,unit*.95*iw/12+unit*.1);}
     const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH));
@@ -3907,7 +3908,7 @@ function fpInstall(cv){let dn=null,lt=null;
     const hit=FP.hits.filter(q=>fx>=q.x0&&fx<=q.x1&&fy>=q.y0&&fy<=q.y1).sort((a,b)=>a.d-b.d)[0];
     if(hit&&hit.kind==='tube'){showInfo(hit.i);return;}
     if(hit&&(UI.mode||Math.abs(X(hit.i)-X(G.hero.pos))+Math.abs(Y(hit.i)-Y(G.hero.pos))<=1||mobAt(hit.i))){onTap(hit.i);refresh();return;}
-    {const f=FPD[FP.dir],ah=G.hero.pos+f[0]+f[1]*W;if(fx>=.28&&fx<=.72&&fy<=.72&&G.L.map[ah]===T.WINDOW){onTap(ah);refresh();return;}
+    {const f=FPD[FP.dir],ah=G.hero.pos+f[0]+f[1]*W;if(fx>=.28&&fx<=.72&&fy<=.72&&G.L.map[ah]===T.WINDOW){const nw=performance.now();if(FP.winTap&&FP.winTap.i===ah&&nw-FP.winTap.t<2500){FP.winTap=null;onTap(ah);}else{FP.winTap={i:ah,t:nw};toast('Window. Tap again to look out.');}refresh();return;}
      if(fx>=.22&&fx<=.78&&fy<=.75&&fpIsElev(G.L,ah)){if(G.L.map[ah]===T.EXITL){log('The call button flashes red. Sealed — something on this floor holds the override.','warn');sfx('trap');refresh();return;}if(!(FP.elevOpen&&FP.elevOpen.i===ah)){FP.elevOpen={i:ah,t:performance.now(),amt:0};try{tone(880,.08,'sine',.05,0,0);tone(1320,.12,'sine',.04,0,.1);}catch(e){}log('Ding. The doors slide open.','');}else{FP.elevOpen.t=performance.now();stopWalk();onTap(ah);}refresh();return;}}
     if(FP.set.ctl==='dpad')return;
     if(fx<.28){fpTurn(-1);return;}if(fx>.72){fpTurn(1);return;}
@@ -3976,6 +3977,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.33','SCREEN: new SCREEN FIT in HUD settings: AUTO sizes to your phone (fixes controls cut in half on home-screen installs) plus BOTTOM/TOP nudges if your phone still cuts something off. CAMERAS: new wall-bracket cameras hang off the wall in both views, and you can see their sweeping red cone on the floor; they only spot you inside it. In first person they hang at head height. SKATERS: now one of the street people on a small hover board. DEATHS: bodies no longer switch to a different look when they drop. DROPS: dropping items piles them on your tile instead of picking the last one back up. DOORS: every doorway keeps a clear tile on both sides. FIRST PERSON: tap a window twice to look out, so tapping to walk can\'t trigger it.'],
  ['v0.32','ELEVATORS: in first person, walking into the doors no longer pops the floor menu. Tap the doors (call panel on the right) — ding, they slide open — then step in. MAP: a facing arrow on the minimap in both modes; first person adds a view cone. AIM: shooting something off to the side turns your view toward it for a beat. SHOPS: tapping something you can\'t afford tells you how short you are; vendors keep what you sell them on the stand, so you can buy it back. DIFFICULTY: how often a cornered civilian dies before you get there, and how often random events show up, now scale with difficulty (rare on Chill, common on Meltdown); the wrong-address courier shows up far less. Attackers usually turn on you once you walk in. Alarms only pull the nearby crew, not the whole floor. ARCHITECT: fabricators are bolted down and print fewer drones. Street NPCs keep off the road. Companions talk less but have more lines. Less \'choom\'.'],
  ['v0.31','FIRST PERSON, ROUND THREE: Elevators are built into the wall — walk into the doors to ride. Crates, safes, vaults, consoles, terminals, pods and lockers are drawn as real objects instead of flat purple slabs. Wall cameras and screens show up in first person. Traffic runs on the street. Shops and the tower lobby have ceilings; only the open street gets sky. Field of view has four settings (70° to 115°). Guns point forward in both hands. Hits show damage numbers, blood, tracers and blasts; finishers spray harder. SHOPS: vendors keep their stock on the stand — buy from the menu, nothing scattered on the floor. Fixers no longer sell implants; the ripperdoc does. Every implant you buy gets installed on the table, with the surgery cutscene. Fixed: creds could show NaN.'],
  ['v0.30','FIRST PERSON, ROUND TWO: Walls use the same art as the map: bookshelves, screens, pipes, windows. Neon and screen pixels pulse, so displays feel alive again. Counters and other low furniture are waist-high, so you see over them. Lockers and pillars stay tall. Outside you get an open night sky with a skyline. Inside there\'s a real ceiling with light panels. The elevator is back as an actual elevator door: green when open, red when locked, amber for the way down. Everyone is sized properly: drones and the courier bot are small and float, cats and crabs are tiny, bosses tower over you. You have hands and your weapon on screen, with a swing or recoil kick and a muzzle flash. Enemies flash white when hit, then crumple into a dark body on the floor. Close kills get a red finisher slash and a screen shake. The dark boxes around objects and the old animations replaying when you switch back are fixed. A new neon compass shows the elevator, enemies, allies and NPCs (on/off and size in ⚙). The crosshair is gone: a red chevron shows only when a hostile is right in front of you. Walking forward into a friendly person swaps places. You talk by tapping them, and you look out a window by tapping it. The button reads EXIT 1ST while you\'re in first person. The settings panel no longer hides behind the D-pad. · Doc Sato talks to you in a real dialogue box after the mirror, with choices (who you are now, what you owe, the tower, or say nothing), then gives you his number. · Hand companions a weapon and armor from their panel (GEAR). It adds to their damage and armor and barely wears out. · Hurt companions call out ("I\'m hit bad!") so you can save them. · Survivors come out of real doors or sleeping capsules, never out of walls. · You can no longer talk to a bartender or vendor through a wall, only across a counter. · The general store splits into stalls: a fenced Ripper stall with his chair, and a separate store side with the goods. · The sector 1 wall pieces that looked like brown doors are now actual service pipes, and the rest are labelled as apartment windows. · Drinks hit harder: a stronger sway, blur and colour drift, lasting about a minute. · Tube dancers can be inspected (tap the tube, or analyze it). The tube base is one seamless neon stripe. · Sentinel Edge redrawn: a clean hooked blade, black grip and red edge, with no stray bump.'],
@@ -4062,7 +4064,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.32 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.33 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4623,7 +4625,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
     refresh();};}
 // cameras watch
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.props&&!(G.camOff&&G.camOff[sectorOf(G.depth)])&&!invFind('s_mod')&&G.turn-(L.camT||-99)>30&&!(h.b.invis>0)){
-  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&chance(h.cls==='ghost'?.12:.3)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
+  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&camCone(c,h.pos)&&chance(h.cls==='ghost'?.12:.3)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
 // tap support
 {const _tk=tapKind;tapKind=function(i){const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.seen[i])return 'use';return _tk.apply(this,arguments);};}
 // ---------- drawing
@@ -4642,7 +4644,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
     else if(p.k==='lock'){B(3,8,10,6,'#3a3f48');B(3,8,10,1,'#6a727e');B(7,10,2,2,p.open?'#555':bl?'#3fe8ff':'#1a5a6a');}
     else if(p.k==='safe'){B(2,3,12,11,'#2a2e36');B(3,4,10,9,p.open?'#0a0b0e':'#3a404a');if(!p.open){B(9,6,3,4,'#14161a');B(10,7,1,1,bl?'#39ff7a':'#1a5a2a');B(4,7,3,3,'#8c96a2');}}
     else if(p.k==='vault'){const c=SEC_COL[p.s];B(1,1,14,14,'#1a1d24');B(2,2,12,12,p.open?'#050608':'#3a404a');if(!p.open){B(6,6,4,4,'#8c96a2');B(7,7,2,2,'#2a2e36');B(3,3,10,1,c);}B(12,13,2,1,p.dead?'#ff3b4e':bl?c:'#222');}
-    else if(p.k==='cam'){B(5,10,6,3,p.broke?'#0e0f12':'#1a1c22');B(6,12,4,2,'#3a3f48');B(7,13,1,1,p.off?'#333':bl?'#ff3b4e':'#5a1a1a');B(6,14,4,2,'#20242c');B(6,14,1,1,'#5a6472');B(8,14,1,1,'#5a6472');B(7,15,1,1,'#5a6472');B(9,15,1,1,'#5a6472');if(p.broke&&Math.floor(now/300+i)%7===0)B(9,12,1,1,'#7ae0ff');if(L.paCam===i&&now-(L.paT||0)<2500){B(11,14,1,1,'#ffe14a');B(12,13,1,3,'rgba(255,225,74,.5)');}}
+    else if(p.k==='cam'){}
   }g.globalAlpha=1;}catch(e){}};}
 // ---------- wall-piercing guns + minigun hold-to-fire
 {const _bs=blocksShot;blocksShot=function(i){if(G._wall&&G.L.map[i]===T.WALL&&G._wall>0){G._wall--;return false;}return _bs.apply(this,arguments);};}
@@ -6178,7 +6180,7 @@ function propArt(p,i,now){const c=cvs(16,16),g0=c.getContext('2d'),L=G.L;
     else if(p.k==='lock'){B(3,8,10,6,'#3a3f48');B(3,8,10,1,'#6a727e');B(7,10,2,2,p.open?'#555':bl?'#3fe8ff':'#1a5a6a');}
     else if(p.k==='safe'){B(2,3,12,11,'#2a2e36');B(3,4,10,9,p.open?'#0a0b0e':'#3a404a');if(!p.open){B(9,6,3,4,'#14161a');B(10,7,1,1,bl?'#39ff7a':'#1a5a2a');B(4,7,3,3,'#8c96a2');}}
     else if(p.k==='vault'){const c=SEC_COL[p.s];B(1,1,14,14,'#1a1d24');B(2,2,12,12,p.open?'#050608':'#3a404a');if(!p.open){B(6,6,4,4,'#8c96a2');B(7,7,2,2,'#2a2e36');B(3,3,10,1,c);}B(12,13,2,1,p.dead?'#ff3b4e':bl?c:'#222');}
-    else if(p.k==='cam'){B(5,10,6,3,p.broke?'#0e0f12':'#1a1c22');B(6,12,4,2,'#3a3f48');B(7,13,1,1,p.off?'#333':bl?'#ff3b4e':'#5a1a1a');B(6,14,4,2,'#20242c');B(6,14,1,1,'#5a6472');B(8,14,1,1,'#5a6472');B(7,15,1,1,'#5a6472');B(9,15,1,1,'#5a6472');if(p.broke&&Math.floor(now/300+i)%7===0)B(9,12,1,1,'#7ae0ff');if(L.paCam===i&&now-(L.paT||0)<2500){B(11,14,1,1,'#ffe14a');B(12,13,1,3,'rgba(255,225,74,.5)');}}
+    else if(p.k==='cam'){g0.drawImage(camSpr(p,bl),0,0);}
     else if(p.k==='bench'){B(1,8,14,3,'#5a4030');B(1,8,14,1,'#7a5a40');B(2,11,2,3,'#2a2e36');B(12,11,2,3,'#2a2e36');B(1,5,14,2,'#4a3428');}
     else if(p.k==='kiosk'){B(5,3,6,11,'#20242c');B(6,4,4,5,(Math.floor(now/600)%2)?'#3fe8ff':'#1a6a7a');B(6,10,4,1,'#ff3b4e');B(4,13,8,2,'#14161a');}
     else if(p.k==='cruiser'){B(0,6,16,7,'#1a1c24');B(1,5,14,2,'#e8eef4');B(3,3,10,3,'#20242c');B(4,4,8,1,'#5a8ab0');B(5,2,6,1,bl?'#ff2a3a':'#2a6aff');B(1,12,3,3,'#0a0b0e');B(12,12,3,3,'#0a0b0e');}
@@ -6307,6 +6309,75 @@ setInterval(()=>{try{const L=G&&G.L;if(!L||!L.street||!L.road)return;const onRoa
 
 // vendors buy back: what you sold sits on their stand at the sell price plus a cut
 {const _as=actSell;actSell=function(it,n){const m=UI.vendM;const r=_as.apply(this,arguments);try{if(r&&m&&m.k==='vendor'){if(n&&it.q>n)return r;const k=it;(m.stock=m.stock||[]).unshift({it:JSON.parse(JSON.stringify(k)),price:Math.max(2,Math.round(sellPrice(k)*1.5)),bb:1});if(m.stock.length>24)m.stock.pop();}}catch(e){}return r;};}
+
+// ---------- v0.33 tail
+// SCREEN FIT: auto-sizes to the phone, with manual nudges in HUD settings
+UI.fit=Object.assign({mode:'auto',top:0,bot:0,ui:100},(()=>{try{return JSON.parse(localStorage.getItem('mtm_fit')||'{}');}catch(e){return {};}})());
+function fitStandalone(){try{return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;}catch(e){return false;}}
+function applyFit(){try{const f=UI.fit,r=document.documentElement,sa=fitStandalone(),port=innerHeight>=innerWidth;
+  r.classList.toggle('ios-sa',sa&&f.mode==='auto');
+  // iOS standalone: 100vh overshoots by the status bar (controls cut off); the visible viewport is the number that matches the glass.
+  const vv=window.visualViewport,vis=Math.round(Math.min(innerHeight,vv&&vv.height?vv.height+(vv.offsetTop||0):innerHeight));
+  r.style.setProperty('--appH',vis+'px');
+  r.style.setProperty('--fitT',(f.top|0)+'px');r.style.setProperty('--fitB',(f.bot|0)+'px');r.style.setProperty('--uiz',String((f.ui||100)/100));
+  r.classList.toggle('fitb',(f.bot|0)!==0);r.classList.toggle('fitt',(f.top|0)!==0);}catch(e){}}
+{const st=document.createElement('style');st.textContent=`
+html.ios-sa,html.ios-sa body{height:var(--appH,100%)!important}
+html.ios-sa #app{top:0!important;bottom:auto!important;height:calc(var(--appH,100%) - var(--fitB,0px))!important}
+html.fitb:not(.ios-sa) #app{bottom:var(--fitB)!important}
+html.fitt #app{top:calc(env(safe-area-inset-top) + var(--fitT))!important}
+html.ios-sa.fitt #app{top:var(--fitT)!important;height:calc(var(--appH,100%) - var(--fitB,0px) - var(--fitT,0px))!important}
+#tools{zoom:var(--uiz,1)}`;document.head.appendChild(st);
+  const old=document.getElementById('iosSA');if(old)old.remove();}
+applyFit();addEventListener('resize',()=>setTimeout(applyFit,60));addEventListener('orientationchange',()=>setTimeout(applyFit,300));
+{const _hs=hudSettings;hudSettings=function(){const r=_hs.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det){const f=UI.fit,c=(k,v,l)=>`<button class="chip ${f[k]===v?'on':''}" data-fit="${k}" data-v="${v}">${l}</button>`,n=(k,l)=>`<div class="row" style="align-items:center;gap:8px"><button class="chip" data-fit="${k}" data-d="-4">−</button><b style="min-width:60px;text-align:center">${l}: ${f[k]>0?'+':''}${f[k]}</b><button class="chip" data-fit="${k}" data-d="4">+</button></div>`;
+  const box=document.createElement('div');box.innerHTML=`<h5 class="h5">SCREEN FIT</h5><div class="row">${c('mode','auto','AUTO')}${c('mode','classic','CLASSIC')}</div>${n('bot','BOTTOM')}${n('top','TOP')}<p class="dim">Buttons cut off at the bottom? Press BOTTOM + until they fit. Gap under them? Press −. AUTO is tuned for phones and home-screen installs.</p><div class="row"><button class="chip" data-fit="reset">RESET SCREEN</button></div>`;
+  det.insertBefore(box,det.firstChild);}}catch(e){}return r;};}
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-fit]');if(!b)return;ev.stopPropagation();const f=UI.fit,k=b.dataset.fit;
+  if(k==='reset')UI.fit={mode:'auto',top:0,bot:0,ui:100};else if(b.dataset.d)f[k]=Math.max(-80,Math.min(160,(f[k]|0)+(+b.dataset.d)));else{const v=b.dataset.v;f[k]=isNaN(+v)?v:+v;}
+  try{localStorage.setItem('mtm_fit',JSON.stringify(UI.fit));}catch(e){}applyFit();hudSettings();},true);
+
+// CAMERAS: wall-bracket design, hangs off the wall into the room, sweeping cone you can see
+const CAM_R=[[6,0,4,2,'#3e4450'],[7,2,2,3,'#20242c'],[4,5,8,4,'#3e4450'],[4,5,8,1,'#6e7684'],[11,6,1,3,'#20242c'],[5,9,6,2,'#20242c'],[6,10,3,2,'#14283c']];
+const CAMC={};
+function camSpr(p,bl){const st=p.broke?'b':p.off?'o':bl?'1':'0';if(CAMC[st])return CAMC[st];const c=cvs(16,16),g=c.getContext('2d');
+  for(const [x,y,w,h,col] of CAM_R){g.fillStyle=p.broke&&y>=5?shade(col,-.35):col;g.fillRect(x,y,w,h);}
+  g.fillStyle=p.off||p.broke?'#1a1c22':'#3fe8ff';g.fillRect(7,10,1,1);g.fillStyle=p.off||p.broke?'#2a2a2a':st==='1'?'#ff2a3a':'#5a1a1a';g.fillRect(10,6,1,1);
+  if(p.broke){g.fillStyle='#0a0b0e';g.fillRect(6,7,3,1);}
+  const d=g.getImageData(0,0,16,16),a=d.data,o=new Uint8ClampedArray(a);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const q=(y*16+x)*4;if(a[q+3])continue;let n=0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X2=x+dx,Y2=y+dy;if(X2>=0&&X2<16&&Y2>=0&&Y2<16&&a[((Y2*16+X2)*4)+3])n=1;}if(n){o[q]=10;o[q+1]=11;o[q+2]=14;o[q+3]=255;}}
+  g.putImageData(new ImageData(o,16,16),0,0);CAMC[st]=c;return c;}
+function camAim(c){return .55*Math.sin((G.turn||0)*.3+c*.7);}
+function camCone(c,hp){const L=G.L;if(!wallish(L,c))return dist(c,hp)<=4;const dy=Y(hp)-Y(c),dx=X(hp)-X(c);if(dy<1||dist(c,hp)>6)return false;return Math.abs(Math.atan2(dx,dy)-camAim(c))<=.52;}
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||!G.L.props)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
+  for(const k in L.props){const i=+k,p=L.props[k];if(p.k!=='cam'||!L.seen[i])continue;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-3*TS||py<-3*TS||px>RD.w+3*TS||py>RD.h+3*TS)continue;
+    if(!p.off&&!p.broke&&L.vis[i]){for(let dy=1;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const j=i+dx+dy*W;if(j<0||j>=N||Math.abs(X(j)-X(i))!==Math.abs(dx))continue;if(!L.vis[j]||wallish(L,j)||!camCone(i,j)||!camLOS(i,j))continue;g.fillStyle=`rgba(255,59,78,${(.3-dy*.035).toFixed(3)})`;g.fillRect(RD.ox+X(j)*TS,RD.oy+Y(j)*TS,TS,TS);}}
+    g.globalAlpha=L.vis[i]?1:.45;g.imageSmoothingEnabled=false;g.drawImage(camSpr(p,Math.floor(now/400+i)%2),px,py+6*S,TS,TS);g.globalAlpha=1;}}catch(e){}};}
+
+// SKATER: one of our box people on a small hover board
+{const _vs=vehSprite,SKC={},LK=(()=>{try{return npcLook(rnd(9999),'');}catch(e){return null;}})();
+  vehSprite=function(key,fr){if(key!=='skater')return _vs.apply(this,arguments);if(SKC[fr])return SKC[fr];
+    const c=cvs(VEH_W,VEH_H),g=c.getContext('2d');g.imageSmoothingEnabled=false;
+    try{const m={k:'civ',lk:4242,id:7};const sp=mobSprite(m,0);const bb=(()=>{const d=sp.getContext('2d').getImageData(0,0,sp.width,sp.height).data;let t=sp.height,b=0;for(let y=0;y<sp.height;y++)for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]){if(y<t)t=y;if(y>b)b=y;}return [t,b];})();
+      const s=sp.width/22,dy=16-(bb[1]+1)/s;g.drawImage(sp,0,0,sp.width,sp.height,9,Math.round(dy-1+((fr&2)?-1:0)),22,22);}catch(e){}
+    const R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fl=fr&3;
+    // hover deck: tapered nose and tail, outline, neon trim, decals, lights
+    R(13,15,15,1,'#0a0b0e');R(12,16,17,2,'#0a0b0e');R(13,18,15,1,'#0a0b0e');
+    R(14,16,13,1,'#ff3fa4');R(13,17,15,1,'#262a36');R(15,17,1,1,'#3fe8ff');R(17,17,1,1,'#3fe8ff');R(19,17,2,1,'#ffe14a');
+    R(27,16,1,1,'#fff6c8');R(13,16,1,1,'#ff2a3a');
+    // twin thruster pods with flicker
+    R(15,18,3,1,'#14161c');R(23,18,3,1,'#14161c');
+    const fl1=['#3fe8ff','#8ff4ff','#3fe8ff','#1fb8d8'][fl],fl2=['#1fb8d8','#3fe8ff','#8ff4ff','#3fe8ff'][fl];
+    R(16,19,1,1,fl1);R(24,19,1,1,fl2);if(fl&1){R(15,19,1,1,'rgba(63,232,255,.45)');R(25,19,1,1,'rgba(63,232,255,.45)');}
+    g.globalAlpha=.22;R(13,19,15,1,'#3fe8ff');g.globalAlpha=1;
+    SKC[fr]=c;return c;};}
+
+// doorways: every door keeps a clear tile on both sides
+function clearDoors(L){if(!L||L.dc)return;let n=0;for(let i=W;i<N-W;i++){if(L.map[i]!==T.DOOR)continue;const vert=wallish(L,i-1)&&wallish(L,i+1),sides=vert?[i-W,i+W]:[i-1,i+1];
+  for(const j of sides){if(j<0||j>=N||L.map[j]===T.WALL||L.map[j]===T.WINDOW||L.map[j]===T.DOOR)continue;const pr=L.props&&L.props[j];
+    if(pr&&pr.b&&!['vault','sec','safe'].includes(pr.k)){delete L.props[j];n++;}
+    if(!pass(j)&&!mobAt(j)&&L.map[j]!==T.EXIT&&L.map[j]!==T.EXITL&&L.map[j]!==T.CHAIR&&L.map[j]!==T.CLONE){L.map[j]=T.FLOOR;n++;}}}
+  L.dc=1;if(n&&typeof mapChanged==='function')mapChanged();}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{clearDoors(G.L);}catch(e){}return r;};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
