@@ -2015,7 +2015,7 @@ function rdFrame(now){
       else if(v>=96&&v<116){const c=sec.neon[(v+1)%sec.neon.length],ph=(now/240+v)|0;g.fillStyle=c;for(let q=0;q<3;q++){const z=(ph*7+q*5+v)%24;g.fillRect(px+(5+z%6)*S,py+(8+((z/6)|0))*S,S*(1+(z&1)),S);}g.fillStyle='#ffffff';g.fillRect(px+4*S,py+(7+(now/90+v)%6|0)*S,8*S,Math.max(1,S/2));}
       else if(v>=72&&v<96){const q=(now/110+v*3)%44;if(q<12){g.globalAlpha=.35*(1-q/12);g.fillStyle='#dfe8f0';g.fillRect(px+(5+(v%4))*S,py+(13+q*.35)*S,3*S,2*S);g.globalAlpha=1;}}
     }
-    else if(L.road&&t===T.FLOOR&&(y===L.road[0]||y===L.road[1])){const dir=y===L.road[0]?1:-1,sp=y===L.road[0]?.09:.12,len=W*16+200,cx=((((now*sp*dir)+y*517)%len)+len)%len-100-x*16;if(cx>=-14&&cx<16){if(i===G.hero.pos&&cx>-10&&cx<12)carHit(dir);const cc=y===36?'#c0303a':'#2a6ab0';g.fillStyle='rgba(0,0,0,.4)';g.fillRect(px+cx*S,py+11*S,14*S,3*S);g.fillStyle=cc;g.fillRect(px+cx*S,py+5*S,14*S,7*S);g.fillStyle='#0a1224';g.fillRect(px+(cx+4)*S,py+6*S,6*S,3*S);g.fillStyle=dir>0?'#fff2c8':'#ff3b4e';g.fillRect(px+(cx+(dir>0?13:0))*S,py+6*S,S,2*S);g.fillStyle=dir>0?'#ff3b4e':'#fff2c8';g.fillRect(px+(cx+(dir>0?0:13))*S,py+6*S,S,2*S);}}
+    else if(false&&L.road&&t===T.FLOOR&&(y===L.road[0]||y===L.road[1])){const dir=y===L.road[0]?1:-1,sp=y===L.road[0]?.09:.12,len=W*16+200,cx=((((now*sp*dir)+y*517)%len)+len)%len-100-x*16;if(cx>=-14&&cx<16){if(i===G.hero.pos&&cx>-10&&cx<12)carHit(dir);const cc=y===36?'#c0303a':'#2a6ab0';g.fillStyle='rgba(0,0,0,.4)';g.fillRect(px+cx*S,py+11*S,14*S,3*S);g.fillStyle=cc;g.fillRect(px+cx*S,py+5*S,14*S,7*S);g.fillStyle='#0a1224';g.fillRect(px+(cx+4)*S,py+6*S,6*S,3*S);g.fillStyle=dir>0?'#fff2c8':'#ff3b4e';g.fillRect(px+(cx+(dir>0?13:0))*S,py+6*S,S,2*S);g.fillStyle=dir>0?'#ff3b4e':'#fff2c8';g.fillRect(px+(cx+(dir>0?0:13))*S,py+6*S,S,2*S);}}
     else if(t===T.SKY||t===T.RAIL){const tw=(now/500+v*1.3)%7;if(tw<1.2){g.fillStyle=['#fff2c8','#3fe8ff','#ff3fa4'][v%3];g.fillRect(px+((v*5)%14)*S,py+((v*11)%14)*S,S,S);}
       if(y%2===0){const cx=((now/22+y*131)%(W*16))-x*16;if(cx>=0&&cx<15){g.fillStyle='#ffffff';g.fillRect(px+cx*S,py+8*S,2*S,S);g.fillStyle='#ff3b4e';g.fillRect(px+Math.max(0,cx-2)*S,py+8*S,2*S,S);}}}
     else if(t===T.ENTRY&&G.depth>0){g.globalAlpha=.18+.22*pulse;g.fillStyle='#4f9aff';g.fillRect(px+3*S,py+3*S,10*S,10*S);g.globalAlpha=.9;g.fillStyle='#bcd8ff';g.fillRect(px+7*S,py+5*S,2*S,5*S);g.fillRect(px+6*S,py+9*S,4*S,S);g.fillRect(px+7*S,py+10*S,2*S,S);g.globalAlpha=1;}
@@ -2638,7 +2638,7 @@ function showMenu(){
   const p=openModal(`<div class="mhead"><h2>PAUSED</h2><button class="x" data-act="close">✕</button></div><div class="detail menu"><button class="btn go" data-act="close">RESUME</button><button class="btn" data-act="legend">LEGEND &amp; UPDATES</button><button class="btn" data-act="hudset">HUD SETTINGS</button><button class="btn" data-act="zin">ZOOM IN</button><button class="btn" data-act="zout">ZOOM OUT</button><button class="btn" data-act="snd">SOUND: ${UI.sound?'ON':'OFF'}</button><button class="btn" data-act="db">DATABANK</button><button class="btn" data-act="log">MESSAGE LOG</button><button class="btn" data-act="help">HOW TO PLAY</button><button class="btn" data-act="quit">SAVE &amp; QUIT TO TITLE</button><button class="btn danger" data-act="abandon">ABANDON RUN</button></div>`);
   p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const k=a.dataset.act;
     if(k==='close'){closeModal();}
-    else if(k==='zin'||k==='zout'){RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),6.5,17);rdResize();saveOpts();}
+    else if(k==='zin'||k==='zout'){RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,17);rdResize();saveOpts();}
     else if(k==='snd'){UI.sound=!UI.sound;if(UI.sound){initAudio();setAmb();}else if(AMB){try{AMB.g.gain.value=0;}catch(e){}}saveOpts();showMenu();}
     else if(k==='help')showHelp(true);
     else if(k==='legend')showLegend(0);
@@ -3776,9 +3776,7 @@ function fpFrame(now){
      if(p&&p.k==='cam'&&wallish(L,i)&&i+W<N&&!wallish(L,i+W)){if(Math.hypot(xx+.5-FP.x,yy+1.1-FP.y)>1.25)list.push({ex:xx+.5,ey:yy+1.1,kind:'prop',o:p,i});}
      else if(p&&(p.b||p.k==='cam')&&p.k!=='tube'&&p.k!=='scr'&&!wallish(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'prop',o:p,i});
      else if(!p&&fpDecorTile(L,i))list.push({ex:xx+.5,ey:yy+.5,kind:'decor',o:L.map[i],i});}}
-  if(L.street&&L.road){const S=RD.S,span=W*16*S,lanes=[['bike',L.road[0],96,0,70],['sedan',L.road[0],118,23000,70],['trike',L.road[1],44,11000,110],['hover',L.road[1],76,33000,110]];
-    for(const [key,row,sp,ofs,fd] of lanes){const xpx=((now*sp*S/1000+ofs)%(span+72*S))-36*S,ex=xpx/(16*S)+1.25,ey=row+.45;list.push({ex,ey,kind:'veh',o:{key,fr:Math.floor(now/fd)%4},i:idx(Math.max(0,Math.min(W-1,Math.floor(ex))),row)});
-      if(Y(h.pos)===row&&Math.abs(ex-(X(h.pos)+.5))<1.1&&typeof carHit==='function')carHit(1);}}
+  if(L.street&&L.road){const S=RD.S;for(const v of trafficList(now,S)){if(v.yRow<0)continue;const ex=(v.x+VEH_W*S/2)/(16*S),ey=v.yRow+.45;list.push({ex,ey,kind:'veh',o:{key:v.key,fr:v.fr},i:idx(Math.max(0,Math.min(W-1,Math.floor(ex))),v.yRow)});}trafficHits(now);}
   for(const b of list){const rx=b.ex-FP.x,ry=b.ey-FP.y;b.tx=inv*(dy*rx-dx*ry);b.ty=inv*(-py*rx+px*ry);}
   list.sort((a,b)=>b.ty-a.ty);
   if(FP.elevOpen){const e=FP.elevOpen,want=dist(e.i,G.hero.pos)<=1&&now-e.t<9000?1:0;e.amt=Math.max(0,Math.min(1,(e.amt||0)+(want?1:-1)*.06));if(!want&&e.amt<=0)FP.elevOpen=null;}
@@ -3790,7 +3788,7 @@ function fpFrame(now){
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
     else if(b.kind==='decor'){img=fpDecorSprite(L,b.i);const hh=FP_DH[b.o]||.5;wW=unit*.95;hH=unit*hh;}
     else if(b.kind==='prop'){img=fpPropSprite(b.o,b.i,now);const hh=FP_PH[b.o.k]||.55;wW=unit*.95;hH=unit*hh;if(b.o.k==='cam'){wW=unit*.55;hH=unit*.55;yb=floorY-unit*.52;}}
-    else if(b.kind==='veh'){img=vehSprite(b.o.key,b.o.fr);wW=unit*2.5;hH=unit*1.25;}
+    else if(b.kind==='veh'){img=vehSprite(b.o.key,b.o.fr);wW=unit*1.9;hH=unit*.95;}
     let sx0=0,sy0=0,iw=img.width,ih=img.height;if(b.kind==='decor'||b.kind==='prop'){const bb=fpCut(img);sx0=bb[0];sy0=bb[1];iw=bb[2];ih=bb[3];wW=Math.min(wW,unit*.95*iw/12+unit*.1);}
     const x0=Math.round(sxc-wW/2),y0=Math.round(yb-hH),w=Math.max(1,Math.round(wW)),hgt=Math.max(1,Math.round(hH));
     if(w>RW*3||hgt>RH*3)continue;
@@ -3977,6 +3975,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.34','ZOOM: pinch (or the zoom buttons) now goes all the way in, Pixel Dungeon style, about two tiles across. TRAFFIC: riders are drawn like everyone else on the street; the two lanes run opposite ways at one steady speed each, so vehicles stop driving through each other; the leftover tiny car painted into the road is gone; cars in first person are a believable size. SKATER: head no longer clipped, board has a kicktail, smaller shadow.'],
  ['v0.33','SCREEN: new SCREEN FIT in HUD settings: AUTO sizes to your phone (fixes controls cut in half on home-screen installs) plus BOTTOM/TOP nudges if your phone still cuts something off. CAMERAS: new wall-bracket cameras hang off the wall in both views, and you can see their sweeping red cone on the floor; they only spot you inside it. In first person they hang at head height. SKATERS: now one of the street people on a small hover board. DEATHS: bodies no longer switch to a different look when they drop. DROPS: dropping items piles them on your tile instead of picking the last one back up. DOORS: every doorway keeps a clear tile on both sides. FIRST PERSON: tap a window twice to look out, so tapping to walk can\'t trigger it.'],
  ['v0.32','ELEVATORS: in first person, walking into the doors no longer pops the floor menu. Tap the doors (call panel on the right) — ding, they slide open — then step in. MAP: a facing arrow on the minimap in both modes; first person adds a view cone. AIM: shooting something off to the side turns your view toward it for a beat. SHOPS: tapping something you can\'t afford tells you how short you are; vendors keep what you sell them on the stand, so you can buy it back. DIFFICULTY: how often a cornered civilian dies before you get there, and how often random events show up, now scale with difficulty (rare on Chill, common on Meltdown); the wrong-address courier shows up far less. Attackers usually turn on you once you walk in. Alarms only pull the nearby crew, not the whole floor. ARCHITECT: fabricators are bolted down and print fewer drones. Street NPCs keep off the road. Companions talk less but have more lines. Less \'choom\'.'],
  ['v0.31','FIRST PERSON, ROUND THREE: Elevators are built into the wall — walk into the doors to ride. Crates, safes, vaults, consoles, terminals, pods and lockers are drawn as real objects instead of flat purple slabs. Wall cameras and screens show up in first person. Traffic runs on the street. Shops and the tower lobby have ceilings; only the open street gets sky. Field of view has four settings (70° to 115°). Guns point forward in both hands. Hits show damage numbers, blood, tracers and blasts; finishers spray harder. SHOPS: vendors keep their stock on the stand — buy from the menu, nothing scattered on the floor. Fixers no longer sell implants; the ripperdoc does. Every implant you buy gets installed on the table, with the surgery cutscene. Fixed: creds could show NaN.'],
@@ -4064,7 +4063,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.33 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.34 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4139,7 +4138,7 @@ function hudSettings(){const H=UI.hud,opt=(k,v,lab)=>`<button class="chip ${H[k]
 function titleSettings(){const p=openModal(`<div class="mhead"><h2>SETTINGS</h2><button class="x" data-act="close">✕</button></div><div class="detail menu">
   <button class="btn" data-s="snd">SOUND: ${UI.sound?'ON':'OFF'}</button><button class="btn" data-s="hud">HUD SETTINGS</button><button class="btn" data-s="zin">ZOOM IN</button><button class="btn" data-s="zout">ZOOM OUT</button><button class="btn" data-s="leg">LEGEND &amp; UPDATES</button><button class="btn go" data-act="close">DONE</button></div>`);
   p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();return;}const b=ev.target.closest('[data-s]');if(!b)return;const k=b.dataset.s;
-    if(k==='snd'){UI.sound=!UI.sound;if(UI.sound)initAudio();saveOpts();titleSettings();}else if(k==='hud')hudSettings();else if(k==='leg')showLegend(0);else{RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),6.5,17);saveOpts();toast('Zoom: '+(k==='zin'?'closer':'wider'));}};}
+    if(k==='snd'){UI.sound=!UI.sound;if(UI.sound)initAudio();saveOpts();titleSettings();}else if(k==='hud')hudSettings();else if(k==='leg')showLegend(0);else{RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,17);saveOpts();toast('Zoom: '+(k==='zin'?'closer':'wider'));}};}
 {const b=$('#btnSet');if(b)b.onclick=()=>{initAudio();titleSettings();};}
 
 // ---------- RAHMUN
@@ -4296,7 +4295,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const cv=$('#cv');const pts=new Map();let d0=0,z0=0;
   const pd=()=>{const a=[...pts.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
   cv.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){UI.pinch=1;stopWalk();d0=pd();z0=RD.tiles;}},{passive:true});
-  cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2&&d0>20){RD.tiles=clamp(z0*d0/pd(),6.5,17);try{rdResize();}catch(err){}}},{passive:true});
+  cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2&&d0>20){RD.tiles=clamp(z0*d0/pd(),2.2,17);try{rdResize();}catch(err){}}},{passive:true});
   const up=e=>{pts.delete(e.pointerId);if(pts.size===0&&UI.pinch){setTimeout(()=>{UI.pinch=0;},60);try{saveOpts();}catch(err){}}};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   document.addEventListener('gesturestart',e=>e.preventDefault());
@@ -4970,24 +4969,9 @@ window.drawTape=drawTape;
     B(11,2,4,1,ph?'#ff2a3a':'#2a6aff');B(16,2,4,1,ph?'#2a6aff':'#ff2a3a');g.globalAlpha=.16;g.fillStyle=ph?'#ff2a3a':'#2a6aff';g.beginPath();g.arc(px+16*S,py+3*S,14*S,0,7);g.fill();g.globalAlpha=1;}
   // ---- v0.26g: ambient traffic, drawn as cached sprites through the same
   //      outline pass the NPC sprites use, so they sit in the same art style.
-  const span=W*TS;
-  const lane=(row,speed,ofs)=>{const x=((now*speed/1000+ofs)%(span+72*S))-36*S;return [RD.ox+x,RD.oy+row*TS];};
-  const put=(key,row,speed,ofs,fr)=>{
-    const [x,y]=lane(row,speed,ofs),spr=vehSprite(key,fr);
-    g.globalAlpha=.38;g.fillStyle='#000';
-    g.fillRect(x+3*S,y+(VEH_H-1)*S,(VEH_W-6)*S,1.2*S);g.globalAlpha=1;
-    g.imageSmoothingEnabled=false;
-    g.drawImage(spr,Math.round(x),Math.round(y),VEH_W*S,VEH_H*S);
-  };
-  const wf=Math.floor(now/70)%4, bf=Math.floor(now/110)%4, sf=Math.floor(now/150)%4;
-  // L.road holds the two real lanes. Everything on wheels belongs in one of them.
-  const ln=(L.road&&L.road.length===2)?L.road:[19,21];
-  const top=ln[0]-0.65, bot=ln[1]-0.65;          // sprite is 20 tall, sit it on the lane
-  put('skater',16.25, 30*S,  5000, sf);          // sidewalk (walk rows are 15-17)
-  put('bike',  top,   96*S,     0, wf);          // lane 1, left to right
-  put('sedan', top,  118*S, 23000, wf);
-  put('trike', bot,   44*S, 11000, bf);          // lane 2
-  put('hover', bot,   76*S, 33000, bf);
+  for(const v of trafficList(now,S)){const spr=vehSprite(v.key,v.fr),x=Math.round(RD.ox+v.x),y=Math.round(RD.oy+v.row*TS),sw=v.sw*S;g.globalAlpha=.38;g.fillStyle='#000';g.fillRect(x+(VEH_W*S-sw)/2,y+(VEH_H-1)*S,sw,1.2*S);g.globalAlpha=1;g.imageSmoothingEnabled=false;
+    if(v.dir<0){g.save();g.translate(x+VEH_W*S,y);g.scale(-1,1);g.drawImage(spr,0,0,VEH_W*S,VEH_H*S);g.restore();}else g.drawImage(spr,x,y,VEH_W*S,VEH_H*S);}
+  trafficHits(now);
   }catch(e){}};}
 
 // ================= v0.22b: shoot cameras, dev SHADOW OP preset =================
@@ -6378,6 +6362,54 @@ function clearDoors(L){if(!L||L.dc)return;let n=0;for(let i=W;i<N-W;i++){if(L.ma
     if(!pass(j)&&!mobAt(j)&&L.map[j]!==T.EXIT&&L.map[j]!==T.EXITL&&L.map[j]!==T.CHAIR&&L.map[j]!==T.CLONE){L.map[j]=T.FLOOR;n++;}}}
   L.dc=1;if(n&&typeof mapChanged==='function')mapChanged();}
 {const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{clearDoors(G.L);}catch(e){}return r;};}
+
+// ---------- v0.34 tail
+// TRAFFIC: riders are our box people; each lane runs at one speed with fixed gaps, lanes run opposite ways
+const RIDC={};
+function riderCrop(seed){if(RIDC[seed])return RIDC[seed];const sp=mobSprite({k:'civ',lk:seed,id:seed%97},0),s=sp.width/22,g0=sp.getContext('2d'),d=g0.getImageData(0,0,sp.width,sp.height).data;let t=sp.height,l=sp.width,r=0;
+  for(let y=0;y<sp.height;y++)for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]){if(y<t)t=y;if(x<l)l=x;if(x>r)r=x;}
+  const hh=Math.round(11*s),c=cvs(Math.ceil((r-l+1)/s),11),g=c.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(sp,l,t,r-l+1,hh,0,0,c.width,11);RIDC[seed]=c;return c;}
+VEHDRAW.bike=function(R,fr){const c='#c01f38',cl=vShade(c,.40),cd=vShade(c,-.45);
+  wheel(R,9,14,5,fr);wheel(R,31,14,5,fr);R(12,13,8,2,'#4b5663');R(12,13,8,1,'#6c7885');R(15,10,8,4,'#5a6673');R(15,10,8,1,'#7e8b98');R(16,11,5,2,'#39414c');R(10,12,6,1,'#9aa6b2');
+  R(29,8,2,6,'#7e8b98');R(32,9,1,5,'#5a6673');R(26,6,8,4,c);R(26,6,8,1,cl);R(26,9,8,1,cd);R(34,7,2,2,'#fff2c8');R(20,8,7,3,c);R(20,8,7,1,cl);R(14,8,6,2,'#15181d');R(14,8,6,1,'#2f353d');
+  R(7,6,7,3,c);R(7,6,7,1,cl);R(7,8,7,1,cd);R(5,7,2,2,'#ff3b4e');R(29,5,4,1,'#9aa6b2');};
+VEHDRAW.trike=function(R,fr){const bx='#2f6a4a',bl=vShade(bx,.38),bd=vShade(bx,-.45);
+  wheel(R,7,15,4,fr);wheel(R,16,15,4,fr);wheel(R,33,15,4,fr);R(2,5,16,9,bx);R(2,5,16,1,bl);R(2,13,16,1,bd);R(4,7,8,5,vShade(bx,-.22));R(4,7,8,1,vShade(bx,.1));R(5,8,6,1,'#a8e8c4');R(5,10,4,1,'#a8e8c4');
+  R(18,12,14,2,'#4b5663');R(18,12,14,1,'#6c7885');R(28,8,2,5,'#5a6673');R(26,10,6,2,'#15181d');R(34,9,3,2,'#ff9a3c');R(30,6,5,1,'#9aa6b2');};
+VEHDRAW.hover=function(R,fr){const c='#2b3240',cl=vShade(c,.44),cd=vShade(c,-.46);
+  R(4,12,32,5,c);R(4,12,32,1,cl);R(4,16,32,1,cd);R(30,10,7,2,c);R(30,10,7,1,cl);R(3,11,3,2,c);R(3,11,3,1,cl);R(2,12,1,3,'#ff3b4e');R(37,11,1,2,'#fff2c8');
+  R(7,10,18,2,'#1b1f26');R(7,10,18,1,'#3a424d');R(28,8,3,4,'#5a6673');R(31,7,6,2,'#7e8b98');R(31,7,6,1,'#a3aeba');
+  const t=fr%2;R(6,18,12,1+t,'#ff3fa4');R(21,18,12,2-t,'#ff3fa4');R(4,17,32,1,vShade('#ff3fa4',-.5));};
+{const _vs=vehSprite,VC={},SEATS={bike:[[15,0,311]],trike:[[24,0,512]],hover:[[10,0,733],[20,0,904]]};
+  vehSprite=function(key,fr){if(!SEATS[key])return _vs.apply(this,arguments);const ck=key+fr;if(VC[ck])return VC[ck];
+    const c=cvs(VEH_W,VEH_H),g=c.getContext('2d');g.imageSmoothingEnabled=false;VEHDRAW[key]((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fr);
+    for(const [x,y,seed] of SEATS[key])g.drawImage(riderCrop(seed),x,y);
+    try{vOutline(g,VEH_W,VEH_H);}catch(e){}VC[ck]=c;return c;};}
+// one table drives both views: [key, lane 0/1/-1 sidewalk, phase 0..1, frame ms, shadow width]
+const TRAF=[['bike',0,0,70,30],['sedan',0,.5,70,32],['trike',1,.15,110,32],['hover',1,.65,110,32],['skater',-1,.3,150,14]];
+function trafficList(now,S){const L=G.L;if(!L||!L.road)return [];const span=W*16*S,loop=span+72*S,out=[];
+  for(const [key,ln,ph,fd,sw] of TRAF){const dir=ln===1?-1:1,sp=(ln===0?96:ln===1?70:30)*S,u=((now*sp/1000+ph*loop)%loop);const x=dir>0?u-36*S:span+36*S-u-VEH_W*S;
+    const row=ln<0?16.25:L.road[ln]-0.65,yRow=ln<0?-1:L.road[ln];out.push({key,dir,x,row,yRow,fr:Math.floor(now/fd)%4,sw});}
+  return out;}
+function trafficHits(now){try{const L=G.L,h=G.hero;if(!L||!L.road||G.over)return;const S=RD.S,TS=16*S,hx=X(h.pos)*TS;
+  for(const v of trafficList(now,S)){if(v.yRow<0||Y(h.pos)!==v.yRow)continue;const a=v.x+5*S,b=v.x+(VEH_W-5)*S;if(b>hx+3*S&&a<hx+TS-3*S){carHit(v.dir);break;}}}catch(e){}}
+
+// SKATER: head never clipped, board kicktail, small shadow
+{const _vs=vehSprite,SK2={};vehSprite=function(key,fr){if(key!=='skater')return _vs.apply(this,arguments);if(SK2[fr])return SK2[fr];
+  const c=cvs(VEH_W,VEH_H),g=c.getContext('2d');g.imageSmoothingEnabled=false;
+  try{const sp=mobSprite({k:'civ',lk:4242,id:7},0),s=sp.width/22,d=sp.getContext('2d').getImageData(0,0,sp.width,sp.height).data;let t=sp.height,b=0;for(let y=0;y<sp.height;y++)for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]){if(y<t)t=y;if(y>b)b=y;}
+    const top=t/s;g.drawImage(sp,0,0,sp.width,sp.height,9,-top,22,22);}catch(e){}
+  const R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fl=fr&3;
+  // deck with a raised kicktail at the back (left) and a slight nose lift
+  R(10,13,2,1,'#0a0b0e');R(9,14,2,2,'#0a0b0e');R(11,14,1,1,'#ff3fa4');R(10,15,2,1,'#262a36');
+  R(12,16,16,1,'#0a0b0e');R(11,17,18,1,'#0a0b0e');R(12,18,16,1,'#0a0b0e');R(28,15,1,1,'#0a0b0e');
+  R(12,16,15,1,'#ff3fa4');R(11,16,1,1,'#ff3fa4');R(12,17,16,1,'#262a36');R(14,17,1,1,'#3fe8ff');R(16,17,1,1,'#3fe8ff');R(18,17,2,1,'#ffe14a');R(27,16,1,1,'#fff6c8');R(10,15,1,1,'#ff2a3a');
+  R(15,18,3,1,'#14161c');R(23,18,3,1,'#14161c');const a=['#3fe8ff','#8ff4ff','#3fe8ff','#1fb8d8'][fl],b2=['#1fb8d8','#3fe8ff','#8ff4ff','#3fe8ff'][fl];R(16,19,1,1,a);R(24,19,1,1,b2);
+  SK2[fr]=c;return c;};}
+
+// ZOOM: pinch all the way in, Pixel Dungeon style (about two tiles across)
+const ZMIN=2.2;
+{const _rr=rdResize;rdResize=function(){if(RD.tiles<ZMIN)RD.tiles=ZMIN;return _rr.apply(this,arguments);};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
