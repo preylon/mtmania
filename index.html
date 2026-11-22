@@ -2714,7 +2714,7 @@ window.addEventListener('DOMContentLoaded',boot);
 // ================= UI v0.2 additions (override earlier definitions) =================
 UI.db={i:{},m:{},s:{}};try{const s=localStorage.getItem('mtm_db');if(s){const o=JSON.parse(s);for(const k of ['i','m','s'])if(o[k])UI.db[k]=o[k];}}catch(e){}
 EV.db=(a,k,l)=>{if((UI.db[a][k]||0)<l){UI.db[a][k]=l;clearTimeout(UI.dbT);UI.dbT=setTimeout(()=>{try{localStorage.setItem('mtm_db',JSON.stringify(UI.db));}catch(e){}},400);}};
-const choom=()=>G&&G.hero.look.body?'choomba':'choombo';
+const BUDS=['choom','chief','slick','friend','merc','hotshot','pal','boss','kid','champ'];const choom=()=>pick(BUDS);
 // ---------- sound v2
 let MG=null,AMB=null;
 function initAudio(){
@@ -3655,13 +3655,14 @@ function fpDecorSprite(L,i){const key='dk'+i+'_'+L.map[i]+'_'+FP.mapVer;if(FP.te
   ga.putImageData(da,0,0);for(const k in FP.tex)if(k.startsWith('dk'+i+'_'))delete FP.tex[k];return FP.tex[key]=a;}
 function fpPropSprite(p,i,now){const key='pr'+i+'_'+p.k+(p.open?1:0)+(p.off?1:0)+(p.broke?1:0)+(p.unl?1:0)+((now/400|0)%2)+(p.k==='scr'?'_'+(now/120|0):'');
   if(FP.tex[key])return FP.tex[key];for(const k in FP.tex)if(k.startsWith('pr'+i+'_'))delete FP.tex[k];return FP.tex[key]=propArt(p,i,now);}
+function fpAimAt(i,now){const dx=X(i)+.5-FP.x,dy=Y(i)+.5-FP.y;let off=Math.atan2(dx,-dy)-FP.dir*Math.PI/2;off=((off%(2*Math.PI))+3*Math.PI)%(2*Math.PI)-Math.PI;if(Math.abs(off)<.12||Math.abs(off)>1.2)return;FP.aim={off:Math.max(-.7,Math.min(.7,off)),t:now};}
 function fpIsElev(L,i){return (i===L.exit||i===L.entry)&&(L.map[i]===T.EXIT||L.map[i]===T.EXITL)&&G.hero.pos!==i;}
 function fpElevData(kind){const k='ed'+kind;if(FP.tex[k])return FP.tex[k];const c=fpElevCv(kind);return FP.tex[k]=c.getContext('2d').getImageData(0,0,16,24).data;}
 function fpElevCv(kind){const k='elev'+kind;if(FP.tex[k])return FP.tex[k];const c=cvs(16,24),g=c.getContext('2d');
   g.fillStyle='#2a2e36';g.fillRect(0,0,16,24);g.fillStyle='#5a626e';g.fillRect(0,0,16,1);g.fillRect(0,0,1,24);g.fillRect(15,0,1,24);
-  g.fillStyle='#8c96a2';g.fillRect(2,4,6,20);g.fillRect(8,4,6,20);g.fillStyle='#a8b2be';g.fillRect(2,4,6,1);g.fillRect(8,4,6,1);g.fillStyle='#3a3f48';g.fillRect(7,4,2,20);
+  g.fillStyle='#8c96a2';g.fillRect(1,4,6,20);g.fillRect(7,4,6,20);g.fillStyle='#a8b2be';g.fillRect(1,4,6,1);g.fillRect(7,4,6,1);g.fillStyle='#3a3f48';g.fillRect(6,4,2,20);g.fillStyle='#14161c';g.fillRect(13,10,2,6);g.fillStyle=kind==='lock'?'#ff3b4e':'#ffe14a';g.fillRect(13,11,2,1);g.fillStyle=kind==='lock'?'#5a1a1a':'#39ffb0';g.fillRect(13,13,2,2);
   g.fillStyle=kind==='lock'?'#ff3b4e':kind==='down'?'#ffb03c':'#39ff7a';g.fillRect(5,1,6,2);g.fillStyle='#14141c';g.fillRect(6,1,1,2);
-  g.fillStyle='rgba(255,255,255,.12)';g.fillRect(3,6,1,16);g.fillRect(9,6,1,16);return FP.tex[k]=c;}
+  g.fillStyle='rgba(255,255,255,.12)';g.fillRect(2,6,1,16);g.fillRect(8,6,1,16);return FP.tex[k]=c;}
 function fpFaceList(L){if(FP.faceL===L)return FP.faces;const f=[];for(let i=W;i<N-W;i++)if(wallish(L,i)&&!wallish(L,i+W)&&pass(i+W)&&L.map[i]===T.WALL)f.push(i);FP.faceL=L;FP.faces=f.length?f:[0];return FP.faces;}
 function fpHands(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');const it=gunMode?(h.eq.gun||h.eq.melee):(h.eq.melee||null);
   const skin=(heroLook().skin)||'#c99a7a',k=Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,P=Math.max(2,Math.round(u*3.4)),base=H2*.8;
@@ -3698,13 +3699,13 @@ function fpFrame(now){
     else if(f.t==='hit'){if(f.id!=null)FP.hit[f.id]=now;FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now});}
     else if(f.t==='txt')FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now,dur:f.dur||900});
     else if(f.t==='blood')FP.fxl.push({k:'blood',i:f.p,w:f.w,t:now});
-    else if(f.t==='beam')FP.fxl.push({k:'beam',a:f.a,b:f.b,c:f.c||'#ffe9a0',t:now});
+    else if(f.t==='beam'){FP.fxl.push({k:'beam',a:f.a,b:f.b,c:f.c||'#ffe9a0',t:now});if(f.a===G.hero.pos&&f.b!=null)fpAimAt(f.b,now);}
     else if(f.t==='boom'){FP.fxl.push({k:'boom',i:f.p,c:f.c||'#ff9a3c',r:f.r||1,t:now});RD.shake=Math.min(8,(RD.shake||0)+(f.r||1)*2);}}
   if(FP.fxl.length>60)FP.fxl.splice(0,FP.fxl.length-60);
   const hx=X(h.pos)+.5,hy=Y(h.pos)+.5,dt=Math.min(.05,(now-(FP.last||now))/1000);FP.last=now;
   if(!FP.init||Math.hypot(FP.x-hx,FP.y-hy)>2.5){FP.x=hx;FP.y=hy;FP.ang=FP.dir*Math.PI/2;FP.init=true;}
   const k=Math.min(1,dt*12),mv=Math.hypot(hx-FP.x,hy-FP.y);FP.x+=(hx-FP.x)*k;FP.y+=(hy-FP.y)*k;if(mv>.02)FP.bob+=dt*12;
-  let ta=FP.dir*Math.PI/2,da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
+  let ta=FP.dir*Math.PI/2+(FP.aim&&now-FP.aim.t<650?FP.aim.off:0),da=((ta-FP.ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;FP.ang+=da*Math.min(1,dt*14);
   if(FP.lastHp!==null&&h.hp<FP.lastHp){FP.flash=1;RD.shake=Math.max(RD.shake||0,3);}FP.lastHp=h.hp;FP.flash*=Math.pow(.02,dt);
   const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
   if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);FP.sd=new Float32Array(RW);FP.st=new Float32Array(RW);}
@@ -3751,7 +3752,7 @@ function fpFrame(now){
     else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
     const s=shadeOf(hit,pd)*(side?0.8:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
-      if(etex){const q=((Math.min(23,(tv*1.5)|0))*16+tu)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
+      if(etex){const ev=Math.min(23,(tv*1.5)|0),eo=FP.elevOpen&&FP.elevOpen.i===hit?FP.elevOpen.amt:0;let su=tu;if(eo>0&&ev>=4&&tu>=1&&tu<=12){const gap=eo*6;if(tu>=7-gap&&tu<7+gap){const back=ev<8?.55:ev>21?.35:.8;r=230*back;gg=205*back;b=150*back;if(tu===(7-gap|0)||tu===((7+gap-1)|0)){r*=.6;gg*=.6;b*=.6;}su=-1;}else su=tu<7?Math.min(12,tu+gap|0):Math.max(1,tu-gap|0);}if(su>=0){const q=(ev*16+su)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
       if(wd){let sv=tv,su=tu;if(pr.k==='cam'){if(tu<3||tu>12||tv>9)sv=99;else{su=5+((tu-3)*.62|0);sv=10+(tv*.62|0);}}if(sv<16){const q=(sv*16+su)*4;if(wd[q+3]>8){r=wd[q];gg=wd[q+1];b=wd[q+2];}}}
       D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
   }
@@ -3776,6 +3777,7 @@ function fpFrame(now){
       if(Y(h.pos)===row&&Math.abs(ex-(X(h.pos)+.5))<1.1&&typeof carHit==='function')carHit(1);}}
   for(const b of list){const rx=b.ex-FP.x,ry=b.ey-FP.y;b.tx=inv*(dy*rx-dx*ry);b.ty=inv*(-py*rx+px*ry);}
   list.sort((a,b)=>b.ty-a.ty);
+  if(FP.elevOpen){const e=FP.elevOpen,want=dist(e.i,G.hero.pos)<=1&&now-e.t<9000?1:0;e.amt=Math.max(0,Math.min(1,(e.amt||0)+(want?1:-1)*.06));if(!want&&e.amt<=0)FP.elevOpen=null;}
   const fr=(now/420|0)&1;
   for(const b of list){if(b.ty<=.12)continue;const sxc=Math.round(RW/2*(1+b.tx/b.ty)),unit=U/b.ty,floorY=horizon+unit/2;let img,wW,hH,yb=floorY,tint=0;const s=shadeOf(b.i,b.ty);if(s<=.02)continue;
     if(b.kind==='mob'){const [sc,lift]=fpScale(b.o);img=mobSprite(b.o,fr);wW=unit*sc*1.05;hH=unit*sc*1.05;yb=floorY-unit*lift;const ht=FP.hit[b.o.id];if(ht&&now-ht<140)tint=1;}
@@ -3831,6 +3833,7 @@ function fpStep(back){const h=G.hero,L=G.L,f=FPD[(FP.dir+(back?2:0))%4],to=h.pos
   if(m){const d=MOBS[m.k];if(d.npc||d.ally){const fixed=m.vt||d.boss||['captain','tailor','chef','barkeep','mayor','medic','cop','manager'].includes(m.k)||!pass(to);
      if(!fixed){m.pos=h.pos;h.pos=to;afterMove();if(!G.over)spend(1);refresh();return;}
      if(G.turn-(FP.hintT||-99)>15){FP.hintT=G.turn;log(`${npcName(m)} is in the way. Tap them to talk.`,'');}refresh();return;}}
+  if(fpIsElev(L,to)&&!back){const o=FP.elevOpen&&FP.elevOpen.i===to&&FP.elevOpen.amt>.8;if(!o){if(G.turn-(FP.elvT||-99)>8||!FP.elvT){FP.elvT=G.turn||1;log(L.map[to]===T.EXITL?'Elevator. The panel is red: sealed.':'Elevator. Tap the doors to call it.','');}refresh();return;}}
   if(L.map[to]===T.WINDOW&&!back){if(G.turn-(FP.winT||-99)>15){FP.winT=G.turn;log('Window. Tap it to look out.','');}refresh();return;}
   onTap(to);refresh();}
 function fpStrafe(d){const h=G.hero,f=FPD[(FP.dir+(d>0?1:3))%4],to=h.pos+f[0]+f[1]*W;if(X(to)<0||X(to)>=W)return;stopWalk();onTap(to);refresh();}
@@ -3901,7 +3904,8 @@ function fpInstall(cv){let dn=null,lt=null;
     const hit=FP.hits.filter(q=>fx>=q.x0&&fx<=q.x1&&fy>=q.y0&&fy<=q.y1).sort((a,b)=>a.d-b.d)[0];
     if(hit&&hit.kind==='tube'){showInfo(hit.i);return;}
     if(hit&&(UI.mode||Math.abs(X(hit.i)-X(G.hero.pos))+Math.abs(Y(hit.i)-Y(G.hero.pos))<=1||mobAt(hit.i))){onTap(hit.i);refresh();return;}
-    {const f=FPD[FP.dir],ah=G.hero.pos+f[0]+f[1]*W;if(fx>=.28&&fx<=.72&&fy<=.72&&G.L.map[ah]===T.WINDOW){onTap(ah);refresh();return;}}
+    {const f=FPD[FP.dir],ah=G.hero.pos+f[0]+f[1]*W;if(fx>=.28&&fx<=.72&&fy<=.72&&G.L.map[ah]===T.WINDOW){onTap(ah);refresh();return;}
+     if(fx>=.22&&fx<=.78&&fy<=.75&&fpIsElev(G.L,ah)){if(G.L.map[ah]===T.EXITL){log('The call button flashes red. Sealed — something on this floor holds the override.','warn');sfx('trap');refresh();return;}if(!(FP.elevOpen&&FP.elevOpen.i===ah)){FP.elevOpen={i:ah,t:performance.now(),amt:0};try{tone(880,.08,'sine',.05,0,0);tone(1320,.12,'sine',.04,0,.1);}catch(e){}log('Ding. The doors slide open.','');}else{FP.elevOpen.t=performance.now();stopWalk();onTap(ah);}refresh();return;}}
     if(FP.set.ctl==='dpad')return;
     if(fx<.28){fpTurn(-1);return;}if(fx>.72){fpTurn(1);return;}
     fpStep(fy>.72);};
@@ -3969,6 +3973,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.32','ELEVATORS: in first person, walking into the doors no longer pops the floor menu. Tap the doors (call panel on the right) — ding, they slide open — then step in. MAP: a facing arrow on the minimap in both modes; first person adds a view cone. AIM: shooting something off to the side turns your view toward it for a beat. SHOPS: tapping something you can\'t afford tells you how short you are; vendors keep what you sell them on the stand, so you can buy it back. DIFFICULTY: how often a cornered civilian dies before you get there, and how often random events show up, now scale with difficulty (rare on Chill, common on Meltdown); the wrong-address courier shows up far less. Attackers usually turn on you once you walk in. Alarms only pull the nearby crew, not the whole floor. ARCHITECT: fabricators are bolted down and print fewer drones. Street NPCs keep off the road. Companions talk less but have more lines. Less \'choom\'.'],
  ['v0.31','FIRST PERSON, ROUND THREE: Elevators are built into the wall — walk into the doors to ride. Crates, safes, vaults, consoles, terminals, pods and lockers are drawn as real objects instead of flat purple slabs. Wall cameras and screens show up in first person. Traffic runs on the street. Shops and the tower lobby have ceilings; only the open street gets sky. Field of view has four settings (70° to 115°). Guns point forward in both hands. Hits show damage numbers, blood, tracers and blasts; finishers spray harder. SHOPS: vendors keep their stock on the stand — buy from the menu, nothing scattered on the floor. Fixers no longer sell implants; the ripperdoc does. Every implant you buy gets installed on the table, with the surgery cutscene. Fixed: creds could show NaN.'],
  ['v0.30','FIRST PERSON, ROUND TWO: Walls use the same art as the map: bookshelves, screens, pipes, windows. Neon and screen pixels pulse, so displays feel alive again. Counters and other low furniture are waist-high, so you see over them. Lockers and pillars stay tall. Outside you get an open night sky with a skyline. Inside there\'s a real ceiling with light panels. The elevator is back as an actual elevator door: green when open, red when locked, amber for the way down. Everyone is sized properly: drones and the courier bot are small and float, cats and crabs are tiny, bosses tower over you. You have hands and your weapon on screen, with a swing or recoil kick and a muzzle flash. Enemies flash white when hit, then crumple into a dark body on the floor. Close kills get a red finisher slash and a screen shake. The dark boxes around objects and the old animations replaying when you switch back are fixed. A new neon compass shows the elevator, enemies, allies and NPCs (on/off and size in ⚙). The crosshair is gone: a red chevron shows only when a hostile is right in front of you. Walking forward into a friendly person swaps places. You talk by tapping them, and you look out a window by tapping it. The button reads EXIT 1ST while you\'re in first person. The settings panel no longer hides behind the D-pad. · Doc Sato talks to you in a real dialogue box after the mirror, with choices (who you are now, what you owe, the tower, or say nothing), then gives you his number. · Hand companions a weapon and armor from their panel (GEAR). It adds to their damage and armor and barely wears out. · Hurt companions call out ("I\'m hit bad!") so you can save them. · Survivors come out of real doors or sleeping capsules, never out of walls. · You can no longer talk to a bartender or vendor through a wall, only across a counter. · The general store splits into stalls: a fenced Ripper stall with his chair, and a separate store side with the goods. · The sector 1 wall pieces that looked like brown doors are now actual service pipes, and the rest are labelled as apartment windows. · Drinks hit harder: a stronger sway, blur and colour drift, lasting about a minute. · Tube dancers can be inspected (tap the tube, or analyze it). The tube base is one seamless neon stripe. · Sentinel Edge redrawn: a clean hooked blade, black grip and red edge, with no stray bump.'],
  ['v0.29','FIXES: First person now works everywhere, including the street where the game starts. · The ramen bowl no longer slides anywhere. The noodle stand has a set layout: a glass food case, bowls at the seats, a register, two burners with steam behind the counter, and a fridge. Plain counters no longer show food. · Captain Reyes knows an ex-cop when she sees one ("Oh thank god — you used to be a badge"), and her dialog no longer shows her name. · NOT IN MY HOUSE (and the bartender\'s shotgun line) only happens when you can see it. · Contacts show the real name, number and "Met on MT: Level X", and the old [object Object] entries are cleaned out. · Saved residents walk to the elevator and leave instead of standing still. · Survivor quips use their real name and stay on screen longer. · Random names no longer use Sato or Reyes. · Vendor and bartender dialogs show the same name as the tag over their head. · The security terminal shows only the console code, with no news on top. · The Mayor\'s ending line clears before the choice screen. · Cameras only spot you from the side of the wall they face. · Spotted: walking stops once when a new hostile appears and marks it with "!". Tap again and you keep moving, at the Combat Speed setting, which now works. · Helix guards come in through doors instead of appearing from nowhere. · Street NPCs never stand in the road. · NEW: You start with 300 creds. Ripper implant upgrades give +2. The minigun gets +5 shots per upgrade level. The Gunner starts with a Needler SMG +1 (self-charging and upgradable) instead of the tech pistol. · Saved residents now react in one of four ways. Most give you their number and head for the elevator. Some panic and bolt (still karma). Some ask to join. Rarely, one owes you and turns up once, later, when a fight goes bad. · Doc Sato pauses ("…") before he talks. · Chef Okabe has a real conversation: a first-visit line (he spots Sato\'s work, or an ex-cop), returning lines that change with your karma, a free bowl at high karma, Reyes eating there every night, free deliveries, a "…" option, and +1 karma the first time you buy a bowl.'],
@@ -4054,7 +4059,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.31 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.32 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -6244,6 +6249,61 @@ document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.clos
   m.stock.splice(m.stock.indexOf(s),1);
   if(imp&&chipIn(s.it))return;
   refresh();vendorTalk(m);},true);
+
+// ---------- v0.32 tail
+// facing arrow on the minimap (both modes; first person also shows a view cone)
+{const _dm=drawMini;drawMini=function(){_dm.apply(this,arguments);try{if(!G||!G.L)return;const c=$('#mini'),g=c.getContext('2d'),h=G.hero,s=c.width/W;
+  let ang;if(FP.on){ang=(typeof FP.ang==='number'?FP.ang:FP.dir*Math.PI/2);}else{const d=UI.mdir||[RD.face<0?-1:1,0];ang=Math.atan2(d[0],-d[1]);}
+  const cx=X(h.pos)*s+s/2,cy=Y(h.pos)*s+s/2,R=Math.max(5,s*2.4);g.save();g.translate(cx,cy);g.rotate(ang);
+  if(FP.on){const fv={narrow:.58,normal:.72,wide:.85,ultra:1}[FP.set.fov]||.72,a=Math.atan(fv);g.globalAlpha=.22;g.fillStyle='#3fe8ff';g.beginPath();g.moveTo(0,0);g.arc(0,0,R*3.2,-Math.PI/2-a,-Math.PI/2+a);g.closePath();g.fill();g.globalAlpha=1;}
+  g.fillStyle='#000';g.beginPath();g.moveTo(0,-R-1.5);g.lineTo(R*.75+1.5,R*.7+1);g.lineTo(0,R*.25);g.lineTo(-R*.75-1.5,R*.7+1);g.closePath();g.fill();
+  g.fillStyle='#ffffff';g.beginPath();g.moveTo(0,-R);g.lineTo(R*.7,R*.65);g.lineTo(0,R*.25);g.lineTo(-R*.7,R*.65);g.closePath();g.fill();g.restore();}catch(e){}};}
+{const _rf=refresh;refresh=function(){try{const h=G&&G.hero;if(h){if(UI.lastHp!=null&&UI.lastHp!==h.pos&&dist(UI.lastHp,h.pos)===1){UI.mdir=[Math.sign(X(h.pos)-X(UI.lastHp)),Math.sign(Y(h.pos)-Y(UI.lastHp))];}UI.lastHp=h.pos;}}catch(e){}return _rf.apply(this,arguments);};}
+setInterval(()=>{try{if(G&&G.L&&FP.on&&RD.on&&!busy())drawMini();}catch(e){}},140);
+
+// can't afford it? say so, with the number
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('#modal button.off');if(!b||!G)return;const t=b.textContent||'',m=t.match(/(\d[\d,]*)\s*◈/);if(!m)return;const need=+m[1].replace(/,/g,'')-G.hero.creds;if(need>0)toast(`Short <b>${need}◈</b>. You have ${G.hero.creds}◈.`);},true);
+
+// slang: "choom" was everywhere. Mix it up.
+{const _br=bark;bark=function(kind){const L=G.L,al=L.mobs.filter(m=>MOBS[m.k].ally&&L.vis[m.pos]&&!m.cower);if(!al.length||G.turn-(G.lastBark||-99)<14||!chance(.28))return;G.lastBark=G.turn;const a=pick(al),d=MOBS[a.k];
+  if(d.robot){fx({t:'txt',p:a.pos,s:pick(['♪ beep','bwee-oo','*hum*','!!','♪ bip-bip','*whirr*']),c:'#7ae0ff'});if(EV.sfx)EV.sfx('beep2');return;}
+  const P={boom:['Damn!','Holy—','Ears ringing!','Hell yes.','Warn me next time!','That\'s gonna leave a mark.','Somebody call building maintenance.'],
+    crit:['Nice shot.','Clean.','Remind me not to piss you off.','Textbook.','Where\'d you learn that?','Didn\'t even see it coming.','Okay, show-off.','Respect.'],
+    kill:['Got him.','Nice.','That\'s one.','Down.','Stay down.','He had it coming.','Next.','Clear on my side.']}[kind]||['Nice.'];
+  const s=pick(P);fx({t:'txt',p:a.pos,s,c:'#ffe14a',dur:2400});log(`${a.lk!=null?npcName(a):d.n}: "${s}"`,'');};}
+
+// difficulty scales the dark stuff: how often a cornered civilian dies before you get there
+const DIFF_EV={chill:{die:.08,civT:420,gap:280,ch:.004,alarm:3},street:{die:.25,civT:340,gap:210,ch:.005,alarm:5},hardcore:{die:.5,civT:260,gap:170,ch:.006,alarm:7},meltdown:{die:.8,civT:200,gap:150,ch:.007,alarm:9}};
+function dEv(){return DIFF_EV[(DIFFS[G.diff]||{}).id]||DIFF_EV.street;}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{const L=G.L;if(L&&L.civFate===undefined){L.civFate=chance(dEv().die)?'die':'wait';}}catch(e){}return r;};}
+{const _s=spend;spend=function(t){const L=G&&G.L,keep=L&&L.civFate;if(L&&keep==='die'&&L.t0!==undefined&&G.turn-L.t0<dEv().civT)L.civFate='wait';
+  try{return _s.apply(this,arguments);}finally{if(L&&keep==='die'&&L.civFate==='wait')L.civFate='die';}};}
+// attackers turn on you once they see you come in (most of the time)
+{const _ma=mobAct;mobAct=function(m){try{if(m&&m.vic&&!m.vicDrop){const h=G.hero,L=G.L;if(L.vis[m.pos]&&dist(m.pos,h.pos)<=8&&!(h.b.invis>0)){if(chance(.8)){m.vic=null;m.st='hunt';m.tg=h.pos;fx({t:'txt',p:m.pos,s:'!',c:'#ff3b4e'});}m.vicDrop=1;}}}catch(e){}return _ma.apply(this,arguments);};}
+
+// random events: rarer on easy, more on hard; wrong-address courier much rarer
+randomEvent=(function(){const _re=randomEvent;return function(){const L=G.L;if(!L||L.street||L.boss||G.over||G.depth<1)return;const e=dEv();if(G.turn-(G.lastEv||0)<e.gap||!chance(e.ch))return;
+  const lt=G.lastEv,_r=Math.random,n0=L.mobs.length,lg=G.log.length;let first=true;G.lastEv=-9999;
+  Math.random=function(){if(first){first=false;return 0;}return _r();};
+  try{_re.apply(this,arguments);}finally{Math.random=_r;if(G.lastEv===-9999)G.lastEv=lt;}
+  const cb=L.mobs.slice(n0).filter(m=>m.k==='courier');if(cb.length&&chance(.6)){for(const c of cb)L.mobs.splice(L.mobs.indexOf(c),1);G.log.length=lg;}};})();
+
+// alarms pull in the nearby crew, not the whole floor
+raiseAlarm=function(pos,msg){const L=G.L,h=G.hero,cap=dEv().alarm;const foes=L.mobs.filter(m=>{const d=MOBS[m.k];return !d.ally&&!d.npc&&!d.boss;}).sort((a,b)=>dist(a.pos,pos)-dist(b.pos,pos));
+  let n=0;for(const m of foes){if(n<cap&&dist(m.pos,pos)<=16){if(m.st==='sleep'||m.st==='wander')m.st='hunt';m.tg=h.pos;n++;}}
+  log(msg||'ALARM. The floor knows where you are.','bad');sfx('trap');fx({t:'boom',p:pos,c:'#ff3b4e',r:2});G.intr=true;};
+
+// Architect: fabricators stay bolted down; fewer hunter drones
+{const _ma=mobAct;mobAct=function(m){if(m&&m.k==='node'){if(m.home==null)m.home=m.pos;m.pos=m.home;}const r=_ma.apply(this,arguments);if(m&&m.k==='node'&&m.home!=null)m.pos=m.home;return r;};}
+{const _sn=summonNear;summonNear=function(k,pos,own){if(k==='hdrone'){const L=G.L,cap=G.diff>=2?3:2,live=L.mobs.filter(x=>x.k==='hdrone').length;if(live>=cap||G.turn-(L.hdT||-99)<10)return;L.hdT=G.turn;}return _sn.apply(this,arguments);};}
+
+// nobody stands in traffic, ever (ending included)
+setInterval(()=>{try{const L=G&&G.L;if(!L||!L.street||!L.road)return;const onRoad=i=>Y(i)>=L.road[0]&&Y(i)<=L.road[1];
+  for(const m of L.mobs){const d=MOBS[m.k];if(!d.npc||m.k==='cop'||m.k==='courier'||!onRoad(m.pos))continue;const up=Y(m.pos)-L.road[0]<=L.road[1]-Y(m.pos);
+    for(let k=1;k<6;k++){const j=up?m.pos-W*(Y(m.pos)-L.road[0]+k):m.pos+W*(L.road[1]-Y(m.pos)+k);if(j>=0&&j<N&&pass(j)&&!mobAt(j)&&j!==G.hero.pos){m.pos=j;break;}}}}catch(e){}},700);
+
+// vendors buy back: what you sold sits on their stand at the sell price plus a cut
+{const _as=actSell;actSell=function(it,n){const m=UI.vendM;const r=_as.apply(this,arguments);try{if(r&&m&&m.k==='vendor'){if(n&&it.q>n)return r;const k=it;(m.stock=m.stock||[]).unshift({it:JSON.parse(JSON.stringify(k)),price:Math.max(2,Math.round(sellPrice(k)*1.5)),bb:1});if(m.stock.length>24)m.stock.pop();}}catch(e){}return r;};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
