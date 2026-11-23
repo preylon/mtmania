@@ -1383,7 +1383,7 @@ function activeGun(){const h=G.hero,g=h.eq.gun,gh=h.eq.imp.find(i=>i&&i.k==='gun
 function actFire(tg){
   const h=G.hero,g=activeGun(),L=G.L;if(G.over)return false;
   if(!g){log('Nothing in your ranged slot.','warn');return false;}const d=ITEMS[g.k];if(d.type==='throw')return tg>=0?actThrow(g.k,tg):false;
-  if(g.ch<=0){log('*click* — empty. '+(d.rc?'It is recharging.':'It needs a Power Cell.'),'warn');sfx('empty');return false;}
+  if(g.ch<=0&&d.ammo&&reloadGun(g)){spend(1);return true;}if(g.ch<=0){log('*click* — empty. '+(d.ammo?'Out of rounds — find a Box of Rounds (Rook sells them).':d.rc?'It is recharging.':'It needs a Power Cell.'),'warn');sfx('empty');return false;}
   if(tg===h.pos)return false;
   g.ch--;const through=d.fx==='pierce'||d.fx==='flame',D=dist(h.pos,tg),path=line(h.pos,tg,through?d.rng:Math.min(D,d.rng));
   let end=h.pos;const hits=[];
@@ -1529,7 +1529,7 @@ function worldTick(){
   if(h.b.bleed>0&&!G.over)dmgHero(rr(1,2+Math.floor(G.depth/6)),'blood loss');
   if(G.over)return;
   for(const k in h.b){if(h.b[k]>0)h.b[k]--;if(h.b[k]<=0){delete h.b[k];if(k==='shield')h.shield=0;if(k==='invis')log('You shimmer back into view.');if(k==='haste')log('The world speeds back up.');}}
-  for(const g of [h.eq.gun,h.eq.gun2,h.eq.imp.find(i=>i&&i.k==='gunhand'&&i.ch!==undefined)])if(g){const d=ITEMS[g.k];if(d.rc&&g.ch<gunMax(g)){g.rp+=Math.max(.3,(h.cls==='netrunner'?1.5:1)*(1+.25*imp('capacitor')));if(g.rp>=d.rc){g.rp=0;g.ch++;}}}
+  for(const g of [h.eq.gun,h.eq.gun2,h.eq.imp.find(i=>i&&i.k==='gunhand'&&i.ch!==undefined)])if(g){const d=ITEMS[g.k];if(d.rc&&!d.ammo&&g.ch<gunMax(g)){g.rp+=Math.max(.3,(h.cls==='netrunner'?1.5:1)*(1+.25*imp('capacitor')));if(g.rp>=d.rc){g.rp=0;g.ch++;}}}
   if(h.acd>0)h.acd--;
   for(const m of L.mobs.slice()){
     if(m.hp<=0)continue;
@@ -3975,6 +3975,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.39','BODY SCAN: a skeleton view of your 3 implant ports and head jack (Link Sync ▸ STATS, and at ripperdocs). STATS BOOST CHROME by zone: STR 14+ arms, PER 13+ eyes, PER 12 + STR 11 spine, level 8+ gut, 60+ max HP chest, TECH 13+ head-jack chip — boosted chrome works one level higher. IDENTIFYING: everything except Redline still starts unknown; high TECH can read gear and implants on pickup; Gunners know guns, Enforcers know melee + armor, Tinkers know implants, Ghosts can tell which stims are drinkable; Rook appraises unknown gear (◈25 each), ripperdocs scan unmarked implants (◈30 each). REAL AMMO: Needler, Scatter and Minigun no longer recharge — they reload from Boxes of Rounds (floor loot, Rook sells them, Gunners start with 3). THROWN ITEMS set off traps where they land (the trap hits whoever is there, not you; alarms pull enemies to the noise). K9: pet it (heals it and you a bit) and give it a name. ACHIEVEMENTS: 11 new ones and a list in HUD settings. TUTORIAL: 9 quick cards on your first run (skippable), replay any time from HUD settings ▸ HOW TO PLAY. First person draws the arcade cabinet.'],
  ['v0.38b','ARCADE: prize creds run out after 3 wins per floor (it was an infinite money glitch). HEAD JACK: neural chips you pick up seat themselves when the jack is empty (they used to sit in the pack; swapping is in STATS ▸ HEAD JACK).'],
  ['v0.38','VOSS: intro scene on the roof, a karma-based half-HP scene (good / bad / neutral), a phase-2 red aura; he talks over the PA when a camera spots you (any floor 3+, once per floor, banner with his face); a few Voss LOYALISTS (black coats, red bands) on floors 21-29 and with him on the roof; rare DESERTERS (let him go = keycard + floor map, or take his gear) and DEFECTORS (kill a sector\'s cameras, or he joins you); dead guards leave DOG TAGS with their last log. ENDING: the street scene is now a letterboxed cinematic with portraits (the Mayor line no longer sticks in the log, first person turns off first); the 4 ending cinematics redrawn with real sprites, camera push, crowd pouring out, police lights, searchlights, rain, dawn co-op tower, sunset payout. FISTS: unarmed hits scale with STR and level; new GORILLA ARMS and SHOCK KNUCKLES implants (ripper stock), Breaker Arms boosts punches; first person shows two fists that jab left/right (chrome with arm implants). BOSS: Jett "Skyhook" Kaine rides a cargo drone on floor 13; he swoops in, kicks, and peels away; hitting any flyer in melee makes you JUMP; ranged works standing still. ROOK\'S GUNSMITH: the arms dealer has a bench to upgrade weapons and armor up to +9. LIGHTCYCLE arcade cabinet in bars and on the street (◈2 a ride, ◈8 a win, prize creds run out after 3 wins per floor). Cameras sweep a spotlight across the floor (you glow red when it lands on you). WINDOW VIEW: flying cars, a police AV with a searchlight, an ad blimp. FIRST PERSON: street sky no longer streaky; hands no longer drawn see-through.'],
  ['v0.37','BARTENDER only shoots when you can see the bar (no more off-screen kill spam). VOLT COLA has a lightning bolt on the can. MESSAGE HISTORY: ⚙ HUD settings → MESSAGE HISTORY to read every message this run, grouped by the floor it happened on. NEW art style: rooms less dark.'],
@@ -4068,7 +4069,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.38b · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.39 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -6907,6 +6908,112 @@ cineScene=function(g,W2,H2,kind,t,grade){const sky=grade||['#0a0a16','#1a1030'],
 // head jack: chips you pick up seat themselves if the jack is empty; otherwise say where to swap
 {const _pu2=pickUp;pickUp=function(e){const k=e&&e.it&&e.it.k,neu=k&&ITEMS[k]&&ITEMS[k].neural;const r=_pu2.apply(this,arguments);
   try{if(neu){const h=G.hero,it=h.inv.find(x=>x.k===k);if(it&&!h.jack)slotJack(it);else if(it)log('Head jack is full — swap chips in STATS ▸ HEAD JACK ▸ SLOT CHIP.','warn');}}catch(err){}return r;};}
+
+
+// ===================== v0.39 =====================
+// ---------- modal post-hooks (inject buttons into existing screens without replacing them) ----------
+const MHOOK=[];{const _om39=openModal;openModal=function(){const r=_om39.apply(this,arguments);try{const p=$('#modal .panel');for(const f of MHOOK)try{f(p);}catch(e){}}catch(e){}return r;};}
+
+// ---------- BODY PAGE: skeleton showing the existing 3 implant ports + head jack, with stat synergies ----------
+const BODYZ={arms:['breaker','gorilla','knux','gunhand','mantis'],eyes:['optics','thermal'],chest:['heart2','dermal','pump','capacitor','regen','s_core'],spine:['reflex','ghoststep'],gut:['metab','scav']};
+function zoneOf(k){for(const z in BODYZ)if(BODYZ[z].includes(k))return z;return 'chest';}
+function synergy(z){const h=G.hero;initStats(h);if(z==='arms')return (h.str||10)>=14;if(z==='eyes')return effStat('per')>=13;if(z==='spine')return effStat('per')>=12&&(h.str||10)>=11;if(z==='gut')return h.lvl>=8;if(z==='chest')return h.mhp>=60;return false;}
+const SYN_T={arms:'STR 14+: arm chrome works one level higher',eyes:'PER 13+: eye chrome works one level higher',spine:'PER 12+ and STR 11+: spine chrome one level higher',gut:'Level 8+: gut chrome one level higher',chest:'60+ max HP: chest chrome one level higher',jack:'TECH 13+: your head-jack chip gives +1 more'};
+{const _imp=imp;imp=function(kind){const p=_imp.apply(this,arguments);try{if(p>0&&synergy(zoneOf(kind)))return p+1;}catch(e){}return p;};}
+{const _es=effStat;let inES=0;effStat=function(n){const v=_es.apply(this,arguments);if(inES)return v;try{const h=G.hero,j=h.jack&&ITEMS[h.jack.k];if(j&&j.bon&&j.bon[n]&&n!=='tech'){inES=1;const t=_es('tech');inES=0;if(t>=13)return v+1;}}catch(e){inES=0;}return v;};}
+function bodyPage(back){const h=G.hero;initStats(h);const cv=cvs(64,96),g=cv.getContext('2d'),B=(x,y,w,hh,c)=>{g.fillStyle=c;g.fillRect(x,y,w,hh);},bone='#d8d2c0',dk='#8a8474';
+  const zones={};h.eq.imp.forEach(it=>{if(it)(zones[zoneOf(it.k)]=zones[zoneOf(it.k)]||[]).push(it);});
+  const glow=(z,c)=>{if(!zones[z])return null;return synergy(z)?'#39ffb0':(c||'#3af5f5');};
+  // skull + jack
+  B(24,4,16,14,bone);B(26,2,12,2,bone);B(27,9,4,3,'#14161c');B(33,9,4,3,'#14161c');B(30,13,4,2,dk);B(27,18,10,3,bone);for(let x=28;x<37;x+=2)B(x,18,1,3,dk);
+  if(zones.eyes){const c=glow('eyes');B(27,9,4,3,c);B(33,9,4,3,c);}
+  B(40,8,3,5,h.jack?'#ffd24a':'#3a3f4a');B(41,9,1,3,h.jack?'#fff2c8':'#14161c');
+  // spine + ribs
+  for(let y=22;y<62;y+=3)B(31,y,2,2,zones.spine?glow('spine'):bone);
+  for(let r=0;r<6;r++){const y=26+r*4,w=14-Math.abs(r-2)*1;B(32-w,y,w-1,1,bone);B(33,y,w-1,1,bone);}
+  if(zones.chest){B(26,30,12,10,glow('chest')+'66');B(30,32,4,5,glow('chest'));}
+  if(zones.gut){B(27,46,10,8,glow('gut')+'55');}
+  B(24,60,16,5,bone);B(22,62,4,4,bone);B(38,62,4,4,bone);
+  // arms
+  const ac=zones.arms?glow('arms'):bone;B(18,24,6,2,bone);B(40,24,6,2,bone);B(16,26,2,16,ac);B(46,26,2,16,ac);B(15,42,2,14,ac);B(47,42,2,14,ac);B(13,56,5,4,ac);B(46,56,5,4,ac);
+  // legs
+  B(25,66,2,14,bone);B(37,66,2,14,bone);B(25,80,2,12,bone);B(37,80,2,12,bone);B(22,92,6,2,bone);B(36,92,6,2,bone);
+  const rows=h.eq.imp.map((it,i)=>it?`<div class="dbr lv2"><img class="pix" src="${itemURL(it)}"><div><h4>PORT ${i+1} · ${zoneOf(it.k).toUpperCase()} — ${esc(itemName(it))}</h4><small style="color:${synergy(zoneOf(it.k))?'#39ffb0':'#7d8aa6'}">${synergy(zoneOf(it.k))?'SYNERGY ON — ':''}${SYN_T[zoneOf(it.k)]}</small></div></div>`:`<div class="dbr lv0"><div class="unk">·</div><div><h4>PORT ${i+1} — EMPTY</h4><small class="dim">Install chrome at a ripperdoc.</small></div></div>`).join('');
+  const jt=h.jack?`<div class="dbr lv2"><img class="pix" src="${itemURL(h.jack)}"><div><h4>HEAD JACK — ${esc(ITEMS[h.jack.k].name)}</h4><small style="color:${effStat('tech')>=13?'#39ffb0':'#7d8aa6'}">${effStat('tech')>=13?'SYNERGY ON — ':''}${SYN_T.jack}</small></div></div>`:`<div class="dbr lv0"><div class="unk">·</div><div><h4>HEAD JACK — EMPTY</h4><small class="dim">Neural chips seat here (STATS ▸ SLOT CHIP).</small></div></div>`;
+  const p=openModal(`<div class="mhead"><h2>BODY SCAN</h2><button class="x" data-bp="x">✕</button></div><div class="detail"><div style="display:flex;gap:12px;align-items:flex-start"><img src="${cv.toDataURL()}" style="width:128px;height:192px;image-rendering:pixelated;background:radial-gradient(#13203a,#05070d);border:1px solid #2a3a50;flex:none"><div style="flex:1;min-width:0"><small class="dim">STR ${h.str||10} · PER ${effStat('per')} · TECH ${effStat('tech')} · LV ${h.lvl} · ${h.mhp} MAX HP</small><p class="dim" style="font-size:11px">Cyan = installed. Green = installed and boosted by your stats.</p></div></div>${jt}${rows}<button class="btn" data-bp="back" style="margin-top:8px">◂ BACK</button></div>`);
+  p.onclick=ev=>{const b=ev.target.closest('[data-bp]');if(!b)return;closeModal();if(b.dataset.bp==='back'&&back)back();};}
+MHOOK.push(p=>{const j=p.querySelector('[data-act="jack"]');if(j&&!p.querySelector('[data-body]')){const b=document.createElement('button');b.className='btn go';b.dataset.body=1;b.textContent='BODY SCAN ▸';b.style.marginLeft='6px';b.onclick=e=>{e.stopPropagation();closeModal();bodyPage();};j.after(b);}});
+{const _sm39=surgeryMenu;surgeryMenu=function(m){const r=_sm39.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-body]')){const b=document.createElement('button');b.className='btn go';b.dataset.body=1;b.textContent='BODY SCAN ▸';b.style.cssText='display:block;width:100%;margin:6px 0';b.onclick=e=>{e.stopPropagation();closeModal();bodyPage(()=>surgeryMenu(m));};det.insertBefore(b,det.children[1]||null);
+  const h=G.hero,unk=h.inv.filter(it=>ITEMS[it.k].type==='implant'&&!it.known);if(unk.length){const s2=document.createElement('button');s2.className='btn';s2.style.cssText='display:block;width:100%;margin:6px 0';const c=30*unk.length;s2.textContent=`SCAN ${unk.length} UNMARKED IMPLANT${unk.length>1?'S':''} · ◈${c}`;s2.onclick=e=>{e.stopPropagation();if(h.creds<c){toast('Short ◈'+(c-h.creds));return;}h.creds-=c;unk.forEach(it=>it.known=true);log(`The ripper waves a scanner over them: ${unk.map(it=>itemName(it)).join(', ')}.`,'hi');refresh();closeModal();surgeryMenu(m);};det.insertBefore(s2,det.children[2]||null);}}}catch(e){}return r;};}
+
+// ---------- IDENTIFYING: TECH reads gear, classes recognise their kit, gunsmith appraises ----------
+const CLS_ID={gunner:['gun'],enforcer:['melee','armor'],tinker:['implant'],ghost:['stim']};
+function autoId(it,why){if(!it||!ITEMS[it.k])return false;const d=ITEMS[it.k];if(isKnown(it))return false;if(d.type==='stim'||d.type==='chip'){G.ids.known[it.k]=true;}else it.known=true;if(why)log(`${why}: ${itemName(it)}.`,'hi');return true;}
+{const _pu39=pickUp;pickUp=function(e){const it=e&&e.it;const r=_pu39.apply(this,arguments);try{if(it&&ITEMS[it.k]&&!isKnown(it)){const d=ITEMS[it.k],h=G.hero,cl=CLS_ID[h.cls]||[];
+  if(cl.includes(d.type)){if(d.type==='stim'){G.ids.hint=G.ids.hint||{};G.ids.hint[it.k]=1;log('You\'ve seen that colour on the street before. Probably drinkable.','hi');}else autoId(it,'You know this kind of kit');}
+  else if(['melee','armor','gun','implant'].includes(d.type)&&chance(Math.max(0,(effStat('tech')-8)*.07)))autoId(it,'Your TECH reads the serial');}}catch(err){}return r;};}
+const _bm38=benchMenu;benchMenu=function(m){_bm38.apply(this,arguments);try{const h=G.hero,det=$('#modal .panel .detail'),unk=h.inv.filter(it=>['melee','armor','gun'].includes(ITEMS[it.k].type)&&!it.known);if(det&&unk.length){const c=25*unk.length,b=document.createElement('button');b.className='btn';b.style.cssText='display:block;width:100%;margin:6px 0';b.textContent=`APPRAISE ${unk.length} UNKNOWN PIECE${unk.length>1?'S':''} · ◈${c}`;
+  b.onclick=e=>{e.stopPropagation();if(h.creds<c){toast('Short ◈'+(c-h.creds));return;}h.creds-=c;unk.forEach(it=>it.known=true);log(`ROOK: "${unk.map(it=>itemName(it)).join('. ')}. You're welcome."`,'hi');refresh();benchMenu(m);};det.insertBefore(b,det.children[1]||null);}}catch(e){}};
+
+// ---------- REAL AMMO: Needler / Scatter / Minigun use Boxes of Rounds instead of recharging ----------
+def('ammo',{type:'misc',name:'Box of Rounds',icon:'cell',c:'#e0b040',val:14,desc:'Kinetic rounds for bullet guns (Needler, Scatter, Minigun). One box refills a magazine. Tech guns don\'t need it.'});
+ICON2.ammo=function(R){R(3,6,10,7,'#5a3a14');R(3,6,10,1,'#8a6420');R(4,4,8,2,'#3a2a10');for(const x of [5,7,9,11]){R(x,2,1,3,'#e0b040');R(x,2,1,1,'#fff2c8');}R(5,8,6,3,'#e0b040');R(6,9,4,1,'#5a3a14');};
+for(const k of ['needler','scatter','minigun'])if(ITEMS[k])ITEMS[k].ammo=1;
+function reloadGun(g){const h=G.hero,box=invFind('ammo');if(!box)return false;consume(box);g.ch=gunMax(g);sfx('equip');fx({t:'txt',p:h.pos,s:'RELOAD',c:'#e0b040'});log(`You slam a fresh box into the ${ITEMS[g.k].name}.`);return true;}
+if(CLASSES.gunner&&!CLASSES.gunner.start.some(s=>s[0]==='ammo'))CLASSES.gunner.start.push(['ammo',3]);
+{const _ss39=shopStock;shopStock=function(vt){const out=_ss39.apply(this,arguments);try{if(vt==='guns'&&Array.isArray(out))out.push(mk('ammo',{q:4,known:true}));}catch(e){}return out;};}
+function ammoDrops(){const L=G.L;if(!L||L.street||L._am39)return;L._am39=1;const h=G.hero,bul=[h.eq.gun,h.eq.gun2,...h.inv].some(it=>it&&ITEMS[it.k]&&ITEMS[it.k].ammo);const n=bul?rr(1,3):(chance(.4)?1:0);for(let j=0;j<n;j++){const p=farTile(L,4);if(p>=0)L.items.push({pos:p,it:mk('ammo',{q:rr(1,2)})});}}
+
+// ---------- THROWN ITEMS SET OFF TRAPS (effects happen at the trap, not to you) ----------
+{const _at39=actThrow;actThrow=function(k,tg){const h=G.hero,L=G.L;let end=-1;try{const path=line(h.pos,tg,Math.min(dist(h.pos,tg),12));end=h.pos;for(const i of path){if(blocksShot(i))break;end=i;const m=mobAt(i);if(m&&!MOBS[m.k].npc)break;}}catch(e){}
+  const r=_at39.apply(this,arguments);try{const tr=r&&end>=0&&end!==h.pos&&L.traps[end];if(tr){delete L.traps[end];if(EV.dirty)EV.dirty();sfx('trap');const nm=TRAPS[tr.t][0];log(`It lands on a ${tr.hid?'hidden ':''}${nm} and sets it off.`,'hi');
+    switch(tr.t){case 'shock':fx({t:'boom',p:end,c:'#ffe14a',r:1});for(const o of L.mobs.slice())if(dist(o.pos,end)<=1&&!MOBS[o.k].npc){dmgMob(o,rr(3,6)+Math.floor(G.depth*.8));if(o.hp>0)o.b.stun=2;}break;
+      case 'gas':cloud(end,'toxic',2,6);break;case 'fire':cloud(end,'fire',1,4);break;
+      case 'alarm':fx({t:'boom',p:end,c:'#ff3b4e',r:3});for(const m of L.mobs)if(!MOBS[m.k].ally&&!MOBS[m.k].npc&&!MOBS[m.k].boss){m.st='hunt';m.tg=end;}log('Every hostile on the floor heads for the noise — not for you.','hi');break;
+      case 'tele':{fx({t:'boom',p:end,c:'#c06aff',r:1.5});const e=L.items.find(x=>x.pos===end);if(e){const p=randFloor();if(p>=0)e.pos=p;}break;}
+      case 'summon':for(let n=0;n<2;n++){const p=freeNear(end,2);if(p>=0){const m=mkMob(wpick(SPAWN[sectorOf(G.depth)]),p,'hunt');m.tg=end;L.mobs.push(m);fx({t:'boom',p,c:'#ff9a3c',r:1});}}break;}}}catch(e){console.warn(e);}return r;};}
+
+// ---------- K9: name it, pet it, mourn it ----------
+MHOOK.push(p=>{});
+{const _am39=allyMenu;allyMenu=function(a){const r=_am39.apply(this,arguments);try{if(a&&a.k==='a_k9'){const det=$('#modal .panel .detail');const box=document.createElement('div');box.className='btns';box.style.cssText='flex-wrap:wrap;margin:6px 0';
+  box.innerHTML=`<button class="btn go" data-k9="pet">PET ${esc((a.nm||'THE DOG').toUpperCase())}</button><input data-k9n maxlength="12" placeholder="${esc(a.nm||'Name')}" style="flex:1;min-width:90px;background:#0a0c14;border:1px solid #3af5f5;color:#e8fbff;font:13px ui-monospace,monospace;padding:6px"><button class="btn" data-k9="name">NAME</button>`;det.insertBefore(box,det.children[1]||null);
+  box.onclick=e=>{e.stopPropagation();const b=e.target.closest('[data-k9]');if(!b)return;const h=G.hero;
+    if(b.dataset.k9==='pet'){if((a.petT||-99)>G.turn-25){log(`${a.nm||'The K9'} is already wagging. Give it a minute.`);closeModal();return;}a.petT=G.turn;a.hp=Math.min(a.mhp,a.hp+6);h.hp=Math.min(h.mhp,h.hp+3);fx({t:'txt',p:a.pos,s:'♥',c:'#ff6ad5'});log(`${a.nm||'The K9'} leans its whole metal head into your hand. (+6 HP to it, +3 to you)`,'hi');G.pets=(G.pets|0)+1;if(G.pets>=10)ach39('goodboy');closeModal();refresh();}
+    if(b.dataset.k9==='name'){const v=(box.querySelector('[data-k9n]').value||'').trim().slice(0,12);if(!v)return;a.nm=v;log(`The K9's tag now reads "${v}". It seems to approve.`,'hi');closeModal();refresh();}};}}catch(e){}return r;};}
+{const _np39=npcName;npcName=function(m){if(m&&m.k==='a_k9'&&m.nm)return m.nm;return _np39.apply(this,arguments);};}
+
+// ---------- ACHIEVEMENTS: more of them + a list you can open ----------
+Object.assign(ACH,{skyhook:['GROUNDED','Brought Skyhook\'s drone down on floor 13.'],mercy:['WALK AWAY','Let a deserter go.'],turncoat:['TURNCOAT','Got a Voss defector to fight for you.'],tags:['NAME, RANK, NUMBER','Read 4 dog tags.'],chrome:['FULL CHROME','Filled all three implant ports.'],arcade:['GRID RUNNER','Won 5 Lightcycle races.'],goodboy:['GOOD BOY','Petted your K9 ten times.'],fists:['BARE KNUCKLE','Dropped an enemy with your fists.'],vossdown:['RAZOR\'S EDGE','Beat Voss.'],bench:['TUNED','Took a weapon to +5 at Rook\'s bench.'],ident:['APPRAISER','Identified 20 items.']});
+function ach39(k){try{if(ACH[k])achieve(k);}catch(e){}}
+function achList(){let a={};try{a=JSON.parse(localStorage.getItem('mtm_ach')||'{}');}catch(e){}const ks=Object.keys(ACH),got=ks.filter(k=>a[k]).length;
+  openModal(`<div class="mhead"><h2>ACHIEVEMENTS ${got}/${ks.length}</h2><button class="x" data-act="close">✕</button></div><div class="detail">${ks.map(k=>`<div class="dbr ${a[k]?'lv2':'lv0'}"><div class="unk" style="color:${a[k]?'#ffe14a':'#3a3f4a'}">★</div><div><h4>${a[k]?esc(ACH[k][0]):'???'}</h4><small class="dim">${a[k]?esc(ACH[k][1])+' · '+new Date(a[k]).toLocaleDateString():'Locked'}</small></div></div>`).join('')}<button class="btn" onclick="closeModal()">CLOSE</button></div>`);}
+{const _hs39=hudSettings;hudSettings=function(){const r=_hs39.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-achl]')){const b=document.createElement('div');b.innerHTML='<button class="chip" data-achl="1">ACHIEVEMENTS ▸</button> <button class="chip" data-tut="1">HOW TO PLAY ▸</button>';b.querySelector('[data-achl]').onclick=e=>{e.stopPropagation();achList();};b.querySelector('[data-tut]').onclick=e=>{e.stopPropagation();closeModal();tutorial(true);};det.insertBefore(b,det.firstChild);}}catch(e){}return r;};}
+// achievement triggers
+{const _sp39=spend;spend=function(){const r=_sp39.apply(this,arguments);try{const h=G.hero;if(G.skyDone)ach39('skyhook');if(h.eq.imp.every(Boolean))ach39('chrome');for(const s of ['gun','melee'])if(h.eq[s]&&(h.eq[s].lvl|0)>=5)ach39('bench');
+  let n=0;for(const k in (G.ids&&G.ids.known)||{})n++;for(const it of [h.eq.melee,h.eq.gun,h.eq.armor,...h.eq.imp,...h.inv])if(it&&it.known)n++;if(n>=20)ach39('ident');}catch(e){}return r;};}
+{const _dm39=dmgMob;dmgMob=function(m){const was=m.hp>0;const r=_dm39.apply(this,arguments);try{if(was&&m.hp<=0){const h=G.hero;if(m.k==='b6')ach39('vossdown');if(!h.eq.melee&&imp('mantis')<=0&&dist(m.pos,h.pos)<=1&&!MOBS[m.k].ally)ach39('fists');}}catch(e){}return r;};}
+{const _pu39b=pickUp;pickUp=function(e){const r=_pu39b.apply(this,arguments);try{if(e&&e.it&&e.it.k==='dogtag'){G.tagsRead=(G.tagsRead|0)+1;if(G.tagsRead>=4)ach39('tags');}}catch(err){}return r;};}
+{const _dt39=deserterTalk;deserterTalk=function(m){_dt39.apply(this,arguments);try{const b=$('#modal .panel [data-o="0"]');if(b)b.addEventListener('click',()=>ach39('mercy'),true);}catch(e){}};}
+{const _df39=defectorTalk;defectorTalk=function(m){_df39.apply(this,arguments);try{const b=$('#modal .panel [data-o="1"]');if(b)b.addEventListener('click',()=>ach39('turncoat'),true);}catch(e){}};}
+{const _oa39=openArcade;openArcade=function(){_oa39.apply(this,arguments);try{const w=$('#lcW');if(w){const ob=new MutationObserver(()=>{if((+w.textContent||0)>=5)ach39('arcade');});ob.observe(w,{childList:true,characterData:true,subtree:true});}}catch(e){}};}
+
+// ---------- TUTORIAL: first run (skippable), replay from HUD settings ▸ HOW TO PLAY ----------
+const TUT=[['MOVE','Tap a tile to walk there. Tap an enemy to fight it. Drag the map to look around; pinch or use the zoom buttons to zoom.'],['SEARCH','The magnifier searches around you for traps and hidden doors. Tech classes and Thermal Eyes spot more.'],
+  ['LINK SYNC','Tap the Link Sync panel (top left) for STATS, your HEAD JACK and BODY SCAN, contacts, the radio and your squad.'],['FIGHT','Melee by walking into enemies. Guns: tap FIRE, then a target. Bullet guns need Boxes of Rounds; tech guns recharge. Close kills can trigger finishers.'],
+  ['ITEMS','Most things you find are unidentified. Use them, raise TECH, use a scanner chip, or pay Rook (guns) or a ripperdoc (implants) to check them. Redline is always Redline.'],['CHROME','Ripperdocs install implants into your 3 ports. Your stats boost the chrome in their zone — check BODY SCAN.'],
+  ['THE CLIMB','Each sector has a vault. Find keyshards to open it. Elevators take you up; some floors are sealed until you deal with whoever holds the override.'],['SQUAD','Tap an ally to give orders, gear them up, or service drones. Kits repair them.'],
+  ['FIRST PERSON','The 1ST button under the minimap switches to first person. LOOK stick turns, the D-pad walks. ⚙ has settings.']];
+async function tutorial(force){if(!force){try{if(localStorage.getItem('mtm_tut'))return;}catch(e){}}try{localStorage.setItem('mtm_tut','1');}catch(e){}
+  const lsSpr=(()=>{const c=cvs(22,22),g=c.getContext('2d');g.fillStyle='#0a0c14';g.fillRect(2,5,18,12);g.fillStyle='#3af5f5';g.fillRect(3,6,16,10);g.fillStyle='#0a0c14';g.fillRect(4,7,14,8);g.fillStyle='#3af5f5';g.fillRect(5,9,6,1);g.fillRect(5,11,9,1);g.fillRect(5,13,4,1);g.fillStyle='#2a2e38';g.fillRect(8,2,6,3);g.fillRect(8,17,6,3);return c;})();
+  const el=c38Layer();let skip=false;const sk=document.createElement('button');sk.textContent='SKIP TUTORIAL ✕';sk.style.cssText='position:absolute;right:3vw;top:calc(10vh + 8px);z-index:2;background:#0a0c14;border:1px solid #3af5f5;color:#3af5f5;font:11px ui-monospace,monospace;padding:6px 10px';sk.onclick=e=>{e.stopPropagation();skip=true;el.click();};el.appendChild(sk);
+  for(let i=0;i<TUT.length&&!skip;i++)await cineLine({who:`LINK SYNC · ${i+1}/${TUT.length} · ${TUT[i][0]}`,spr:lsSpr,t:TUT[i][1],keep:i<TUT.length-1,auto:12000});
+  sk.remove();c38Close();}
+{const _bp39=beginPlay;beginPlay=function(){const r=_bp39.apply(this,arguments);try{let tries=0;const iv=setInterval(()=>{tries++;const busyUI=!$('#modal').classList.contains('hide')||[...document.querySelectorAll('button')].some(b=>b.offsetParent&&/…/.test(b.innerText))||(()=>{const m=document.querySelector('#mirror .btn');return !!(m&&m.offsetParent);})();if(!busyUI||tries>90){clearInterval(iv);if(tries<=90)setTimeout(()=>tutorial(false),600);}},700);}catch(e){}return r;};}
+
+// ---------- FIRST PERSON: arcade cabinet art ----------
+{const _pa39=propArt;propArt=function(p,i,now){if(!p||p.k!=='arcade')return _pa39.apply(this,arguments);const c=cvs(16,16),g=c.getContext('2d'),B=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fl=Math.floor(now/180)%8;
+  B(2,0,12,16,'#07080c');B(3,1,10,14,'#1a1430');B(3,1,10,1,'#4a3a7a');B(4,2,8,2,'#ff4fd8');B(5,2,6,1,'#ffd0f4');B(4,5,8,6,'#020306');for(let n=0;n<5;n++)B(4+((fl+n)%8),6+(n%2)*2,1,1,'#3af5f5');for(let n=0;n<4;n++)B(11-((fl+n)%8),9-(n%2)*2,1,1,'#ff9a3c');B(4,12,8,2,'#2a2438');B(6,12,1,1,'#ff3b4e');B(9,12,1,1,'#3fe8ff');return c;};}
+{const _ef39=enterFloor;enterFloor=function(){const r=_ef39.apply(this,arguments);try{ammoDrops();}catch(e){}return r;};}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
