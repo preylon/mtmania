@@ -445,12 +445,12 @@ IMP('dermal','Dermal Plating','#b8c4c8','Subdermal weave. Adds armor.');
 IMP('regen','Nanite Regenerator','#7dff8a','Repair swarm in the blood. Faster healing.');
 IMP('pump','Adrenal Pump','#ff9a3c','Chemical rage on tap. More melee damage.');
 IMP('capacitor','Capacitor Coil','#ffe14a','Spinal battery. Guns recharge faster.');
-IMP('scav','Scav Scanner','#ffd24a','Sniffs out valuables. More creds and drops.');
+IMP('scav','Scan N\' Scav','#ffd24a','Sniffs out valuables. More creds and drops.');
 IMP('ghoststep','Ghoststep Servos','#c06aff','Silent joints. Enemies notice you later.');
 IMP('thermal','Thermal Eyes','#ff3fa4','See body heat through walls.');
 IMP('metab','Bio-Recycler','#39ffb0','Wastes nothing. Hunger builds slower.');
 def('gunhand',{type:'implant',name:'Gun Hand',icon:'implant',c:'#ff5a2a',rare:1,d:[3,9],ch:4,rc:7,rng:6,t:2,desc:'Your forearm folds open into a self-charging cannon. FIRE uses it whenever your guns are empty or holstered.'});
-def('mantis',{type:'implant',name:'Mantis Blades',icon:'implant',c:'#e8f6ff',rare:1,desc:'Forearm blades. Fight bare-handed and they do the work — fast, sharp, vicious on sneak attacks.'});
+def('mantis',{type:'implant',name:'Backhand Blades',icon:'implant',c:'#e8f6ff',rare:1,desc:'Forearm blades. Fight bare-handed and they do the work — fast, sharp, vicious on sneak attacks.'});
 def('heart2',{type:'implant',name:'Second Heart',icon:'implant',c:'#ff3b4e',rare:1,desc:'A backup pump under the ribs. +25% max health while installed.'});
 // ---- stims (potions)
 const STIM=(k,name,desc,val)=>def(k,{type:'stim',name,icon:'stim',desc,val:val||25});
@@ -724,6 +724,7 @@ function tryGen(depth){
     else if(!secret&&chance(.35)){c.type='secret';secret=1;L.map[c.doors[0]]=T.SECRET;}
   }
   for(const c of real)if(!c.type){c.type='room';for(const d of c.doors)if(L.map[d]===T.DOOR&&chance(.2))L.map[d]=T.FLOOR;}
+  L.rooms40=real.map(c=>({x0:c.x0,y0:c.y0,x1:c.x1,y1:c.y1,t:c.type,l:c.links.length}));
   const inner=c=>{const r=[];for(let y=c.y0+1;y<c.y1;y++)for(let x=c.x0+1;x<c.x1;x++)r.push(idx(x,y));return r;};
   const used=new Set();
   L.wd=L.wd||{};L.rz=L.rz||{};
@@ -1976,7 +1977,7 @@ function glow(c){if(GLOW[c])return GLOW[c];const s=cvs(64,64),g=s.getContext('2d
 // ---------- renderer
 const RD={smk:[],decals:[],corpses:[],kick:{},pv:{},cv:null,g:null,w:0,h:0,S:4,tiles:10.5,mapCv:null,fogCv:null,fogIm:null,dirty:true,fx:[],rp:{},hp:{x:0,y:0,init:false},flash:{},lunge:{},shake:0,aim:-1,dest:-1,face:1,parts:[],lvl:null,last:0};
 function rdInit(cv){RD.cv=cv;RD.g=cv.getContext('2d');RD.mapCv=cvs(W*16,H*16);RD.fogCv=cvs(W,H);RD.fogIm=RD.fogCv.getContext('2d').createImageData(W,H);rdResize();requestAnimationFrame(rdFrame);}
-function rdResize(){const cv=RD.cv,dpr=Math.min(3,window.devicePixelRatio||1);RD.w=cv.width=Math.round(cv.clientWidth*dpr);RD.h=cv.height=Math.round(cv.clientHeight*dpr);RD.S=Math.max(2,Math.round(Math.min(RD.w,RD.h)/(16*RD.tiles)));}
+function rdResize(){const cv=RD.cv,dpr=Math.min(3,window.devicePixelRatio||1);RD.w=cv.width=Math.round(cv.clientWidth*dpr);RD.h=cv.height=Math.round(cv.clientHeight*dpr);RD.S=Math.max(1,Math.round(Math.min(RD.w,RD.h)/(16*RD.tiles)));}
 function rdMap(){const L=G.L,g=RD.mapCv.getContext('2d'),si=G.depth<=0?9:sectorOf(G.depth),sec=secOf(G.depth);g.fillStyle='#050508';g.fillRect(0,0,W*16,H*16);for(let i=0;i<N;i++){const t=L.map[i];if(t===T.WALL&&!DIRS.some(d=>{const j=i+d;return j>=0&&j<N&&L.map[j]!==T.WALL;}))continue;drawTile(g,L,i,sec,si);}
   const im=g.getImageData(0,0,W*16,H*16),d=im.data;if(!RD.lut){RD.lut=new Uint8ClampedArray(256);for(let v=0;v<256;v++)RD.lut[v]=255*Math.pow(v/255,.66)*1.08;}const lut=RD.lut;for(let p=0;p<d.length;p+=4){d[p]=lut[d[p]];d[p+1]=lut[d[p+1]];d[p+2]=lut[d[p+2]];}g.putImageData(im,0,0);}
 function tileAtPx(px,py){const TS=16*RD.S,dpr=RD.w/RD.cv.clientWidth,x=Math.floor((px*dpr-RD.ox)/TS),y=Math.floor((py*dpr-RD.oy)/TS);if(x<0||y<0||x>=W||y>=H)return -1;return idx(x,y);}
@@ -2135,7 +2136,7 @@ function rdFrame(now){
     const fl=RD.flash[m.id]&&now-RD.flash[m.id]<110,ghost=(!L.vis[m.pos])||(d.cloak&&!m.rev)||d.ghost;
     g.globalAlpha=ghost?.55:1;const hov=(d.a==='drone'||d.a==='orb'||d.a==='swarm')?S*2:0;
     const therm=!L.vis[m.pos]&&!d.npc&&!(h.b.mind>0)&&imp('thermal')>0;if(therm)g.globalAlpha=.95;
-    g.save();g.translate(Math.round(px),Math.round(py-hov));if(rp.f<0){g.scale(-1,1);}if(tilt)g.rotate(tilt);g.drawImage(therm?redOf(key._k):fl?whiteOf(key._k):key,-sw/2,-sw*(PAD+15)/SZ,sw,sw);g.restore();g.globalAlpha=1;
+    g.save();g.translate(Math.round(px),Math.round(py-hov));if(rp.f<0){g.scale(-1,1);}if(tilt)g.rotate(tilt);g.drawImage(therm?(MOBS[m.k].ally?blueOf(key._k):redOf(key._k)):fl?whiteOf(key._k):key,-sw/2,-sw*(PAD+15)/SZ,sw,sw);g.restore();g.globalAlpha=1;
     if(m.b.frozen>0){g.globalAlpha=.45;g.fillStyle='#a0e8ff';g.fillRect(px-7*S*sc,py-15*S*sc,14*S*sc,15*S*sc);g.globalAlpha=1;}
     const top=py-16*S*sc-hov;
     if(m.key||m.k==='node'){const by=top-6*S+Math.sin(now/220)*S;g.fillStyle=m.key?'#ffd24a':'#ff2a3a';g.fillRect(px-2*S,by,4*S,2*S);g.fillRect(px-S/2,by+2*S,S,2*S);g.fillRect(px+S/2,by+3*S,S,S);g.font=`${6*S}px VT323,monospace`;g.textAlign='center';g.fillText(m.key?'KEY':'FAB',px,by-S);}
@@ -2278,7 +2279,7 @@ const K=[
  {hx:1, la:[[-4,11],[-3,14]], ra:[[4,5],[1,3]],  ll:[[-1,22],[-2,26],[-2,28]], rl:[[1,22],[1,27],[2,28]], hd:0},
  {hx:0, la:[[-3,4],[-1,1]],   ra:[[3,4],[1,1]],  ll:[[-2,22],[-2,27],[-2,28]], rl:[[1,22],[1,27],[1,28]], hd:0},
  {hx:-1,la:[[-4,5],[-1,3]],   ra:[[4,11],[3,14]],ll:[[-2,22],[-2,27],[-3,28]], rl:[[0,22],[1,26],[1,28]], hd:0},
- {hx:0, la:[[-5,9],[-7,7]],   ra:[[5,9],[7,7]],  ll:[[-2,21],[-1,25],[-1,26]], rl:[[1,22],[1,27],[1,28]], hd:-1},
+ {hx:0, la:[[-4,8],[-4,5]],   ra:[[4,8],[4,5]],  ll:[[-2,21],[-1,25],[-1,26]], rl:[[1,22],[1,27],[1,28]], hd:-1},
 ];
 const HAIR={
  short:{back:[[-1,3],[0,3],[1,3],[1,4],[2,4],[2,5]],front:[]},
@@ -2638,7 +2639,7 @@ function showMenu(){
   const p=openModal(`<div class="mhead"><h2>PAUSED</h2><button class="x" data-act="close">✕</button></div><div class="detail menu"><button class="btn go" data-act="close">RESUME</button><button class="btn" data-act="legend">LEGEND &amp; UPDATES</button><button class="btn" data-act="hudset">HUD SETTINGS</button><button class="btn" data-act="zin">ZOOM IN</button><button class="btn" data-act="zout">ZOOM OUT</button><button class="btn" data-act="snd">SOUND: ${UI.sound?'ON':'OFF'}</button><button class="btn" data-act="db">DATABANK</button><button class="btn" data-act="log">MESSAGE LOG</button><button class="btn" data-act="help">HOW TO PLAY</button><button class="btn" data-act="quit">SAVE &amp; QUIT TO TITLE</button><button class="btn danger" data-act="abandon">ABANDON RUN</button></div>`);
   p.onclick=ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const k=a.dataset.act;
     if(k==='close'){closeModal();}
-    else if(k==='zin'||k==='zout'){RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,17);rdResize();saveOpts();}
+    else if(k==='zin'||k==='zout'){RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,42);rdResize();saveOpts();}
     else if(k==='snd'){UI.sound=!UI.sound;if(UI.sound){initAudio();setAmb();}else if(AMB){try{AMB.g.gain.value=0;}catch(e){}}saveOpts();showMenu();}
     else if(k==='help')showHelp(true);
     else if(k==='legend')showLegend(0);
@@ -3012,7 +3013,7 @@ function surgeryMenu(m){
   const h=G.hero,v=VENDORS[m.vt],free=h.eq.imp.includes(null),pk=h.inv.filter(i=>ITEMS[i.k].type==='implant');
   let s=`<div class="mhead"><h2>SURGERY</h2><span class="cr">◈ ${h.creds}</span><button class="x" data-act="close">✕</button></div><div class="detail"><p class="dim">"Sit. Don't touch anything." The chair smells like antiseptic and burnt wiring.</p><h5 class="h5">INSTALLED</h5>`;
   h.eq.imp.forEach((it,i)=>{s+=it?`<div class="dbr lv2"><img class="pix" src="${itemURL(it)}"><div><h4>${esc(itemName(it))}${it.cursed?' <em style="color:#ff6a78">GLITCHED</em>':''}</h4><div class="btns"><button class="btn go sm ${h.creds>=surgCost('up',it)?'':'off'}" data-s="up" data-i="${i}">UPGRADE · ${surgCost('up',it)}</button><button class="btn sm ${h.creds>=surgCost('remove')?'':'off'}" data-s="remove" data-i="${i}">CUT OUT · ${surgCost('remove')}</button></div></div></div>`:`<div class="dbr lv0"><div class="unk">·</div><div><h4>EMPTY PORT</h4></div></div>`;});
-  s+=`<h5 class="h5">IN YOUR PACK</h5>`+(pk.length?pk.map((it,i)=>`<div class="dbr lv2"><img class="pix" src="${itemURL(it)}"><div><h4>${esc(itemName(it))}</h4><div class="btns"><button class="btn go sm ${free&&h.creds>=surgCost('install')?'':'off'}" data-s="install" data-i="${h.inv.indexOf(it)}">${free?'INSTALL · '+surgCost('install'):'NO FREE PORT'}</button></div></div></div>`).join(''):'<p class="dim">No loose implants. Rare ones — Gun Hand, Mantis Blades, Second Heart — are sold by Ripperdocs and Fixers.</p>');
+  s+=`<h5 class="h5">IN YOUR PACK</h5>`+(pk.length?pk.map((it,i)=>`<div class="dbr lv2"><img class="pix" src="${itemURL(it)}"><div><h4>${esc(itemName(it))}</h4><div class="btns"><button class="btn go sm ${free&&h.creds>=surgCost('install')?'':'off'}" data-s="install" data-i="${h.inv.indexOf(it)}">${free?'INSTALL · '+surgCost('install'):'NO FREE PORT'}</button></div></div></div>`).join(''):'<p class="dim">No loose implants. Rare ones — Gun Hand, Backhand Blades, Second Heart — are sold by Ripperdocs and Fixers.</p>');
   s+=`<h5 class="h5">COSMETIC</h5><div class="btns"><button class="btn ${h.creds>=surgCost('look')?'':'off'}" data-s="look">CHANGE YOUR LOOK · ${surgCost('look')}</button><button class="btn" data-act="close">LEAVE</button></div></div>`;
   const p=openModal(s,'shop');
   p.onclick=ev=>{const b=ev.target.closest('[data-s]');if(ev.target.closest('[data-act]')){closeModal();refresh();return;}if(!b||b.classList.contains('off'))return;const k=b.dataset.s;
@@ -3414,7 +3415,7 @@ function drawHand(now){
   if(K.mt)R(aw/2+dd-1*u,-Lr+hand,1*u,Lr-hand,'#dfe8f0');
   if(K.port){R(-aw/2+aw*.4,-Lr+hand-1*u,2*u,2*u,K.port);g.globalCompositeOperation='lighter';g.globalAlpha=.4;R(-aw/2+aw*.4-1*u,-Lr+hand-2*u,4*u,4*u,K.port);g.globalAlpha=1;g.globalCompositeOperation='source-over';}
   // ---- Link Sync wristband v2: mini pixel copy of the HUD device
-  {const G0=G&&G.hero,wy=-Lr+hand+0.5*u,wh=12*u,bw=aw+dd+1*u;
+  if(!window.__nb){const G0=G&&G.hero,wy=-Lr+hand+0.5*u,wh=12*u,bw=aw+dd+1*u;
    R(-aw/2-1*u,wy,bw,wh,'#101116');R(aw/2,wy+1*u,dd,wh-2*u,'#1a1c24');
    // build a tiny 24x12 pixel screen like the HUD panel, then scale it up nearest-neighbour
    const sc=document.createElement('canvas');sc.width=24;sc.height=12;const q=sc.getContext('2d');
@@ -3673,7 +3674,7 @@ function fpHands(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.m
   if(gunMode&&it){const col=ITEMS[it.k].c||'#8a8f9a',big=ITEMS[it.k].icon==='gun3'||it.k==='minigun',cx=W2*.57+bob,by=base+2*P+k*3*P,B=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(cx+x*P,by+y*P,w*P,h*P);};
     if(big){B(-3,-17,6,9,shade(col,-.15));B(-3,-17,6,1,shade(col,.3));B(-2,-19,4,2,'#14161c');B(-4,-9,8,8,col);B(-4,-9,8,1,shade(col,.3));B(3,-9,1,8,shade(col,-.4));B(-1,-6,2,2,'#3fe8ff');}
     else{B(-1,-17,2,8,shade(col,-.2));B(-1,-18,2,1,'#14161c');B(-3,-10,6,7,col);B(-3,-10,6,1,shade(col,.35));B(2,-10,1,7,shade(col,-.4));B(-1,-8,2,1,'#3fe8ff');}
-    B(-2,-3,4,5,'#1a1c22');B(-6,-2,4,5,skin);B(-6,2,4,1,shade(skin,-.25));B(2,-1,4,5,skin);B(2,3,4,1,shade(skin,-.25));
+    B(-2,-3,4,5,'#1a1c22');
     if(k>.55){g.globalAlpha=(k-.55)*2.2;g.fillStyle='#ffe9a0';g.shadowColor='#ffb03c';g.shadowBlur=18*u;const fx0=cx,fy0=by-(big?20:19)*P;g.beginPath();g.arc(fx0,fy0,5*P*k,0,7);g.fill();g.fillStyle='#fff';g.fillRect(fx0-P,fy0-P,2*P,2*P);g.shadowBlur=0;g.globalAlpha=1;}}
   else{const x=W2*.64+bob-k*10*P,y=base-14*P+k*4*P;g.translate(x+8*P,y+12*P);g.rotate(-.35-k*.9);
     if(it){g.drawImage(itemIcon(it),-8*P,-14*P,16*P,16*P);}g.fillStyle=skin;g.fillRect(-3*P,0,6*P,7*P);g.fillStyle=shade(skin,-.25);g.fillRect(-3*P,5*P,6*P,2*P);
@@ -3742,20 +3743,20 @@ function fpFrame(now){
     if(ry<0){sty=-1;sdy=(FP.y-my)*ddy;}else{sty=1;sdy=(my+1-FP.y)*ddy;}
     FP.sd[x]=1e9;
     for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;
-      if(fpSolid(L,i)||fpIsElev(L,i)){hit=i;break;}
+      if(fpSolid(L,i)||fpIsElev(L,i)||L.map[i]===T.SKY){hit=i;break;}
       if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh,pout:Math.min(sdx,sdy),rx,ry};}}}
     if(slab){slabs.push([x,slab]);FP.sd[x]=slab.pd;}
     if(hit<0){FP.z[x]=1e9;continue;}
     const pd=side===0?(sdx-ddx):(sdy-ddy),lh=Math.round(U/pd);FP.z[x]=pd;
     let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);let tu=(wx*16)|0;if((side===0&&rx>0)||(side===1&&ry<0))tu=15-tu;
     const t=L.map[hit];let tex=null,src=hit;
-    let etex=null;if(fpIsElev(L,hit))etex=fpElevData(L.map[hit]===T.EXITL?'lock':hit===L.entry&&G.depth>0?'down':'up');
+    let etex=null,wv=0;if(fpIsElev(L,hit))etex=fpElevData(L.map[hit]===T.EXITL?'lock':hit===L.entry&&G.depth>0?'down':'up');
     const pr=L.props&&L.props[hit],wart=pr&&pr.k==='scr'&&side===1&&ry<0?fpPropSprite(pr,hit,now):null,wd=wart?(wart._d||(wart._d=wart.getContext('2d').getImageData(0,0,16,16).data)):null;
-    if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW)tex=fpWinTex();
+    if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW||t===T.SKY)wv=t===T.WINDOW?1:2;
     else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
-    const s=shadeOf(hit,pd)*(side?0.8:1),y0=Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
+    const s=wv?(wv===2?1:.95):shadeOf(hit,pd)*(side?0.8:1),y0=wv===2?0:Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
-      if(etex){const ev=Math.min(23,(tv*1.5)|0),eo=FP.elevOpen&&FP.elevOpen.i===hit?FP.elevOpen.amt:0;let su=tu;if(eo>0&&ev>=4&&tu>=1&&tu<=12){const gap=eo*6;if(tu>=7-gap&&tu<7+gap){const back=ev<8?.55:ev>21?.35:.8;r=230*back;gg=205*back;b=150*back;if(tu===(7-gap|0)||tu===((7+gap-1)|0)){r*=.6;gg*=.6;b*=.6;}su=-1;}else su=tu<7?Math.min(12,tu+gap|0):Math.max(1,tu-gap|0);}if(su>=0){const q=(ev*16+su)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
+      if(etex){const ev=Math.min(23,(tv*1.5)|0),eo=FP.elevOpen&&FP.elevOpen.i===hit?FP.elevOpen.amt:0;let su=tu;if(eo>0&&ev>=4&&tu>=1&&tu<=12){const gap=eo*6;if(tu>=7-gap&&tu<7+gap){const back=ev<8?.55:ev>21?.35:.8;r=230*back;gg=205*back;b=150*back;if(tu===(7-gap|0)||tu===((7+gap-1)|0)){r*=.6;gg*=.6;b*=.6;}su=-1;}else su=tu<7?Math.min(12,tu+gap|0):Math.max(1,tu-gap|0);}if(su>=0){const q=(ev*16+su)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}}else if(wv){const c_=skyPix(x,y,wv,tu,tv,horizon,rx,ry,RH);r=c_[0];gg=c_[1];b=c_[2];}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
       if(wd){let sv=tv,su=tu;if(pr.k==='cam'){if(tu<3||tu>12||tv>9)sv=99;else{su=5+((tu-3)*.62|0);sv=10+(tv*.62|0);}}if(sv<16){const q=(sv*16+su)*4;if(wd[q+3]>8){r=wd[q];gg=wd[q+1];b=wd[q+2];}}}
       D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
   }
@@ -3930,7 +3931,7 @@ function fpInstall(cv){let dn=null,lt=null;
 // most: number + elevator · some: bolt in a panic · some: ask to come along · rare: owe you one and turn up in a fight later
 function rescueTalk29(civ){
   if(!G||G.over||G.L.mobs.indexOf(civ)<0)return;const L=G.L,h=G.hero,nm=npcName(civ),can=allies().filter(a=>a!==civ).length<allyCap();
-  const r=Math.random(),out=r<.5?'number':r<.72?'scared':r<.94?'join':'later';const o=(out==='join'&&!can)?'number':out;
+  const r=Math.random(),out=r<.55?'number':r<.8?'scared':r<.92?'join':'later';const o=(out==='join'&&!can)?'number':out;
   const lines={number:pick(['I thought that was it. I really thought that was it.','They took everything but my pulse. You stopped them taking that.','Nobody helps anybody in here. Why did you?']),
     scared:pick(['They just — they just — I have to go. I HAVE TO GO.','Don\'t — don\'t follow me. I\'m sorry. I\'m sorry.','*They stare at the bodies, then at you, then run.*']),
     join:pick(['I can '+(MOBS[civ.k].rng?'shoot':'swing a pipe')+'. Let me come with you — I\'m dead alone anyway.','You\'re going up? Then so am I. I owe them for this.']),
@@ -3975,6 +3976,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.40','RESCUES: tapping a civilian you saved now opens their rescue dialogue (thanks / run / join / owe you later) instead of a dead companion menu; joining is a choice and rarer (~12%). Companion orders now answer back and show over their head. FIRST PERSON: vaults are knee-high armored strongboxes on the floor (were wall-sized); windows and balcony edges show the window-view city (towers, lit windows, Super Mart / RAHMUN / Volt Cola signs, the eye billboard, flying cars) instead of a flat tile or black void; elevators are moved into a nook against a wall so they never block a hallway. SENTINEL EDGE redrawn for first person: long hooked blade, cyan edge glow, red-wrapped grip, with real fists and a swing arc for all melee weapons (no more see-through squares). Sleeping enemies show z z Z; robots and drones show UPDATING / RECHARGING. THERMAL EYES in first person: hostiles behind walls get a red Oracle box with distance, allies blue; on the map, allies seen through walls glow blue instead of red. Camera cones are a smooth sweeping wedge with a scan line. LINK SYNC: SMALL / MEDIUM / FULL size and a minimise button (– on the panel or HUD settings). THROWING: wrist flick + whoosh; throwing a melee weapon (crowbar, machete...) hits for real damage. DEV: THE CONSTRUCT — every item in the game laid out by category (HUD settings in dev mode). IMPLANTS only go in at a Ripperdoc\'s chair now (Jack Chips still slot yourself); every implant has its own icon, and unidentified ones show which body zone they go in. DOG TAGS lie next to a slumped dead guard; carry them into the Voss fight and each one turns a loyalist, all 8 changes what Voss says. BARTENDERS visibly pop up with the shotgun, hit hard enough to matter, only fire with a clear line, and only say it once a fight (the old weak, see-through-walls version is gone). CAMERAS sweep a real red beam in real time, and that beam is what catches you (the white light pool is gone). ZOOM goes out to the whole floor; FIT WHOLE FLOOR in HUD settings, or double-tap the minimap. FIRST PERSON LOOK 360: the stick turns you freely and stays where you leave it, and walking/tapping goes where you face. STORAGE: Stim Bandolier, Chip Case and Gear Rig (Fixer stocks the next one; floors 3, 8 and 13 drop one) with tabs in the backpack; what they hold doesn\'t use pack slots. ECONOMY: shops no longer sell Firmware Patches or Myo-Grafts; floors 26–29 now get their guaranteed 3 Patches + 2 Myo-Grafts. AMBUSH: hit an enemy the turn it follows you through a door for a sneak attack. APARTMENTS: residents who need food or meds are holed up in a quiet room with a bunk and rug. LAYOUT: bystanders and wrecks no longer park in doorways, dead-end doors get opened up or bricked, loose loot moves out of 1-wide halls into rooms. Tube dancers stay inside the glass; the skirt hem no longer flares past the legs. IMPLANTS: every implant redrawn in a new lit 3D-pixel style, with a big detailed close-up when you tap it; Second Heart is now TwinTicker, Ghoststep is now SilentStep Servos (legs). GUN HAND: rare and pricey at Ripperdocs only, takes a ranged slot, fires Box of Rounds, and your character throws the hand up to fire. BODY SCAN v2: ripperdoc surgical readout with an x-ray of you and your chrome, slot cards, CARDIO/NEURAL/STATS tabs. SURGERY: you walk to the chair, sit, the ripper comes over, then lights out. ZONES: new LEGS zone (STR 12+ synergy); Scan N\' Scav moved to the eyes, Adrenal Pump to the gut. Dead guards are drawn from the real guard model; bait crates removed; message log lines fade and the full log lives in Link Sync; elevators sit flush in the wall.'],
  ['v0.39','BODY SCAN: a skeleton view of your 3 implant ports and head jack (Link Sync ▸ STATS, and at ripperdocs). STATS BOOST CHROME by zone: STR 14+ arms, PER 13+ eyes, PER 12 + STR 11 spine, level 8+ gut, 60+ max HP chest, TECH 13+ head-jack chip — boosted chrome works one level higher. IDENTIFYING: everything except Redline still starts unknown; high TECH can read gear and implants on pickup; Gunners know guns, Enforcers know melee + armor, Tinkers know implants, Ghosts can tell which stims are drinkable; Rook appraises unknown gear (◈25 each), ripperdocs scan unmarked implants (◈30 each). REAL AMMO: Needler, Scatter and Minigun no longer recharge — they reload from Boxes of Rounds (floor loot, Rook sells them, Gunners start with 3). THROWN ITEMS set off traps where they land (the trap hits whoever is there, not you; alarms pull enemies to the noise). K9: pet it (heals it and you a bit) and give it a name. ACHIEVEMENTS: 11 new ones and a list in HUD settings. TUTORIAL: 9 quick cards on your first run (skippable), replay any time from HUD settings ▸ HOW TO PLAY. First person draws the arcade cabinet.'],
  ['v0.38b','ARCADE: prize creds run out after 3 wins per floor (it was an infinite money glitch). HEAD JACK: neural chips you pick up seat themselves when the jack is empty (they used to sit in the pack; swapping is in STATS ▸ HEAD JACK).'],
  ['v0.38','VOSS: intro scene on the roof, a karma-based half-HP scene (good / bad / neutral), a phase-2 red aura; he talks over the PA when a camera spots you (any floor 3+, once per floor, banner with his face); a few Voss LOYALISTS (black coats, red bands) on floors 21-29 and with him on the roof; rare DESERTERS (let him go = keycard + floor map, or take his gear) and DEFECTORS (kill a sector\'s cameras, or he joins you); dead guards leave DOG TAGS with their last log. ENDING: the street scene is now a letterboxed cinematic with portraits (the Mayor line no longer sticks in the log, first person turns off first); the 4 ending cinematics redrawn with real sprites, camera push, crowd pouring out, police lights, searchlights, rain, dawn co-op tower, sunset payout. FISTS: unarmed hits scale with STR and level; new GORILLA ARMS and SHOCK KNUCKLES implants (ripper stock), Breaker Arms boosts punches; first person shows two fists that jab left/right (chrome with arm implants). BOSS: Jett "Skyhook" Kaine rides a cargo drone on floor 13; he swoops in, kicks, and peels away; hitting any flyer in melee makes you JUMP; ranged works standing still. ROOK\'S GUNSMITH: the arms dealer has a bench to upgrade weapons and armor up to +9. LIGHTCYCLE arcade cabinet in bars and on the street (◈2 a ride, ◈8 a win, prize creds run out after 3 wins per floor). Cameras sweep a spotlight across the floor (you glow red when it lands on you). WINDOW VIEW: flying cars, a police AV with a searchlight, an ad blimp. FIRST PERSON: street sky no longer streaky; hands no longer drawn see-through.'],
@@ -4069,7 +4071,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.39 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.40 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4144,7 +4146,7 @@ function hudSettings(){const H=UI.hud,opt=(k,v,lab)=>`<button class="chip ${H[k]
 function titleSettings(){const p=openModal(`<div class="mhead"><h2>SETTINGS</h2><button class="x" data-act="close">✕</button></div><div class="detail menu">
   <button class="btn" data-s="snd">SOUND: ${UI.sound?'ON':'OFF'}</button><button class="btn" data-s="hud">HUD SETTINGS</button><button class="btn" data-s="zin">ZOOM IN</button><button class="btn" data-s="zout">ZOOM OUT</button><button class="btn" data-s="leg">LEGEND &amp; UPDATES</button><button class="btn go" data-act="close">DONE</button></div>`);
   p.onclick=ev=>{if(ev.target.closest('[data-act]')){closeModal();return;}const b=ev.target.closest('[data-s]');if(!b)return;const k=b.dataset.s;
-    if(k==='snd'){UI.sound=!UI.sound;if(UI.sound)initAudio();saveOpts();titleSettings();}else if(k==='hud')hudSettings();else if(k==='leg')showLegend(0);else{RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,17);saveOpts();toast('Zoom: '+(k==='zin'?'closer':'wider'));}};}
+    if(k==='snd'){UI.sound=!UI.sound;if(UI.sound)initAudio();saveOpts();titleSettings();}else if(k==='hud')hudSettings();else if(k==='leg')showLegend(0);else{RD.tiles=clamp(RD.tiles+(k==='zin'?-1.5:1.5),2.2,42);saveOpts();toast('Zoom: '+(k==='zin'?'closer':'wider'));}};}
 {const b=$('#btnSet');if(b)b.onclick=()=>{initAudio();titleSettings();};}
 
 // ---------- RAHMUN
@@ -4301,7 +4303,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const cv=$('#cv');const pts=new Map();let d0=0,z0=0;
   const pd=()=>{const a=[...pts.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
   cv.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){UI.pinch=1;stopWalk();d0=pd();z0=RD.tiles;}},{passive:true});
-  cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2&&d0>20){RD.tiles=clamp(z0*d0/pd(),2.2,17);try{rdResize();}catch(err){}}},{passive:true});
+  cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2&&d0>20){RD.tiles=clamp(z0*d0/pd(),2.2,42);try{rdResize();}catch(err){}}},{passive:true});
   const up=e=>{pts.delete(e.pointerId);if(pts.size===0&&UI.pinch){setTimeout(()=>{UI.pinch=0;},60);try{saveOpts();}catch(err){}}};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   document.addEventListener('gesturestart',e=>e.preventDefault());
@@ -4717,7 +4719,7 @@ function squadTab(){if(!G)return;const h=G.hero,al=allies().filter(a=>!a.cower);
 const TOPC=['#2a2e36','#e8eef4','#b02a2a','#2a4ab0','#2a8a4a','#c9a227','#7a3ab0','#ff4fd0','#3fe8ff','#ff9a3c','#14161a','#6a4a2a'];
 const BOTC=['#22222a','#3a3f48','#2a3a5a','#4a3a2a','#6a1a1a','#1a4a2a','#e8eef4','#5a2a6a'];
 {const _dh=drawHum;drawHum=function(R,L,f){_dh.apply(this,arguments);const wk=f>=2;if(!L||wk||L.skull||L.hazmat)return;const skin=L.skin||'#c99a7a',pants=L.pants||'#22222a';
-  const o=(f&1)?1:0;if(L.bt==='shorts'){R(5,11+o,6,1,shade(pants,-.28));R(5,13,2,1,skin);R(9,13,2,1,skin);R(5,12,1,1,shade(pants,-.15));R(10,12,1,1,shade(pants,-.15));}else if(L.bt==='skirt'){R(5,11+o,6,1,shade(pants,-.28));R(4,12,8,1,pants);R(3,13,10,1,pants);R(3,13,10,1,shade(pants,-.12));R(5,12,1,1,shade(pants,.15));R(8,12,1,2,shade(pants,-.2));R(3,13,1,1,shade(pants,-.35));R(12,13,1,1,shade(pants,-.35));}};}
+  const o=(f&1)?1:0;if(L.bt==='shorts'){R(5,11+o,6,1,shade(pants,-.28));R(5,13,2,1,skin);R(9,13,2,1,skin);R(5,12,1,1,shade(pants,-.15));R(10,12,1,1,shade(pants,-.15));}else if(L.bt==='skirt'){R(5,11+o,6,1,shade(pants,-.28));R(4,12,8,1,pants);R(4,13,8,1,pants);R(4,13,8,1,shade(pants,-.12));R(5,12,1,1,shade(pants,.15));R(8,12,1,2,shade(pants,-.2));R(4,13,1,1,shade(pants,-.35));R(12,13,1,1,shade(pants,-.35));}};}
 {const _hl=heroLook;heroLook=function(){const L=_hl.apply(this,arguments),k=G.hero.look;if(k.top)L.outfit=k.top;if(k.bot)L.pants=k.bot;if(k.bt)L.bt=k.bt;return L;};}
 function clothHTML(look){return `<div class="lab" style="margin:6px 0 5px">// TOP</div><div class="row">${TOPC.map(c=>`<button class="sw ${look.top===c?'on':''}" data-top="${c}" style="background:${c}"></button>`).join('')}</div>
   <div class="lab" style="margin:6px 0 5px">// BOTTOMS</div><div class="row">${['pants','shorts','skirt'].map(b=>`<button class="chip ${(look.bt||'pants')===b?'on':''}" data-bt="${b}">${b.toUpperCase()}</button>`).join('')}</div><div class="row" style="margin-top:4px">${BOTC.map(c=>`<button class="sw ${look.bot===c?'on':''}" data-bot="${c}" style="background:${c}"></button>`).join('')}</div>`;}
@@ -4860,7 +4862,7 @@ VENDORS.ripper.n='Skin Slicer';VENDORS.ripper.line='"Lie back. New parts, old pa
 {const _ef=enterFloor;enterFloor=function(d){const r=_ef.apply(this,arguments);try{const L=G.L;if(d===0)streetScene(L);if(!L.hpb){L.hpb=1;for(const m of L.mobs)if(m.k==='civ'&&m.wild){m.mhp=Math.round(m.mhp*2);m.hp=m.mhp;}}}catch(e){console.error(e);}return r;};}
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.bars){for(const bk of L.mobs){if(bk.k!=='barkeep')continue;const bar=L.bars.find(b=>X(bk.pos)>=b.c[0]&&X(bk.pos)<=b.c[2]&&Y(bk.pos)>=b.c[1]&&Y(bk.pos)<=b.c[3]);if(!bar)continue;
     const foe=L.mobs.find(m=>!MOBS[m.k].ally&&!MOBS[m.k].npc&&!MOBS[m.k].boss&&X(m.pos)>=bar.c[0]&&X(m.pos)<=bar.c[2]&&Y(m.pos)>=bar.c[1]&&Y(m.pos)<=bar.c[3]);
-    if(foe&&chance(.4)){if(!bk.warned){bk.warned=1;log('The bartender pulls a sawed-off from under the counter. "NOT IN MY BAR."','hi');}fx({t:'txt',p:foe.pos,s:'BLAM',c:'#ffab2e'});try{noise(.15,.2,0,'lowpass',900);}catch(e){}if(chance(.6))dmgMob(foe,rr(2,5)+Math.floor(G.depth/3));else fx({t:'txt',p:foe.pos,s:'miss',c:'#888'});}}}}catch(e){}return r;};}
+    if(foe&&false){if(!bk.warned){bk.warned=1;log('The bartender pulls a sawed-off from under the counter. "NOT IN MY BAR."','hi');}fx({t:'txt',p:foe.pos,s:'BLAM',c:'#ffab2e'});try{noise(.15,.2,0,'lowpass',900);}catch(e){}if(chance(.6))dmgMob(foe,rr(2,5)+Math.floor(G.depth/3));else fx({t:'txt',p:foe.pos,s:'miss',c:'#888'});}}}}catch(e){}return r;};}
 // ---- Voss talks through the camera PA speakers
 const VOSS_CAM=['"I see you."','"Every floor you clear, I watch the replay."','"The residents? They were never my job. You were never their saviour."','"MTX left me the keys. I\'m keeping them."','"Keep climbing, contractor. The view gets better before it gets worse."','"You\'re on camera. Smile for the gangs."','"Reyes sent you? Reyes sends everybody."','"There\'s nowhere to go but up. I made sure of that."'];
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.props&&G.depth>=2&&G.turn-(G.vcT||-999)>180&&chance(.006)){
@@ -6340,7 +6342,7 @@ function camAim(c){return .55*Math.sin((G.turn||0)*.3+c*.7);}
 function camCone(c,hp){const L=G.L;if(!wallish(L,c))return dist(c,hp)<=4;const dy=Y(hp)-Y(c),dx=X(hp)-X(c);if(dy<1||dist(c,hp)>6)return false;return Math.abs(Math.atan2(dx,dy)-camAim(c))<=.52;}
 {const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||!G.L.props)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
   for(const k in L.props){const i=+k,p=L.props[k];if(p.k!=='cam'||!L.seen[i])continue;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-3*TS||py<-3*TS||px>RD.w+3*TS||py>RD.h+3*TS)continue;
-    if(!p.off&&!p.broke&&L.vis[i]){for(let dy=1;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const j=i+dx+dy*W;if(j<0||j>=N||Math.abs(X(j)-X(i))!==Math.abs(dx))continue;if(!L.vis[j]||wallish(L,j)||!camCone(i,j)||!camLOS(i,j))continue;g.fillStyle=`rgba(255,59,78,${(.3-dy*.035).toFixed(3)})`;g.fillRect(RD.ox+X(j)*TS,RD.oy+Y(j)*TS,TS,TS);}}
+    if(!p.off&&!p.broke&&L.vis[i]){if(wallish(L,i))camWedge(g,i,TS,now);}
     g.globalAlpha=L.vis[i]?1:.45;g.imageSmoothingEnabled=false;g.drawImage(camSpr(p,Math.floor(now/400+i)%2),px,py+6*S,TS,TS);g.globalAlpha=1;}}catch(e){}};}
 
 // SKATER: one of our box people on a small hover board
@@ -6753,7 +6755,7 @@ function aura38(now){const L=G.L,g=RD.g,TS=16*RD.S;if(!L)return;g.save();g.setTr
   g.restore();}
 
 // ---------- FISTS: real hand-to-hand, scales with STR + arm chrome ----------
-IMP('gorilla','Gorilla Arms','#9aa3b2','Myomer-packed forearms. Unarmed hits land like a car crash. Scales with STR.');
+IMP('gorilla','IronArms','#9aa3b2','Myomer-packed forearms. Unarmed hits land like a car crash. Scales with STR.');
 IMP('knux','Shock Knuckles','#ffe14a','Capacitor knuckles. Unarmed hits can stun people and fry machines.');
 ITEMS.breaker.desc+=' Also turns your fists into rams.';
 {const _mr=meleeRange;meleeRange=function(it){if(it||imp('mantis')>0)return _mr.apply(this,arguments);const h=G.hero,s=h.str||10,b=imp('breaker'),go=imp('gorilla'),kn=imp('knux');
@@ -7014,6 +7016,1031 @@ async function tutorial(force){if(!force){try{if(localStorage.getItem('mtm_tut')
 {const _pa39=propArt;propArt=function(p,i,now){if(!p||p.k!=='arcade')return _pa39.apply(this,arguments);const c=cvs(16,16),g=c.getContext('2d'),B=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},fl=Math.floor(now/180)%8;
   B(2,0,12,16,'#07080c');B(3,1,10,14,'#1a1430');B(3,1,10,1,'#4a3a7a');B(4,2,8,2,'#ff4fd8');B(5,2,6,1,'#ffd0f4');B(4,5,8,6,'#020306');for(let n=0;n<5;n++)B(4+((fl+n)%8),6+(n%2)*2,1,1,'#3af5f5');for(let n=0;n<4;n++)B(11-((fl+n)%8),9-(n%2)*2,1,1,'#ff9a3c');B(4,12,8,2,'#2a2438');B(6,12,1,1,'#ff3b4e');B(9,12,1,1,'#3fe8ff');return c;};}
 {const _ef39=enterFloor;enterFloor=function(){const r=_ef39.apply(this,arguments);try{ammoDrops();}catch(e){}return r;};}
+
+
+// ===================== v0.40 =====================
+// ---------- RESCUED CIVILIANS: real dialogue, joining is a choice (and rarer), no dead companion menu ----------
+{const _am40=allyMenu;allyMenu=function(a){try{if(a&&(a.cower||(a.saved&&!a.decided))){const L=G.L,pinned=L.mobs.some(m=>m.vic===a.id&&m.hp>0);
+    if(pinned){toast(`<b style="color:#ffe14a">${esc(npcName(a)||'Civilian')}</b><br>"${pick(['Get them OFF me!','Behind you — no, behind ME!','Please, please, please—'])}"`);return;}
+    a.cower=0;a.saved=1;a.decided=1;rescueTalk(a);return;}}catch(e){}
+  const r=_am40.apply(this,arguments);
+  try{const p=$('#modal .panel');p.addEventListener('click',ev=>{const b=ev.target.closest('[data-c]');if(!b)return;const c=b.dataset.c,nm=npcName(a)||MOBS[a.k].n;
+    const L={follow:'On your six.',wait:'Holding here.',attack:'On it.',hold:'Weapons tight.',come:'Coming back.',scout:'Scouting ahead.',fetch:'Fetching.',guard:'Guarding.'}[c];
+    if(L)setTimeout(()=>{fx({t:'txt',p:a.pos,s:c==='hold'?(a.hold?'HOLD':'FREE'):c.toUpperCase(),c:'#3af5f5'});log(`${nm}: "${L}"`,'hi');},0);},true);}catch(e){}return r;};}
+{const _ar40=actRescue;actRescue=function(civ,join){try{civ.decided=1;}catch(e){}return _ar40.apply(this,arguments);};}
+
+// ---------- SENTINEL EDGE + melee hands in first person ----------
+const SENT_K=Object.keys(ITEMS).find(k=>/Sentinel Edge/i.test(ITEMS[k].name||''));
+function sentBlade(g,P,now,k){g.save();
+  // blade: long hooked mono-edge, silver body, cyan edge, black spine
+  g.beginPath();g.moveTo(-1.2*P,0);g.lineTo(1.4*P,0);g.lineTo(2.2*P,-20*P);g.quadraticCurveTo(2.6*P,-27*P,-2.6*P,-29*P);g.lineTo(-3.6*P,-26.5*P);g.quadraticCurveTo(-.4*P,-26*P,-.6*P,-21*P);g.closePath();
+  const gr=g.createLinearGradient(-2*P,0,2.5*P,0);gr.addColorStop(0,'#5a6272');gr.addColorStop(.45,'#e6edf6');gr.addColorStop(.6,'#aab4c4');gr.addColorStop(1,'#4a5262');g.fillStyle=gr;g.fill();
+  g.lineWidth=Math.max(1,P*.55);g.strokeStyle='#0a0b10';g.stroke();
+  g.beginPath();g.moveTo(1.5*P,-.5*P);g.lineTo(2.25*P,-20*P);g.quadraticCurveTo(2.55*P,-26.6*P,-2.4*P,-28.4*P);g.strokeStyle='#3af5f5';g.shadowColor='#3af5f5';g.shadowBlur=6*P*(.6+.4*Math.sin(now/180));g.lineWidth=Math.max(1,P*.5);g.stroke();g.shadowBlur=0;
+  g.fillStyle='#ff3b4e';g.fillRect(-.3*P,-18*P,.6*P,12*P);
+  // guard, grip with red wraps, pommel
+  g.fillStyle='#14161c';g.fillRect(-3*P,-.2*P,6*P,1.8*P);g.fillStyle='#3a3f4a';g.fillRect(-3*P,-.2*P,6*P,.5*P);
+  g.fillStyle='#1a1c22';g.fillRect(-1.1*P,1.6*P,2.2*P,7*P);g.fillStyle='#c8102e';for(let y=2.2;y<8;y+=1.6)g.fillRect(-1.1*P,y*P,2.2*P,.7*P);
+  g.fillStyle='#9aa3b2';g.fillRect(-1.4*P,8.6*P,2.8*P,1.2*P);g.restore();}
+function fpMelee(g,W2,H2,u,now,it){const lk=heroLook(),skin=lk.skin||'#c99a7a',slv=lk.outfit||'#2a2e38',P=Math.max(2,Math.round(u*3.4)),bob=Math.sin(FP.bob)*3*u,base=H2*.8,
+  sw=Math.min(1,(now-(FP.kick||0))/260),k=sw<1?Math.sin(sw*Math.PI):0,fl=Math.min(1,(now-(FP.flick||0))/240),fk=fl<1?Math.sin(fl*Math.PI):0;
+  const fist=(x,y,sc,mir)=>{const Q=Math.max(2,Math.round(P*sc)),B=(xx,yy,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x+(mir?-xx-w:xx)*Q),Math.round(y+yy*Q),w*Q,h*Q);};
+    B(-4,-1,9,8,'#0a0b10');B(-3,0,7,6,skin);B(-3,0,7,1,shade(skin,.18));for(const xx of [-1,1,3])B(xx,1,1,2,shade(skin,-.3));B(-3,8,7,10,'#0a0b10');B(-2,6,5,3,skin);B(-2,8,5,10,slv);B(-2,8,5,1,shade(slv,.3));};
+  g.save();g.globalAlpha=1;g.imageSmoothingEnabled=false;
+  fist(W2*.22-bob*.5,base-2*P+Math.sin(FP.bob+1)*2*u,1,false);
+  const hx=W2*.66+bob-k*16*P,hy=base-10*P+k*2*P;g.translate(hx,hy);g.rotate(-.25-k*1.15-fk*.9);
+  if(it&&it.k===SENT_K)sentBlade(g,P,now,k);else if(it)g.drawImage(itemIcon(it),-8*P,-16*P,16*P,16*P);
+  g.setTransform(1,0,0,1,0,0);fist(hx-2*P,hy+2*P,1,true);
+  if(k>.2){g.globalAlpha=(k-.2)*.8;g.strokeStyle=it&&it.k===SENT_K?'#3af5f5':'#e6edf6';g.lineWidth=2*P;g.beginPath();g.arc(W2*.5,H2*.55,W2*.28,-.2-k,.35-k*.4);g.stroke();g.globalAlpha=1;}
+  g.restore();}
+{const _fh40=fpHands;fpHands=function(g,W2,H2,u,now){g.globalAlpha=1;const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');
+  if(!(gunMode&&h.eq.gun)&&h.eq.melee&&imp('mantis')<=0){fpMelee(g,W2,H2,u,now,h.eq.melee);return;}
+  _fh40.apply(this,arguments);
+  if(FP.flick&&now-FP.flick<260){const t=(now-FP.flick)/260,P=Math.max(2,Math.round(u*3.4));g.save();g.globalAlpha=1-t;g.strokeStyle='#e6edf6';g.lineWidth=2*P;g.beginPath();g.arc(W2*.6,H2*.8,W2*.25,-2.2+t*1.4,-1.4+t*1.4);g.stroke();g.restore();}};}
+
+// ---------- FIRST-PERSON WINDOWS + BALCONY AIR: the 2D window-view city as a backdrop ----------
+let SKYD=null;const SKW=512,SKH=160;
+function buildSky(){const c=cvs(SKW,SKH),g=c.getContext('2d'),R=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);};
+  const gr=g.createLinearGradient(0,0,0,SKH);gr.addColorStop(0,'#1a0c22');gr.addColorStop(.45,'#4a1838');gr.addColorStop(.7,'#7a2a3a');gr.addColorStop(1,'#2a1020');g.fillStyle=gr;g.fillRect(0,0,SKW,SKH);
+  g.fillStyle='rgba(255,150,80,.18)';g.beginPath();g.ellipse(SKW*.72,SKH*.42,70,28,0,0,7);g.fill();
+  const layer=(n,y0,hmin,hmax,col,wa,seed)=>{let x=-10;for(let i=0;i<n&&x<SKW;i++){const w=10+R(seed+i)*26|0,h=hmin+R(seed+i*3)*(hmax-hmin)|0,top=y0-h;g.fillStyle=col;g.fillRect(x,top,w,SKH-top);
+    g.fillStyle=shade(col,.12);g.fillRect(x,top,w,1);
+    for(let yy=top+3;yy<SKH-2;yy+=3)for(let xx=x+2;xx<x+w-2;xx+=3)if(R(seed+i*91+yy*7+xx)<wa){const wc=R(xx+yy+i)<.6?'#ffcf7a':R(xx*3+yy)<.5?'#5ae0d0':'#ff6ad5';g.fillStyle=wc;g.globalAlpha=.55+.45*R(xx+yy*5);g.fillRect(xx,yy,2,2);g.globalAlpha=1;}
+    if(R(seed+i*13)<.18&&h>40){g.fillStyle=pick(['#ff4fd8','#3af5f5','#ffd24a']);g.fillRect(x+w/2-1,top+6,2,Math.min(30,h-10));}
+    x+=w+(R(seed+i*7)*6|0);}};
+  layer(40,SKH*.62,20,70,'#2a1430',.18,1);layer(36,SKH*.8,30,95,'#1a1024',.3,40);layer(30,SKH*1.02,40,120,'#0e0a16',.36,90);
+  g.font='bold 9px ui-monospace,monospace';g.textAlign='center';
+  for(const [x,y,t,c] of [[90,52,'SUPER MART CORP','#ffb030'],[260,40,'RAHMUN','#ff4fd8'],[400,60,'VOLT COLA','#3af5f5'],[170,74,'MTX','#ff3b4e']]){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x-36,y-9,72,12);g.shadowColor=c;g.shadowBlur=8;g.fillStyle=c;g.fillText(t,x,y);g.shadowBlur=0;}
+  g.fillStyle='#e8eef4';g.beginPath();g.ellipse(330,88,10,6,0,0,7);g.fill();g.fillStyle='#39c08a';g.beginPath();g.arc(328,88,3.5,0,7);g.fill();g.fillStyle='#0a0b10';g.beginPath();g.arc(328,88,1.6,0,7);g.fill();
+  SKYD=g.getImageData(0,0,SKW,SKH).data;}
+function skyPix(x,y,wv,tu,tv,horizon,rx,ry,RH){if(!SKYD)buildSky();const now=performance.now()/1000;
+  let u=((Math.atan2(ry,rx)/(2*Math.PI)+1)*SKW*1.6)%SKW|0,v=Math.round((y-horizon)/RH*170+96);v=Math.max(0,Math.min(SKH-1,v));
+  const q=(v*SKW+u)*4;let r=SKYD[q],g=SKYD[q+1],b=SKYD[q+2];
+  // flying cars drifting across the skyline
+  for(let i=0;i<4;i++){const cu=((now*(9+i*5)*(i%2?-1:1)+i*137)%SKW+SKW)%SKW,cv=30+i*13;if(Math.abs(u-cu)<3&&Math.abs(v-cv)<1.5){r=255;g=i%2?120:240;b=i%2?140:255;}
+    else if(Math.abs(v-cv)<1&&((i%2?u-cu:cu-u)>0)&&Math.abs(u-cu)<14){r=Math.min(255,r+40);g=Math.min(255,g+20);b=Math.min(255,b+50);}}
+  if(wv===1){if(tu<=0||tu>=15||tv<=0||tv>=15)return [38,44,56];if(tu===7||tu===8)return [24,28,36];if(tv===7)return [30,34,44];
+    r=r*.85+18;g=g*.85+26;b=b*.85+36;if((tu+tv)%9===0){r+=25;g+=30;b+=35;}}
+  return [r,g,b];}
+
+// ---------- ELEVATORS: pushed into a nook against a wall so they never sit in a walkway ----------
+function elevFix(L){if(!L||L._elv40||L.street)return;L._elv40=1;const h=G.hero;
+  const pn=i=>[1,-1,W,-W].filter(d=>{const j=i+d;return j>=0&&j<N&&(pass(j)||L.map[j]===T.DOOR)&&!wallish(L,j);}).length;
+  for(const key of ['exit','entry']){const e=L[key];if(e==null||(L.map[e]!==T.EXIT&&L.map[e]!==T.EXITL))continue;if(pn(e)<=1)continue;
+    const seen=new Set([e]),q=[e];let best=-1,bs=-1;
+    while(q.length&&seen.size<700){const c=q.shift();for(const d of [1,-1,W,-W]){const j=c+d;if(j<0||j>=N||seen.has(j))continue;seen.add(j);if(L.map[j]!==T.FLOOR)continue;q.push(j);
+      if(mobAt(j)||L.items.some(x=>x.pos===j)||j===L.entry||j===L.exit||(L.props&&L.props[j]))continue;const k=pn(j),walls=[1,-1,W,-W].filter(dd=>wallish(L,j+dd)).length;const corner=k===2&&walls===2&&!((wallish(L,j+1)&&wallish(L,j-1))||(wallish(L,j+W)&&wallish(L,j-W)));const sc=k===1?100-dist(j,e):corner?75-dist(j,e):(k===3&&walls===1?50-dist(j,e):-1);if(sc>bs){bs=sc;best=j;}}}
+    if(best>=0&&dist(best,e)<=16){L.map[best]=L.map[e];L.map[e]=T.FLOOR;L[key]=best;if(h.pos===e)h.pos=best;}}
+  RD.dirty=true;FP.mapVer=(FP.mapVer|0)+1;}
+
+// ---------- FIRST-PERSON OVERLAYS: sleeping / recharging tags + Oracle-style thermal through walls ----------
+function fpOverlay(now){const L=G.L,h=G.hero,g=RD.g;if(!L||!FP.on||!FP.z)return;const fov={narrow:.58,normal:.72,wide:.85,ultra:1.0}[FP.set.fov]||.72,RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w))),U=RW/(2*fov),horizon=RH*.46;
+  const dx=Math.sin(FP.ang),dy=-Math.cos(FP.ang),px=-dy*fov,py=dx*fov,inv=1/(px*dy-dx*py),sx=RD.w/RW,sy=RD.h/RH,th=imp('thermal'),thr=th>0?6+2*th:0;
+  g.save();g.setTransform(1,0,0,1,0,0);g.textAlign='center';g.textBaseline='bottom';
+  for(const m of L.mobs){if(m===h)continue;const d=MOBS[m.k];const rx=(m.vx!=null?m.vx:X(m.pos)+.5)-FP.x,ry=(m.vy!=null?m.vy:Y(m.pos)+.5)-FP.y,tx=inv*(dy*rx-dx*ry),ty=inv*(-py*rx+px*ry);if(ty<=.2)continue;
+    const bx=RW/2*(1+tx/ty);if(bx<0||bx>=RW)continue;const lh=U/ty,top=horizon-lh*.25,visible=L.vis[m.pos]&&FP.z[bx|0]>=ty-.3;
+    if(visible&&m.st==='sleep'&&!d.ally&&!d.npc){const robo=d.robot||d.a==='drone'||d.a==='orb'||d.a==='swarm',tag=robo?(m.id%2?'UPDATING…':'RECHARGING'):(d.a==='hum'&&/cyber|chrome|synth/i.test(d.n||'')?'resting':'z z Z');
+      const fs=Math.max(9,Math.min(22,lh*sy*.12));g.font=`bold ${fs|0}px ui-monospace,monospace`;const bobz=Math.sin(now/400+m.id)*fs*.3;g.fillStyle=robo?'#3af5f5':'#c8d4ff';g.globalAlpha=.85;g.fillText(robo?tag:(d.a==='hum'?tag:'z z Z'),bx*sx,top*sy-6+bobz);g.globalAlpha=1;}
+    if(thr&&!visible&&dist(m.pos,h.pos)<=thr&&!d.npc){const fr=d.ally;const c=fr?'#3fa8ff':'#ff3b4e',w=Math.max(6,lh*.35*sx),hh=Math.max(10,lh*.75*sy),cx=bx*sx,cy=(horizon+lh*.5)*sy;
+      g.strokeStyle=c;g.shadowColor=c;g.shadowBlur=10;g.lineWidth=2;g.globalAlpha=.55+.25*Math.sin(now/160+m.id);g.strokeRect(cx-w/2,cy-hh,w,hh);g.globalAlpha=.18;g.fillStyle=c;g.fillRect(cx-w/2,cy-hh,w,hh);g.globalAlpha=1;g.shadowBlur=0;
+      g.font='bold 10px ui-monospace,monospace';g.fillStyle=c;g.fillText(fr?'ALLY':(d.boss?'!! '+d.n.toUpperCase():'HOSTILE')+' '+dist(m.pos,h.pos)+'m',cx,cy-hh-3);}}
+  g.restore();}
+{const _ff40=fpFrame;fpFrame=function(now){const r=_ff40.apply(this,arguments);try{fpOverlay(now);}catch(e){}return r;};}
+// top-down thermal: friendlies seen through walls get a blue outline instead of red
+const BLUEC={};function blueOf(k){if(BLUEC[k])return BLUEC[k];const r=redOf(k),c=cvs(r.width,r.height),g=c.getContext('2d');g.drawImage(r,0,0);g.globalCompositeOperation='source-in';g.fillStyle='#3fa8ff';g.fillRect(0,0,c.width,c.height);return BLUEC[k]=c;}
+
+// ---------- CAMERA CONES: smooth sweeping wedge + scan line instead of stacked boxes ----------
+function camWedge(g,i,TS,now){const L=G.L,cx=RD.ox+(X(i)+.5)*TS,cy=RD.oy+(Y(i)+.8)*TS,a=camAim(i),R=6*TS;
+  g.save();g.beginPath();for(let dy=1;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const j=i+dx+dy*W;if(j<0||j>=N||Math.abs(X(j)-X(i))!==Math.abs(dx))continue;if(!L.vis[j]||wallish(L,j)||!camLOS(i,j))continue;g.rect(RD.ox+X(j)*TS-.5,RD.oy+Y(j)*TS-.5,TS+1,TS+1);}g.clip();
+  const gr=g.createRadialGradient(cx,cy,TS*.3,cx,cy,R);gr.addColorStop(0,'rgba(255,59,78,.34)');gr.addColorStop(.7,'rgba(255,59,78,.12)');gr.addColorStop(1,'rgba(255,59,78,0)');g.fillStyle=gr;
+  const a0=Math.PI/2-a-.52,a1=Math.PI/2-a+.52;g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a0,a1);g.closePath();g.fill();
+  const sa=Math.PI/2-a+.48*Math.sin(now/300+i);g.strokeStyle='rgba(255,120,130,.55)';g.lineWidth=Math.max(1,TS/12);g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(sa)*R,cy+Math.sin(sa)*R);g.stroke();g.restore();}
+
+// ---------- LINK SYNC: size + minimise ----------
+UI.pda=(()=>{try{return JSON.parse(localStorage.getItem('mtm_pda')||'{}');}catch(e){return {};}})();
+function pdaApply(){const el=$('#pda');if(!el)return;const sc={s:.72,m:.86,l:1}[UI.pda.size||'l'];el.style.transformOrigin='top left';el.style.transform=`scale(${sc})`;el.classList.toggle('pmin',!!UI.pda.min);let b=el.querySelector('.pdmin');
+  if(!b){b=document.createElement('button');b.className='pdmin';b.style.cssText='position:absolute;right:4px;bottom:2px;background:transparent;border:0;color:#3af5f5;font:bold 14px ui-monospace,monospace;z-index:3;padding:2px 6px';b.onclick=e=>{e.stopPropagation();UI.pda.min=!UI.pda.min;try{localStorage.setItem('mtm_pda',JSON.stringify(UI.pda));}catch(err){}pdaApply();};el.appendChild(b);}
+  b.textContent=UI.pda.min?'▢':'–';}
+{const st=document.createElement('style');st.textContent='#pda.pmin>*:not(.ph):not(.pdmin){display:none!important}#pda.pmin{height:auto!important;padding-bottom:4px}';document.head.appendChild(st);}
+{const _dp=drawPda;drawPda=function(){const r=_dp.apply(this,arguments);try{pdaApply();}catch(e){}return r;};}
+{const _hs40=hudSettings;hudSettings=function(){const r=_hs40.apply(this,arguments);try{const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-pds]')){const b=document.createElement('div');b.innerHTML=`<h5>LINK SYNC SIZE</h5><div class="row">${['s','m','l'].map(k=>`<button class="chip ${(UI.pda.size||'l')===k?'on':''}" data-pds="${k}">${{s:'SMALL',m:'MEDIUM',l:'FULL'}[k]}</button>`).join('')}<button class="chip ${UI.pda.min?'on':''}" data-pdm="1">MINIMISED</button></div>`;
+  b.onclick=e=>{const s=e.target.closest('[data-pds]'),m=e.target.closest('[data-pdm]');if(!s&&!m)return;e.stopPropagation();if(s)UI.pda.size=s.dataset.pds;if(m)UI.pda.min=!UI.pda.min;try{localStorage.setItem('mtm_pda',JSON.stringify(UI.pda));}catch(err){}pdaApply();hudSettings();};det.insertBefore(b,det.firstChild);}}catch(e){}return r;};}
+
+// ---------- THROWING: wrist flick + whoosh; thrown melee weapons hit for real ----------
+function whoosh(){try{initAudio();if(!AC||!UI.sound)return;const t=AC.currentTime,n=Math.floor(AC.sampleRate*.28),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.sin(Math.PI*i/n);
+  const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=2.2;f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(3200,t+.22);const gn=AC.createGain();gn.gain.value=.5;s.connect(f);f.connect(gn);gn.connect(typeof MG!=='undefined'&&MG?MG:AC.destination);s.start(t);}catch(e){}}
+{const _at40=actThrow;actThrow=function(k,tg){const h=G.hero,d=ITEMS[k],it=invFind(k);let tgtM=null;
+  if(d&&d.type==='melee'&&it){try{const path=line(h.pos,tg,Math.min(dist(h.pos,tg),8));for(const i of path){if(blocksShot(i))break;const m=mobAt(i);if(m&&!MOBS[m.k].npc&&!MOBS[m.k].ally){tgtM=m;break;}}}catch(e){}}
+  const lv=it?(it.lvl|0):0,mr=d&&d.type==='melee'?meleeRange(it):null;
+  const r=_at40.apply(this,arguments);if(r!==false){whoosh();FP.flick=performance.now();
+    if(tgtM&&mr&&tgtM.hp>0){const dmg=Math.max(1,Math.round(rr(mr[0],mr[1])*.75+lv));if(chance(.8)){dmgMob(tgtM,dmg);fx({t:'txt',p:tgtM.pos,s:'-'+dmg,c:'#ffe14a'});log(`The ${d.name} spins end over end and cracks into ${mobName(tgtM)}.`,'hi');}else log(`The ${d.name} clangs off the wall.`);}}
+  return r;};}
+
+// ---------- DEV: THE CONSTRUCT (every item in the game, laid out by category) ----------
+function construct(){const back=G.depth;if(G.depth===99)return;const L=newLevel(99);L._s38=1;L._arc38=-1;L._am39=1;
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++)L.map[y*W+x]=T.FLOOR;const e=(H-4)*W+Math.floor(W/2);L.map[e]=T.EXIT;L.entry=L.exit=e;L.boss=false;L.construct=1;L.back=back;
+  const cats=['melee','gun','armor','implant','stim','chip','throw','food','misc'];let y=3;
+  for(const c of cats){const ks=Object.keys(ITEMS).filter(k=>ITEMS[k].type===c&&!['creds','core','lkey'].includes(k)&&!ITEMS[k].noloot);if(!ks.length)continue;let x=3;
+    for(const k of ks){if(x>=W-3){x=3;y++;}if(y>=H-5)break;L.items.push({pos:y*W+x,it:mk(k,{known:true,q:ITEMS[k].type==='stim'||ITEMS[k].type==='throw'?5:1})});x++;}y+=2;}
+  try{finishLevel(L);}catch(err){}G.levels[99]=L;enterFloor(99,false);G.hero.pos=e-W;updateFov&&updateFov();log('THE CONSTRUCT. Everything the tower has ever made, laid out on white. Take what you want. The elevator takes you back.','hi');}
+{const _ef40=enterFloor;enterFloor=function(d,down){const L0=G.L;if(L0&&L0.construct&&d!==99&&L0.back!=null&&d!==L0.back){return _ef40.call(this,L0.back,down);}const r=_ef40.apply(this,arguments);try{elevFix(G.L);}catch(e){}return r;};}
+{const _hs40b=hudSettings;hudSettings=function(){const r=_hs40b.apply(this,arguments);try{if(G&&G.dev){const det=$('#modal .panel .detail');if(det&&!det.querySelector('[data-cst]')){const b=document.createElement('div');b.innerHTML='<button class="chip" data-cst="1" style="border-color:#e8eef4;color:#e8eef4">DEV ▸ THE CONSTRUCT (all items)</button>';b.firstChild.onclick=e=>{e.stopPropagation();closeModal();construct();};det.insertBefore(b,det.firstChild);}}}catch(e){}return r;};}
+// ---------- FIRST-PERSON ARMS = the window-view arm (auto-matches avatar skin, sleeve, cuff, Link Sync band, chrome) ----------
+const FPA={c:null};
+function armCanvas(now,W2,H2){const w=Math.round(W2/3.2),h=Math.round(H2/3.2);if(!FPA.c||FPA.c.width!==w||FPA.c.height!==h)FPA.c=cvs(w,h);
+  const sv={hc:VW.hc,act:VW.act,lx:VW.lx,ly:VW.ly,lit:VW.lit};VW.hc=FPA.c;VW.act=null;VW.lx=0;VW.ly=0;VW.lit=false;try{drawHand(now);}catch(e){}Object.assign(VW,sv);return FPA.c;}
+// draw the arm so its fist lands at (fx,fy); returns nothing. rot tilts the whole arm, mir mirrors it (left arm)
+function fpArm(g,W2,H2,now,fx,fy,rot,mir,sc){const c=armCanvas(now,W2,H2),u=c.width/100,K=2.25*(sc||1),Lr=78*u,ang=-.38,bx=c.width*.8,by=c.height*.72+Lr*Math.cos(ang),
+  hx=bx+Lr*Math.sin(-ang)*-1,hy=by-Lr*Math.cos(ang);
+  g.save();g.imageSmoothingEnabled=false;g.translate(fx,fy);if(mir)g.scale(-1,1);g.rotate(rot||0);g.drawImage(c,-hx*K,-hy*K,c.width*K,c.height*K);g.restore();}
+fpFists=function(g,W2,H2,u,now){const pt=Math.min(1,(now-(FP.kick||0))/300),pk=Math.sin(pt*Math.PI),R=FP.pn===1,bob=Math.sin(FP.bob)*3*u;
+  {const p=R?0:pk;fpArm(g,W2,H2,now,W2*.32+(W2*.12)*p+bob*.5,H2*.74-H2*.14*p,-.05+.25*p,true,1+.25*p);}
+  {const p=R?pk:0;fpArm(g,W2,H2,now,W2*.68-(W2*.12)*p+bob,H2*.74-H2*.14*p,.05-.25*p,false,1+.25*p);}};
+fpMelee=function(g,W2,H2,u,now,it){const P=Math.max(2,Math.round(u*3.4)),bob=Math.sin(FP.bob)*3*u,sw=Math.min(1,(now-(FP.kick||0))/260),k=sw<1?Math.sin(sw*Math.PI):0,fl=Math.min(1,(now-(FP.flick||0))/240),fk=fl<1?Math.sin(fl*Math.PI):0;
+  fpArm(g,W2,H2,now,W2*.26-bob*.4,H2*.82,-.1,true,.85);
+  const fx=W2*.66+bob-k*W2*.18,fy=H2*.72+k*H2*.04;
+  g.save();g.translate(fx,fy);g.rotate(-.25-k*1.15-fk*.9);if(it&&it.k===SENT_K)sentBlade(g,P,now,k);else if(it){g.imageSmoothingEnabled=false;g.drawImage(itemIcon(it),-8*P,-16*P,16*P,16*P);}g.restore();
+  fpArm(g,W2,H2,now,fx,fy+3*P,.1-k*.5-fk*.4,false,1);
+  if(k>.2){g.save();g.globalAlpha=(k-.2)*.8;g.strokeStyle=it&&it.k===SENT_K?'#3af5f5':'#e6edf6';g.lineWidth=2*P;g.beginPath();g.arc(W2*.5,H2*.55,W2*.28,-.2-k,.35-k*.4);g.stroke();g.restore();}};
+// guns: draw the arm holding the grip first, the gun on top
+{const _fh40b=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');
+  if(gunMode&&h.eq.gun){const k=Math.max(0,1-(now-FP.kick)/220),P=Math.max(2,Math.round(u*3.4)),bob=Math.sin(FP.bob)*3*u,cx=W2*.57+bob,by=H2*.8+2*P+k*3*P;fpArm(g,W2,H2,now,cx+1*P,by-1*P,.15,false,.75);fpArm(g,W2,H2,now,cx-4*P,by+4*P,-.4,true,.65);}
+  return _fh40b.apply(this,arguments);};}
+// the old gun draw paints two skin squares at the grip; hide them under the real hands
+// Sentinel Edge v2: block-built pixel blade to match the box arm
+let SENT_SPR=null;
+function sentSprite(){if(SENT_SPR)return SENT_SPR;const c=cvs(14,36),g=c.getContext('2d'),B=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const O='#07080c',L='#e6edf6',M='#aab4c4',D='#5a6272',E='#3af5f5';
+  // outline pass
+  B(4,5,6,22,O);B(3,1,6,6,O);B(1,0,6,3,O);B(2,26,10,4,O);B(4,29,6,7,O);
+  // hooked tip (stepped)
+  B(2,1,4,1,L);B(4,2,4,1,M);B(4,3,4,1,M);B(5,4,4,1,M);B(2,1,1,1,E);B(3,2,1,1,E);
+  // blade body: light left face, mid, dark right face, cyan edge, red fuller
+  for(let y=5;y<26;y++){B(5,y,1,1,L);B(6,y,2,1,M);B(8,y,1,1,D);B(9,y,1,1,E);}
+  for(let y=8;y<22;y++)B(6,y,1,1,'#c8102e');
+  for(let y=6;y<26;y+=5)B(5,y,4,1,shade(M,-.15));
+  // guard
+  B(3,26,8,2,'#2a2e38');B(3,26,8,1,'#5a6272');B(10,26,1,2,'#14161c');
+  // grip + red wraps + pommel
+  B(5,28,4,6,'#1a1c22');for(let y=28;y<34;y+=2)B(5,y,4,1,'#c8102e');B(4,34,6,2,'#9aa3b2');B(4,34,6,1,'#e6edf6');
+  return SENT_SPR=c;}
+sentBlade=function(g,P,now,k){const s=sentSprite(),Q=P*1.15;g.save();g.imageSmoothingEnabled=false;g.drawImage(s,-7*Q,-30*Q,14*Q,36*Q);
+  g.globalAlpha=.35+.25*Math.sin(now/180);g.shadowColor='#3af5f5';g.shadowBlur=8*P;g.fillStyle='#3af5f5';g.fillRect(2*Q,-25*Q,1*Q,21*Q);g.restore();};
+// ---------- one Link Sync only (main hand); off-hand arm gets a plain sleeve ----------
+const FPA2={c:null};
+armCanvas=function(now,W2,H2,nb){const w=Math.round(W2/3.2),h=Math.round(H2/3.2),o=nb?FPA2:FPA;if(!o.c||o.c.width!==w||o.c.height!==h)o.c=cvs(w,h);
+  const sv={hc:VW.hc,act:VW.act,lx:VW.lx,ly:VW.ly,lit:VW.lit};VW.hc=o.c;VW.act=null;VW.lx=0;VW.ly=0;VW.lit=false;window.__nb=!!nb;try{drawHand(now);}catch(e){}window.__nb=false;Object.assign(VW,sv);return o.c;};
+fpArm=function(g,W2,H2,now,fx,fy,rot,mir,sc){const c=armCanvas(now,W2,H2,!!mir),u=c.width/100,K=2.25*(sc||1),Lr=78*u,ang=-.38,bx=c.width*.8,by=c.height*.72+Lr*Math.cos(ang),hx=bx+(Lr-8*u)*Math.sin(ang),hy=by-(Lr-8*u)*Math.cos(ang);
+  g.save();g.imageSmoothingEnabled=false;g.translate(fx,fy);if(mir)g.scale(-1,1);g.rotate(rot||0);g.drawImage(c,-hx*K,-hy*K,c.width*K,c.height*K);g.restore();};
+// sword: edge facing out toward the target (mirrored), grip seated in the fist
+sentBlade=function(g,P,now,k){const s=sentSprite(),Q=P*1.15;g.save();g.imageSmoothingEnabled=false;g.scale(-1,1);g.drawImage(s,-7*Q,-30*Q,14*Q,36*Q);
+  g.globalAlpha=.35+.25*Math.sin(now/180);g.shadowColor='#3af5f5';g.shadowBlur=8*P;g.fillStyle='#3af5f5';g.fillRect(2*Q,-25*Q,1*Q,21*Q);g.restore();};
+
+// ---------- DETAILED BLOCK GUNS (Minecraft gun-mod style) ----------
+const GUNM={
+ pistol:[[0,4,0,11,7,3,'B'],[0,7,0,11,7.6,3,'S'],[1,2,.2,9,4,2.8,'D'],[11,4.6,1,12.2,6,2,'D'],[0,-3.2,.3,3,2,2.7,'D'],[0,-3.2,.3,3,-5,2.7,'S'],[3,1,1,6,2,2,'D'],[10,7.6,1,11,8.4,2,'D'],[.4,7.6,.6,1.6,8.4,2.4,'D'],[5,5,3,7.5,6,3.25,'G'],[2,4.4,3,9,4.8,3.1,'S']],
+ smg:[[0,2,0,13,7,3,'B'],[1,7,.5,12,7.8,2.5,'S'],[13,4,1,19,5.6,2,'D'],[13,3.4,.6,16,6.2,2.4,'B'],[6,-3.2,.7,9,2,2.3,'D'],[6,-3.2,.7,9,-6,2.3,'S'],[1,-3.2,.5,4,2,2.5,'D'],[-6,3,.8,0,6,2.2,'D'],[-6,2.4,.8,-5,6.6,2.2,'B'],[10,7.8,1,11.6,9.2,2,'D'],[10.3,8.4,2,11.3,8.9,2.1,'R'],[3,3,3,11,3.8,3.2,'G'],[7,5,3,9,6,3.15,'D']],
+ shotgun:[[0,5,.5,24,7.2,2.5,'D'],[0,3,0,9,8,3,'B'],[6,3.4,.7,22,5,2.3,'D'],[10,2.6,.2,16,5.2,2.8,'W'],[10,3.2,2.8,16,3.6,2.85,'D'],[10,4.2,2.8,16,4.6,2.85,'D'],[-8,3,.5,0,7,2.5,'W'],[-8,2.4,.5,-7,7.6,2.5,'D'],[0,-3,.6,3,3,2.4,'D'],[0,8,.4,9,8.5,2.6,'S'],[23,7.2,1.2,24,7.8,1.8,'S'],[2,4,3,3,5.6,3.3,'R'],[4,4,3,5,5.6,3.3,'R'],[6,4,3,7,5.6,3.3,'R']],
+ rifle:[[0,2,0,12,8,3,'B'],[12,4,.8,26,6,2.2,'D'],[14,3.4,.4,15.4,6.6,2.6,'G'],[17,3.4,.4,18.4,6.6,2.6,'G'],[20,3.4,.4,21.4,6.6,2.6,'G'],[23,3.4,.4,24.4,6.6,2.6,'G'],[2,8,.6,10,10.6,2.4,'D'],[2,10.6,.8,10,11,2.2,'S'],[10,8.6,1,10.5,10,2,'G'],[5,-3.2,.7,8,2,2.3,'D'],[0,-3.2,.5,3,2,2.5,'D'],[-7,3,.6,0,7,2.4,'B'],[-7,2.4,.6,-6,7.6,2.4,'D'],[0,8,0,12,8.4,3,'S'],[3,4,3,10,5,3.2,'A']],
+ minigun:[[0,1,-1,10,9,4,'B'],[0,9,-1,10,9.6,4,'S'],[10,5.9,1,24,7.5,2.6,'B'],[10,2.5,1,24,4.1,2.6,'B'],[10,4.2,-.6,24,5.8,1,'B'],[10,4.2,2.6,24,5.8,4.2,'B'],[18,2,-1,19,8,4.8,'S'],[22,2.4,-1,23,7.8,4.8,'S'],[14,2.4,-1,15,7.8,4.8,'B'],[2,9.6,.6,8,11,2.4,'D'],[1,-3,0,7,1,3,'A'],[1,-3.4,0,7,-3,3,'D'],[3,4,4,8,5,4.2,'G']],
+ plasma:[[0,2,-.5,14,9,3.5,'B'],[0,9,-.5,14,9.5,3.5,'S'],[3,9.5,.5,9,12,2.5,'G'],[3,12,.5,9,12.4,2.5,'S'],[14,3.5,0,19,7.5,3,'D'],[19,4.5,1,19.7,6.5,2,'G'],[15,7.5,.5,18,8.6,2.5,'S'],[15,2.4,.5,18,3.5,2.5,'S'],[1,-3.2,.5,4,2,2.5,'D'],[4,4,3.5,12,5,3.7,'G']],
+ flamer:[[0,7,0,10,11,3,'A'],[0,11,0,10,11.5,3,'S'],[0,2,.3,12,7,2.7,'B'],[12,3.5,.8,20,5.5,2.2,'D'],[12,3,.5,13,6,2.5,'S'],[20,3.8,1,20.7,5.2,2,'R'],[1,-3.2,.5,4,2,2.5,'D'],[3,8,3,7,10,3.2,'D']]};
+const GUNOF={techpistol:'pistol',shockpistol:'pistol',needler:'smg',scatter:'shotgun',rail:'rifle',arc:'rifle',minigun:'minigun',plasma:'plasma',flamer:'flamer'};
+const GUNGRIP={pistol:[1.5,.6],smg:[2.5,.6],shotgun:[1.5,1],rifle:[1.5,.6],minigun:[4,10],plasma:[2.5,.6],flamer:[2.5,.6]},GUNFORE={smg:[14.5,3.5],shotgun:[13,2.6],rifle:[13,3.5],minigun:[5,-1],plasma:[16,3],flamer:[14,3.2]};
+function drawGun(g,it,ox,oy,S,now,kick){const d=ITEMS[it.k],fam=GUNOF[it.k]||(d.icon==='gun3'?'rifle':'pistol'),M=GUNM[fam],acc=d.c||'#3fe8ff',bul=!!d.ammo;
+  const vx=[-.74*S,-.4*S],vy=[.06*S,-1*S],vz=[.42*S,.2*S],rb=kick*S*1.6,P=(x,y,z)=>[ox+(x-rb)*vx[0]+y*vy[0]+z*vz[0],oy+(x-rb)*vx[1]+y*vy[1]+z*vz[1]];
+  const COL={B:'#5a6274',D:'#363b48',S:'#c9d1dc',W:'#6a3e22',R:'#d8303e',A:shade(acc,-.25),G:acc};
+  const boxes=M.slice().sort((a,b)=>(b[0]+b[3])-(a[0]+a[3])||(a[1]-b[1]));g.save();g.lineJoin='round';
+  for(const [x0,y0,z0,x1,y1,z1,ck] of boxes){const c=COL[ck],glow=ck==='G';const poly=(pts,col)=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=col;g.fill();g.stroke();};
+    g.strokeStyle='#07080c';g.lineWidth=Math.max(1,S*.14);if(glow){g.shadowColor=acc;g.shadowBlur=S*(1.5+Math.sin(now/200));}
+    poly([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)],glow?shade(c,.35):shade(c,.32));
+    poly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],glow?c:c);
+    poly([P(x0,y0,z0),P(x0,y0,z1),P(x0,y1,z1),P(x0,y1,z0)],glow?shade(c,-.1):shade(c,-.38));
+    g.shadowBlur=0;}
+  // muzzle point (front of the longest barrel part)
+  let mx=0,my=0;for(const b of M)if(b[3]>mx){mx=b[3];my=(b[1]+b[4])/2;}const mz=1.5;
+  g.restore();return {muz:P(mx+.5,my,mz),grip:P(...(GUNGRIP[fam]),1.5),fore:GUNFORE[fam]?P(GUNFORE[fam][0],GUNFORE[fam][1],1.5):null,port:P(6,7.5,3),fam,bul};}
+{const _fh40c=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');if(!(gunMode&&h.eq.gun))return _fh40c.apply(this,arguments);
+  const it=h.eq.gun,d=ITEMS[it.k],kick=Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,S=Math.max(3,W2/44),ox=W2*.74+bob,oy=H2*.8+kick*S*.6;
+  g.save();g.globalAlpha=1;
+  // pre-compute grip spots with a dry run so the off-hand can sit under the gun
+  const dry=drawGun({save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){},stroke(){},set lineJoin(v){},set strokeStyle(v){},set lineWidth(v){},set fillStyle(v){},set shadowColor(v){},set shadowBlur(v){}},it,ox,oy,S,now,kick);
+  if(dry.fore)fpArm(g,W2,H2,now,dry.fore[0],dry.fore[1]+S*.6,-.75,true,.75);
+  const r=drawGun(g,it,ox,oy,S,now,kick);
+  fpArm(g,W2,H2,now,r.grip[0],r.grip[1],.35,false,.8);
+  // muzzle flash / charge arc
+  if(kick>.4){g.globalAlpha=Math.min(1,(kick-.4)*2.5);const [fx,fy]=r.muz;if(r.bul){g.fillStyle='#fff3c0';g.shadowColor='#ffb03c';g.shadowBlur=18;for(const a of [0,1.2,2.4,3.6,4.8]){g.save();g.translate(fx,fy);g.rotate(a+now/80);g.fillRect(0,-S*.3,S*3*kick,S*.6);g.restore();}}
+    else{g.strokeStyle=d.c;g.shadowColor=d.c;g.shadowBlur=14;g.lineWidth=S*.4;for(let n=0;n<3;n++){g.beginPath();let px=fx,py=fy;g.moveTo(px,py);for(let s=0;s<4;s++){px+=(Math.random()-.5)*S*2-S*.8;py-=S*1.2;g.lineTo(px,py);}g.stroke();}}g.shadowBlur=0;g.globalAlpha=1;}
+  // shells
+  FP.shells=(FP.shells||[]).filter(s=>now-s.t<600);for(const s of FP.shells){const t=(now-s.t)/1000,sx=r.port[0]+s.vx*t*S*14,sy=r.port[1]+(s.vy*t+9*t*t)*S*7;g.save();g.translate(sx,sy);g.rotate(t*18);g.fillStyle='#e0b040';g.fillRect(-S*.5,-S*.25,S,S*.5);g.restore();}
+  // counter (rounds / charge)
+  const mxc=Math.max(d.ch||1,gunMax?gunMax(it):1),bw=S*7,bh=S*3.6,bx=W2*.5-bw/2,by=H2*.61;
+  g.fillStyle='rgba(8,10,16,.82)';g.fillRect(bx,by,bw,bh);g.fillStyle='#cfd6e0';g.fillRect(bx,by,bw,Math.max(1,S*.2));g.font=`bold ${Math.round(S*1.3)}px ui-monospace,monospace`;g.textBaseline='top';
+  g.fillStyle=r.bul?'#e0b040':d.c;g.textAlign='left';g.fillText(r.bul?'RND':'CHG',bx+S*.4,by+S*.4);g.textAlign='right';g.fillStyle=it.ch>0?'#f2f6fb':'#ff3b4e';g.fillText(String(Math.max(0,it.ch|0))+'/'+mxc,bx+bw-S*.4,by+S*.4);
+  const pw=(bw-S*.8)/Math.min(mxc,12);for(let j=0;j<Math.min(mxc,12);j++){g.fillStyle=j<Math.round(it.ch/mxc*Math.min(mxc,12))?(r.bul?'#e0b040':d.c):'#2a2e38';g.fillRect(bx+S*.4+j*pw,by+bh-S*1.1,Math.max(1,pw-S*.2),S*.6);}
+  g.restore();};}
+// ---------- VAULTS in first person: a reinforced strongbox on the floor, not a wall-sized slab ----------
+FP_PH.vault=.48;
+{const VC={};const _fps40=fpPropSprite;fpPropSprite=function(p,i,now){if(!p||p.k!=='vault')return _fps40.apply(this,arguments);const key=(p.open?'o':'c')+((now/400|0)%2);if(VC[key])return VC[key];
+  const c=cvs(16,16),g=c.getContext('2d'),B=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  B(1,4,14,12,'#07080c');B(2,5,12,10,'#4a5262');B(2,5,12,2,'#7a8496');B(12,7,2,8,'#2e3440');B(2,14,12,1,'#2e3440');
+  B(2,9,12,1,'#c9a227');B(4,5,1,10,'#363b48');B(11,5,1,10,'#363b48');for(const [x,y] of [[3,6],[12,6],[3,13],[12,13]])B(x,y,1,1,'#9aa3b2');
+  if(p.open){B(3,4,10,2,'#1a1c22');B(4,6,8,3,'#ffd24a');B(5,7,6,1,'#fff2c8');}
+  else{B(6,10,4,3,'#14161c');B(7,11,2,1,(now/400|0)%2?'#ff3b4e':'#5a1018');B(6,7,4,1,'#3af5f5');}
+  return VC[key]=c;};}
+
+
+// ===================== v0.40b: test-note fixes =====================
+// ---- implant icons: one per implant, grey zone silhouette while unidentified ----
+(function(){
+const M='#9aa7b4',MD='#4a5260',ML='#dfe8f0',K='#14161c';
+const arm=(R,c)=>{R(1,9,9,4,MD);R(1,9,9,1,M);R(1,12,9,1,'#2a2e36');R(3,10,1,2,c);R(6,10,1,2,c);};
+Object.assign(ICON2,{
+ thermal(R,c){R(3,4,10,8,M);R(3,4,10,1,ML);R(4,5,8,6,'#1a0a14');R(5,6,6,4,'#c0262e');R(6,6,4,4,'#ff7a2a');R(7,7,2,2,'#ffe14a');R(1,7,2,2,MD);R(13,7,2,2,MD);},
+ reflex(R,c){for(let i=0;i<5;i++){R(6,1+i*3,4,2,i%2?M:ML);R(5,2+i*3,6,1,MD);R(7,3+i*3,2,1,'#3fe8ff');}R(3,4,2,1,'#3fe8ff');R(11,10,2,1,'#3fe8ff');},
+ ghoststep(R,c){R(6,1,4,8,M);R(6,1,1,8,ML);R(7,9,3,3,MD);R(5,12,8,3,M);R(5,12,8,1,ML);R(8,10,1,1,'#c06aff');R(2,3,3,8,'#c06aff');R(1,12,4,3,'#c06aff');R(2,3,1,8,'#e8c8ff');},
+ dermal(R,c){const H=(x,y)=>{R(x+1,y,3,1,ML);R(x,y+1,5,2,M);R(x+1,y+3,3,1,MD);};H(1,2);H(6,1);H(11,2);H(3,6);H(8,6);H(1,10);H(6,10);H(11,10);},
+ regen(R,c){R(5,1,6,2,MD);R(4,3,8,11,'#16301e');R(4,3,1,11,M);R(11,3,1,11,M);R(4,13,8,1,M);R(5,6,6,7,'#39ff7a');R(5,6,6,1,'#b8ffd0');R(7,8,2,4,'#ffffff');R(6,9,4,2,'#ffffff');},
+ pump(R,c){R(3,4,10,8,'#c08a1a');R(4,3,8,10,'#ffd24a');R(4,3,8,1,'#fff0b0');R(6,6,4,4,'#8a5a0a');R(7,7,2,2,'#ffe14a');R(0,6,3,2,M);R(13,8,3,2,M);R(7,0,2,3,M);R(7,13,2,3,M);},
+ capacitor(R,c){R(4,1,8,14,MD);R(5,1,6,14,M);R(5,1,1,14,ML);for(let y=3;y<14;y+=3)R(4,y,8,1,'#c87a3a');R(7,4,3,1,'#ffe14a');R(6,5,3,1,'#ffe14a');R(7,6,3,1,'#ffe14a');R(6,7,2,1,'#ffe14a');},
+ scav(R,c){R(2,5,8,9,MD);R(3,6,6,6,'#0a1a14');R(4,7,4,4,'#163a2a');R(5,8,2,2,'#39ffb0');R(2,5,8,1,M);R(10,3,1,1,'#39ffb0');R(11,2,2,1,'#39ffb0');R(12,4,1,2,'#39ffb0');R(13,1,2,1,'#39ffb0');R(14,3,1,4,'#39ffb0');},
+ metab(R,c){R(3,4,10,9,'#3a5a2a');R(4,3,8,11,'#5a8a3a');R(4,3,8,1,'#a8d880');R(6,6,4,1,'#d8ffb0');R(9,6,1,4,'#d8ffb0');R(6,9,4,1,'#d8ffb0');R(6,7,1,2,'#d8ffb0');R(10,8,2,1,'#d8ffb0');R(5,9,1,1,'#d8ffb0');},
+ heart2(R,c){R(2,3,5,6,'#ff3b4e');R(9,3,5,6,'#ff3b4e');R(3,8,10,3,'#ff3b4e');R(5,11,6,2,'#ff3b4e');R(7,13,2,1,'#ff3b4e');R(3,3,2,2,'#ffb0b8');R(1,2,1,7,M);R(14,2,1,7,M);R(6,3,4,1,M);R(7,4,2,9,'#8a0a1a');},
+ s_core(R,c){R(4,2,8,12,MD);R(3,4,10,8,M);R(5,4,6,8,'#06222a');R(6,5,4,6,'#1ab8d8');R(7,6,2,4,'#bff8ff');R(3,4,10,1,ML);R(2,7,1,2,'#3fe8ff');R(13,7,1,2,'#3fe8ff');},
+ breaker(R,c){arm(R,'#ffe14a');R(10,8,5,6,M);R(10,8,5,1,ML);R(11,10,3,2,K);R(12,6,1,2,ML);R(4,7,4,2,'#ffe14a');},
+ gorilla(R,c){R(1,8,6,5,MD);R(1,8,6,1,M);R(6,5,9,9,M);R(6,5,9,1,ML);for(let x=7;x<15;x+=2)R(x,6,1,3,MD);R(6,12,9,2,MD);R(3,10,2,1,'#ff9a3c');},
+ knux(R,c){arm(R,'#3fe8ff');R(10,8,5,6,M);R(10,8,1,6,ML);for(let y=9;y<14;y+=2)R(15,y,1,1,ML);R(12,3,2,1,'#3fe8ff');R(11,4,2,1,'#3fe8ff');R(12,5,2,1,'#3fe8ff');R(11,6,2,1,'#3fe8ff');},
+ gunhand(R,c){arm(R,'#ff9a3c');R(9,8,3,6,M);R(11,9,5,3,MD);R(11,9,5,1,ML);R(15,10,1,1,K);R(10,13,2,2,MD);},
+ mantis(R,c){arm(R,'#e8f6ff');for(let i=0;i<8;i++){R(8+i,8-i,1,2,'#e8f6ff');R(9+i,9-i,1,1,'#7a8a9a');}R(15,0,1,1,'#ffffff');},
+ dogtag(R,c){for(let i=0;i<6;i++){R(2+i,1+i,1,1,'#8a9098');R(13-i,1+i,1,1,'#8a9098');}R(7,6,2,1,'#8a9098');
+   R(3,7,6,8,'#5a6472');R(4,7,4,8,'#cfd6e0');R(4,7,4,1,'#ffffff');R(5,9,2,1,'#5a6472');R(5,11,3,1,'#5a6472');R(5,13,2,1,'#5a6472');
+   R(8,8,6,7,'#4a5260');R(9,8,4,7,'#aab4c0');R(10,10,2,1,'#4a5260');R(10,12,2,1,'#4a5260');},
+});
+const G1='#5a5f68',G2='#7a808a',G3='#a4aab4';
+const ZI={
+ eyes(R){R(2,5,12,6,G1);R(3,4,10,8,G2);R(5,6,6,4,'#20232a');R(7,7,2,2,G3);},
+ arms(R){R(1,8,11,5,G1);R(1,8,11,1,G2);R(11,6,4,8,G2);R(11,6,4,1,G3);R(4,10,5,1,'#20232a');},
+ chest(R){R(3,3,10,10,G1);R(4,4,8,8,G2);R(6,6,4,4,'#20232a');R(7,7,2,2,G3);R(1,7,2,2,G1);R(13,7,2,2,G1);},
+ spine(R){for(let i=0;i<5;i++){R(6,1+i*3,4,2,i%2?G1:G2);R(5,2+i*3,6,1,'#30343c');}},
+ gut(R){R(3,4,10,9,G1);R(4,3,8,11,G2);R(6,6,4,1,G3);R(9,6,1,4,G3);R(6,9,4,1,G3);},
+};
+window.ZONE_ICON=ZI;
+const _ii=itemIcon;itemIcon=function(it){const d=ITEMS[it.k];
+  if(d&&d.type==='implant'&&!it.known){const z=zoneOf(it.k);return sprite('i_impZ'+z,R=>ZI[z](R));}
+  return _ii.apply(this,arguments);};
+})();
+
+// ---- implants only go in at a Ripperdoc chair (jack chips still self-slot) ----
+{const _ae=actEquip;actEquip=function(it){const d=ITEMS[it&&it.k];
+  if(d&&d.type==='implant'&&!G._surg){const z=zoneOf(it.k);log(`You can't open your own ${z==='eyes'?'eye sockets':z==='spine'?'spine':z==='gut'?'gut':z==='arms'?'arm':'chest'}. Implants go in at a Ripperdoc's chair.`,'warn');try{toast('Find a <b>Ripperdoc</b> to install cyberware.');}catch(e){}return false;}
+  return _ae.apply(this,arguments);};}
+{const _as=actSurgery;actSurgery=function(){G._surg=1;try{return _as.apply(this,arguments);}finally{G._surg=0;}};}
+// Jack Chips: rename the neural chips family in names / text
+for(const k in ITEMS){const d=ITEMS[k];if(d.neural&&d.desc)d.desc=d.desc.replace(/neural chip/gi,'Jack Chip');}
+
+// ---- dog tags: a dead guard lies where each tag spawns; tags matter in the Voss fight ----
+function deadGuardSpr(){return sprite('p_deadguard2',R=>{
+  R(0,11,16,5,'rgba(110,12,20,.6)');R(3,13,9,2,'rgba(150,20,28,.55)');          // blood pool
+  R(2,1,5,4,'#2c3644');R(2,1,5,1,'#4a5a70');R(1,3,1,2,'#2c3644');               // helmet, head tipped forward
+  R(3,4,4,2,'#a8744f');R(3,5,4,1,'#7a5236');R(4,4,1,1,'#1a1a1a');               // face, chin on chest
+  R(1,6,8,6,'#33404f');R(1,6,8,1,'#4a5a70');R(2,7,6,4,'#2a3542');               // vest
+  R(3,8,2,1,'#ffd24a');R(6,8,1,2,'#8a1a22');R(5,9,2,1,'#8a1a22');               // MTX badge, wound
+  R(0,7,2,5,'#2a3542');R(0,11,2,2,'#a8744f');                                   // limp arm, hand on floor
+  R(8,9,2,3,'#2a3542');R(9,11,2,1,'#a8744f');                                   // other arm across lap
+  R(7,11,8,2,'#22282e');R(7,11,8,1,'#30363e');R(13,10,3,3,'#121216');R(13,10,3,1,'#2a2a30'); // legs out, boots
+  R(4,12,2,1,'#cfd6e0');R(6,13,1,1,'#ffffff');R(5,12,1,1,'#8a9098');            // tag on its chain
+});}
+
+function tagCount(){const h=G.hero;return h.inv.filter(i=>i.k==='dogtag').reduce((a,i)=>a+(i.q||1),0);}
+// Voss fight: each tag turns a loyalist; 8 unique tags unlock a different line
+{const _vi=typeof vossIntro==='function'?vossIntro:null;if(_vi)vossIntro=function(){const r=_vi.apply(this,arguments);try{
+  const n=tagCount();if(!n)return r;const L=G.L;const loy=L.mobs.filter(m=>m.k==='loyal');let turned=0;
+  for(const m of loy){if(turned>=n)break;m.st='flee';m.b.terror=999;turned++;}
+  setTimeout(()=>{cineSay([{who:'YOU',t:`You hold up ${n} dog tag${n>1?'s':''}. MTX SECURITY. Names they all knew.`},
+    ...(turned?[{who:'LOYALIST',t:turned>1?'"...Okoro? Marsh? He left them on the stairwells." They lower their rifles and back away.':'"That\'s... that was my sergeant." One rifle drops.'}]:[]),
+    ...(n>=8?[{who:'VOSS',t:'"You carried every one of them up here. Fine. Then you know what this tower costs."',red:1}]:[])]);},1600);
+  if(n>=8)G.tagsAll=1;}catch(e){console.warn(e);}return r;};}
+// tag description now hints at the payoff
+if(ITEMS.dogtag)ITEMS.dogtag.desc='Stamped MTX SECURITY. Found on a dead guard. Voss\'s own people would recognise the name.';
+
+// ---- bartender: visible pop-up, real hits, message once per fight, needs his own line of fire ----
+{const _dm=dmgMob;let shooting=0;
+ const _sp=spend;spend=function(t){const r=_sp.apply(this,arguments);try{if(!G||G.over||!G.L)return r;
+   for(const bk of G.L.mobs){if(bk.k!=='barkeep'||bk._shot!==G.turn)continue;bk._pop=performance.now();
+     // the old handler already shot this turn: top it up so it reads as a shotgun blast
+     const tg=G.L.mobs.filter(m=>m.hp>0&&!MOBS[m.k].npc&&!MOBS[m.k].ally&&dist(m.pos,bk.pos)<=4).sort((a,b)=>dist(a.pos,bk.pos)-dist(b.pos,bk.pos))[0];
+     if(tg){_dm(tg,rr(4,8)+Math.floor(G.depth*1.2));const away=tg.pos+Math.sign(X(tg.pos)-X(bk.pos))+Math.sign(Y(tg.pos)-Y(bk.pos))*W;if(tg.hp>0&&!MOBS[tg.k].boss&&pass(away)&&!mobAt(away)&&away!==G.hero.pos)tg.pos=away;
+       if(G.L.vis[tg.pos])fx({t:'txt',p:tg.pos,s:'BLAM',c:'#ffab2e'});}}
+ }catch(e){}return r;};}
+// only print the bartender line once per fight
+{const _lg=log;log=function(m){if(typeof m==='string'&&m.indexOf('comes up from under the bar with a shotgun')>=0){if(G._bkMsg&&G.turn-G._bkMsg<25){G._bkMsg=G.turn;return;}G._bkMsg=G.turn;}return _lg.apply(this,arguments);};}
+// draw him popping up over the counter with the gun for ~0.7s
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L)return;
+  const g=RD.g,S=RD.S,TS=16*S;g.setTransform(1,0,0,1,0,0);
+  for(const bk of G.L.mobs){if(bk.k!=='barkeep'||!bk._pop||!G.L.vis[bk.pos])continue;const a=(now-bk._pop)/700;if(a<0||a>1)continue;
+    const x=RD.ox+X(bk.pos)*TS,y=RD.oy+Y(bk.pos)*TS-Math.sin(Math.min(1,a*3)*Math.PI/2)*4*S;
+    g.fillStyle='#2a2a30';g.fillRect(x+2*S,y+6*S,13*S,2*S);g.fillStyle='#6a4a2a';g.fillRect(x+2*S,y+8*S,4*S,2*S);g.fillStyle='#9aa7b4';g.fillRect(x+6*S,y+6*S,9*S,1*S);
+    if(a<.25){g.globalCompositeOperation='lighter';g.fillStyle='rgba(255,200,80,.9)';g.beginPath();g.arc(x+16*S,y+7*S,3*S*(1-a*3),0,7);g.fill();g.globalCompositeOperation='source-over';}}
+ }catch(e){}};}
+
+// ---- camera cones: a real sweeping beam. The beam you see is the beam that catches you. ----
+camAim=function(c){const t=(typeof performance!=='undefined'?performance.now():0)/1000;return .55*Math.sin(t*.9+c*.7);};
+camWedge=function(g,i,TS,now){const L=G.L,cx=RD.ox+(X(i)+.5)*TS,cy=RD.oy+(Y(i)+.8)*TS,a=camAim(i),R=6*TS;
+  g.save();g.beginPath();for(let dy=1;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const j=i+dx+dy*W;if(j<0||j>=N)continue;if(!L.vis[j]||wallish(L,j)||!camLOS(i,j))continue;g.rect(RD.ox+X(j)*TS-.5,RD.oy+Y(j)*TS-.5,TS+1,TS+1);}g.clip();
+  const c=Math.PI/2-a,hw=.52;g.globalCompositeOperation='lighter';
+  const gr=g.createRadialGradient(cx,cy,TS*.2,cx,cy,R);gr.addColorStop(0,'rgba(255,70,90,.6)');gr.addColorStop(.6,'rgba(255,59,78,.28)');gr.addColorStop(1,'rgba(255,59,78,0)');
+  g.fillStyle=gr;g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,c-hw,c+hw);g.closePath();g.fill();
+  const core=g.createRadialGradient(cx,cy,0,cx,cy,R*.95);core.addColorStop(0,'rgba(255,200,210,.75)');core.addColorStop(1,'rgba(255,90,110,0)');
+  g.fillStyle=core;g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R*.95,c-.09,c+.09);g.closePath();g.fill();
+  g.strokeStyle='rgba(255,120,135,.6)';g.lineWidth=Math.max(1,TS/14);for(const e of [c-hw,c+hw]){g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(e)*R,cy+Math.sin(e)*R);g.stroke();}
+  g.restore();};
+
+// ---- zoom: pinch / buttons now go out far enough to see the whole floor; FIT FLOOR in HUD settings ----
+function fitFloor(){RD.tiles=Math.max(W,H)+1;rdResize();saveOpts();try{toast('Zoom: whole floor');}catch(e){}}
+{const _hs=hudSettings;hudSettings=function(){const r=_hs.apply(this,arguments);try{const p=document.querySelector('#modal .panel')||document.querySelector('#modal');if(p&&!p.querySelector('[data-fit40]')){const b=document.createElement('button');b.className='btn';b.dataset.fit40=1;b.textContent='FIT WHOLE FLOOR ON SCREEN';b.style.cssText='display:block;width:100%;margin:8px 0';b.onclick=e=>{e.stopPropagation();closeModal();fitFloor();};const d=p.querySelector('.detail')||p;d.insertBefore(b,d.firstChild);}}catch(e){}return r;};}
+// double-tap the minimap = fit whole floor / back to normal
+{let lt=0;document.addEventListener('pointerup',e=>{const m=e.target.closest&&e.target.closest('#mini,#minimap,.mini');if(!m)return;const t=performance.now();if(t-lt<350){if(RD.tiles>=W){RD.tiles=10;rdResize();saveOpts();}else fitFloor();lt=0;}else lt=t;},true);}
+
+// ---- first person: smooth 360 look. The look stick turns you freely and stays where you leave it;
+//      walking and tap-to-move use the direction you're facing. Works with a second finger tapping. ----
+(function(){
+  const cs=document.createElement('style');cs.textContent='#fpStick{visibility:hidden!important;pointer-events:none!important}#fpStick2{position:fixed;z-index:31;width:112px;height:112px;border-radius:50%;border:2px solid rgba(63,232,255,.5);background:radial-gradient(circle,rgba(63,232,255,.12),rgba(8,10,18,.55));display:none;touch-action:none;bottom:calc(150px + env(safe-area-inset-bottom))}#fpStick2 .knob{position:absolute;left:38px;top:38px;width:36px;height:36px;border-radius:50%;background:rgba(63,232,255,.6);box-shadow:0 0 12px rgba(63,232,255,.6)}#fpStick2 .lab{position:absolute;bottom:-16px;width:100%;text-align:center;font:9px var(--px,monospace);color:rgba(63,232,255,.85)}';
+  document.head.appendChild(cs);const st=document.createElement('div');st.id='fpStick2';st.innerHTML='<div class="knob"></div><div class="lab">LOOK 360</div>';document.body.appendChild(st);
+  const knob=st.querySelector('.knob');let id=null,x0=0,v=0,last=0;FP.yaw=null;
+  st.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;try{st.setPointerCapture(id);}catch(_){}e.stopPropagation();e.preventDefault();});
+  st.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=Math.max(-42,Math.min(42,e.clientX-x0));knob.style.left=(38+dx)+'px';v=dx/42;e.stopPropagation();});
+  const end=e=>{if(e.pointerId!==id)return;id=null;v=0;knob.style.left='38px';e.stopPropagation();};
+  st.addEventListener('pointerup',end);st.addEventListener('pointercancel',end);
+  function tick(now){requestAnimationFrame(tick);const dt=Math.min(.05,(now-last)/1000||0);last=now;try{
+    const old=document.getElementById('fpStick');st.style.display=old?old.style.display:'none';if(st.style.display==='block'){st.style.left=old.style.left;st.style.right=old.style.right;}
+    if(!FP.on){FP.yaw=null;return;}
+    if(FP.yaw==null){FP.yaw=FP.dir*Math.PI/2+(FP.look||0);}else if(FP._dirSet!==FP.dir){FP.yaw=FP.dir*Math.PI/2;}
+    if(v){const sp=Math.sign(v)*Math.pow(Math.abs(v),1.6)*3.2;FP.yaw+=sp*dt;}
+    const q=Math.round(FP.yaw/(Math.PI/2));FP.dir=((q%4)+4)%4;FP._dirSet=FP.dir;FP.look=FP.yaw-q*Math.PI/2;
+  }catch(e){}}
+  requestAnimationFrame(tick);
+  // old turn buttons / external direction changes re-seed the yaw
+  {const _t=fpTurn;fpTurn=function(d){FP.yaw=null;return _t.apply(this,arguments);};}
+})();
+
+// ---- storage: Stim Bandolier, Chip Case, Gear Rig. What they hold doesn't take pack slots. ----
+const CASES={case_stim:{n:'Stim Bandolier',t:['stim'],cap:16,c:'#ff3b4e',d:'Chest rig of injector loops. Stims ride here instead of your pack.'},
+  case_chip:{n:'Chip Case',t:['chip'],nc:1,cap:16,c:'#39ffb0',d:'Shielded data-chip wallet. Chips and Jack Chips ride here instead of your pack, safe from EMP.'},
+  case_gear:{n:'Gear Rig',t:['throw'],ks:['ammo','cell','kit','smokes','weld'],cap:16,c:'#ffd24a',d:'Belt rig with pouches. Throwables, ammo, power cells, kits and smokes ride here.'}};
+for(const k in CASES){const C=CASES[k];def(k,{type:'misc',name:C.n,icon:'kit',c:C.c,val:120,noloot:1,desc:C.d,case40:1});}
+Object.assign(ICON2,{
+  case_stim(R){R(1,5,14,7,'#3a2a30');R(1,5,14,1,'#5a4a50');for(let x=2;x<14;x+=3){R(x,3,2,8,'#cfd6e0');R(x,3,2,1,'#ffffff');R(x,6,2,2,'#ff3b4e');}R(1,12,14,2,'#2a1e24');},
+  case_chip(R){R(2,3,12,11,'#1a2a26');R(2,3,12,1,'#3a5a50');R(3,4,10,9,'#0e1a16');for(let x=4;x<12;x+=3){R(x,5,2,6,'#39ffb0');R(x,5,2,1,'#b8ffe0');R(x+.0,11,2,1,'#16584a');}R(7,1,2,2,'#8a9098');},
+  case_gear(R){R(0,6,16,3,'#5a4a2a');R(0,6,16,1,'#8a7a4a');R(1,8,4,5,'#6a5a32');R(6,8,4,5,'#6a5a32');R(11,8,4,5,'#6a5a32');R(2,9,2,1,'#ffd24a');R(7,9,2,1,'#ffd24a');R(12,9,2,1,'#ffd24a');R(7,4,2,3,'#8a9098');},
+});
+function caseOf(it){const d=ITEMS[it.k];if(!d||d.case40)return null;for(const k in CASES){const C=CASES[k];if(C.t.includes(d.type)||(C.ks&&C.ks.includes(it.k))||(C.nc&&d.neural))return k;}return null;}
+function hasCase(k){return !!(G&&G.hero&&G.hero.inv.some(i=>i.k===k));}
+function inCase(it){const k=caseOf(it);return k&&hasCase(k)?k:null;}
+{const _pc=packCap;packCap=function(){const b=_pc();try{const h=G.hero;let free=0;const used={};for(const it of h.inv){const d=ITEMS[it.k];if(d&&d.case40){free++;continue;}const k=inCase(it);if(k&&(used[k]=(used[k]||0)+1)<=CASES[k].cap)free++;}return b+free;}catch(e){return b;}};}
+// backpack tabs
+UI.bagTab='pack';
+{const _rb=renderBag;renderBag=function(){_rb.apply(this,arguments);try{const B=UI.bag;if(!B||B.pick)return;const h=G.hero;const p=document.querySelector('#modal');const grid=p&&p.querySelector('.grid');if(!grid)return;
+  const owned=Object.keys(CASES).filter(hasCase);if(!owned.length&&!h.inv.some(i=>ITEMS[i.k].case40))return;
+  if(UI.bagTab!=='pack'&&!owned.includes(UI.bagTab))UI.bagTab='pack';
+  const tabs=document.createElement('div');tabs.className='bagtabs40';tabs.style.cssText='display:flex;gap:4px;margin:6px 0';
+  const mk=(k,lab,ic)=>`<button class="btn sm ${UI.bagTab===k?'go':''}" data-tab40="${k}" style="flex:1;padding:4px 2px;font-size:9px">${ic?`<img class="pix" style="width:18px;height:18px;vertical-align:middle" src="${urlOf(sprite('i_'+k,R=>ICON2[k](R)))}"> `:''}${lab}</button>`;
+  tabs.innerHTML=mk('pack','PACK')+owned.map(k=>mk(k,CASES[k].n.split(' ')[0].toUpperCase(),1)).join('');
+  grid.parentNode.insertBefore(tabs,grid);
+  let html='';const base=packCap()-h.inv.filter(it=>ITEMS[it.k].case40||inCase(it)).length;
+  if(UI.bagTab==='pack'){const list=h.inv.map((it,i)=>[it,i]).filter(([it])=>!inCase(it));list.forEach(([it,i])=>html+=slotHTML(it,'i'+i));for(let n=list.length;n<Math.max(base,list.length);n++)html+=slotHTML(null,'x'+n);}
+  else{const C=CASES[UI.bagTab],list=h.inv.map((it,i)=>[it,i]).filter(([it])=>inCase(it)===UI.bagTab);list.forEach(([it,i])=>html+=slotHTML(it,'i'+i));for(let n=list.length;n<C.cap;n++)html+=slotHTML(null,'x'+n);}
+  grid.innerHTML=html;
+  tabs.addEventListener('click',e=>{const b=e.target.closest('[data-tab40]');if(!b)return;e.stopPropagation();UI.bagTab=b.dataset.tab40;UI.sel=null;renderBag();},true);
+ }catch(e){console.warn('bagtabs',e);}};}
+// where to get them: the Fixer stocks the next case you don't have; floors 3, 8, 13 drop one
+{const _ss=shopStock;shopStock=function(vt,depth,n){const out=_ss.apply(this,arguments);try{
+   // economy fix: upgrades and STR are the run's power budget; shops don't sell them
+   for(let i=0;i<out.length;i++){if(out[i]&&out[i].k==='upgrade')out[i]=mk(pick(['repair','identify','decrypt']));else if(out[i]&&out[i].k==='str')out[i]=mk('halo');}
+   if(vt==='general'){const nx=Object.keys(CASES).find(k=>!hasCase(k)&&!(G.caseSold||{})[k]);if(nx)out.push(mk(nx,{known:true}));}
+ }catch(e){}return out;};}
+{const _ab=actBuy;actBuy=function(e){const r=_ab.apply(this,arguments);try{if(r&&e&&e.it&&CASES[e.it.k]){(G.caseSold=G.caseSold||{})[e.it.k]=1;}}catch(_){}return r;};}
+// guaranteed upgrades + STR for floors 26-29 (sector 6 got none)
+{const _ef=enterFloor;enterFloor=function(d){try{if(G&&G.plan&&!G.plan6){G.plan6=1;const fl=[26,27,28,29];fl.forEach(f=>{if(!G.plan[f])G.plan[f]={up:0,str:0};});for(let i=0;i<3;i++)G.plan[pick(fl)].up++;for(let i=0;i<2;i++)G.plan[pick(fl)].str++;}}catch(e){}
+  const r=_ef.apply(this,arguments);
+  try{const L=G.L;if(L&&!L._case40&&!L.street&&!L.boss&&[3,8,13].includes(G.depth)){L._case40=1;const nx=Object.keys(CASES).find(k=>!hasCase(k)&&!L.items.some(e=>e.it.k===k));if(nx){const p=farTile(L,6);if(p>=0)L.items.push({pos:p,it:mk(nx,{known:true})});}}}catch(e){}
+  try{apt40();if(G.L&&G.L.props)for(const k in G.L.props)delete G.L.props[k].mimic;}catch(e){console.warn(e);}
+  return r;};}
+
+// ---- door ambush: hit an enemy the turn it steps through a doorway after you = sneak attack ----
+{const _ma=mobAct;mobAct=function(m){const p0=m.pos;const r=_ma.apply(this,arguments);try{if(m.pos!==p0&&G.L.map[m.pos]===T.DOOR&&m.st==='hunt')m._doorT=G.turn;}catch(e){}return r;};}
+{const _ha=heroAttack;heroAttack=function(m){let amb=false;try{if(m&&m._doorT!=null&&G.turn-m._doorT<=1&&m.st==='hunt'&&!MOBS[m.k].boss){amb=true;m.st='wander';m._doorT=null;fx({t:'txt',p:m.pos,s:'AMBUSH',c:'#c06aff'});}}catch(e){}
+  try{return _ha.apply(this,arguments);}finally{if(amb&&m.hp>0)m.st='hunt';}};}
+
+// ---- apartments: residents who need food or meds are holed up in a quiet room, not standing in the hall ----
+function apt40(){const L=G.L;if(!L||L._apt40||L.street||L.boss||!L.rooms40)return;L._apt40=1;
+  const needy=L.mobs.filter(m=>m.k==='civ'&&m.need);if(!needy.length)return;
+  const hostileIn=r=>L.mobs.some(m=>{const d=MOBS[m.k];return !d.npc&&!d.ally&&X(m.pos)>r.x0&&X(m.pos)<r.x1&&Y(m.pos)>r.y0&&Y(m.pos)<r.y1;});
+  const cand=L.rooms40.filter(r=>r.t==='room'&&!hostileIn(r)).sort((a,b)=>a.l-b.l);
+  needy.forEach((c,n)=>{const r=cand[n%Math.max(1,cand.length)];if(!r)return;const tiles=[];for(let y=r.y0+1;y<r.y1;y++)for(let x=r.x0+1;x<r.x1;x++){const i=idx(x,y);if(pass(i)&&!mobAt(i)&&!L.items.some(e=>e.pos===i)&&i!==G.hero.pos)tiles.push(i);}
+    if(!tiles.length)return;tiles.sort((a,b)=>(Y(a)-Y(b))||(X(a)-X(b)));c.pos=tiles[Math.min(tiles.length-1,1)];c.apt=1;(L.apt40=L.apt40||[]).push([r.x0,r.y0,r.x1,r.y1]);});}
+// apartment look: a rug + bunk drawn in the room so it reads as someone's home
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||!G.L.apt40)return;const L=G.L,g=RD.g,S=RD.S,TS=16*S;g.setTransform(1,0,0,1,0,0);
+  for(const [x0,y0,x1,y1] of L.apt40){const i=idx(x0+1,y0+1);if(!L.seen[i])continue;g.globalAlpha=L.vis[i]?.9:.4;
+    const bx=RD.ox+(x0+1)*TS,by=RD.oy+(y0+1)*TS;g.fillStyle='#3a2a48';g.fillRect(bx+2*S,by+3*S,TS*1-4*S,TS*1.6);g.fillStyle='#8a7aa8';g.fillRect(bx+2*S,by+3*S,TS-4*S,3*S);g.fillStyle='#e8e0d0';g.fillRect(bx+3*S,by+4*S,5*S,2*S);
+    const rx=RD.ox+((x0+x1)/2)*TS,ry=RD.oy+((y0+y1)/2+.3)*TS;g.fillStyle='rgba(160,70,60,.35)';g.fillRect(rx-TS*.9,ry-TS*.5,TS*1.8,TS);g.strokeStyle='rgba(230,190,120,.35)';g.lineWidth=S;g.strokeRect(rx-TS*.8,ry-TS*.4,TS*1.6,TS*.8);}
+  g.globalAlpha=1;}catch(e){}};}
+
+// camera: the white roving light pool is replaced by the red sweeping beam
+camLights=function(){};
+// FIT: centre the whole floor; zooming back in releases the camera
+{const _ff=fitFloor;fitFloor=function(){_ff();RD._fit=1;RD.focus=idx(W>>1,H>>1);};
+ setInterval(()=>{try{if(RD._fit&&RD.tiles<W-2){RD._fit=0;if(RD.focus===idx(W>>1,H>>1))RD.focus=null;}}catch(e){}},300);}
+
+// ---- layout pass (from a 240-floor audit): no bystanders/wrecks parked in doorways, no dead doors, loot in rooms not halls ----
+function hall40(L,i){const P=j=>j>=0&&j<N&&pass(j);return (P(i-1)&&P(i+1)&&wallish(L,i-W)&&wallish(L,i+W))||(P(i-W)&&P(i+W)&&wallish(L,i-1)&&wallish(L,i+1));}
+function nearDoor40(L,i){return [1,-1,W,-W].some(d=>{const t=L.map[i+d];return t===T.DOOR||t===T.LOCKED||t===T.SECRET;});}
+function reach40(L,from){const s=new Uint8Array(N),q=[from];s[from]=1;let n=0;while(q.length){const c=q.pop();n++;for(const d of DIRS){const j=c+d;if(j<0||j>=N||s[j])continue;const t=L.map[j];if(pass(j)||t===T.LOCKED||t===T.SECRET||t===T.EXIT||t===T.ENTRY){s[j]=1;q.push(j);}}}return n;}
+function layout40(){const L=G.L;if(!L||L._lay40||L.street||L.boss)return;L._lay40=1;let changed=0;
+  const roomTile=(from,r)=>{let best=-1,bd=99;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const j=from+dx+dy*W;if(j<0||j>=N||!pass(j)||mobAt(j)||j===G.hero.pos||hall40(L,j)||nearDoor40(L,j)||L.items.some(e=>e.pos===j))continue;const d=Math.abs(dx)+Math.abs(dy);if(d<bd){bd=d;best=j;}}return best;};
+  // 1) parked NPCs out of doorways and 1-wide halls
+  for(const m of L.mobs){const d=MOBS[m.k];if(!d.npc||d.sp>0||m.vt||d.boss||['barkeep','vendor','captain','chef','mayor','manager','cop'].includes(m.k))continue;
+    if(nearDoor40(L,m.pos)||hall40(L,m.pos)||L.map[m.pos]===T.DOOR){const t=roomTile(m.pos,6);if(t>=0){m.pos=t;changed++;}}}
+  // 2) dead doors (no way straight through): open the wall behind if a room is right there, otherwise brick it up if nothing gets cut off
+  const base=reach40(L,L.entry);
+  for(let i=W;i<N-W;i++){if(L.map[i]!==T.DOOR)continue;const P=j=>pass(j);if((P(i-1)&&P(i+1))||(P(i-W)&&P(i+W)))continue;
+    let fixed=false;for(const d of [1,-1,W,-W]){if(!P(i+d))continue;for(let k=1;k<=3&&!fixed;k++){let ok=true;for(let s2=1;s2<=k;s2++)if(L.map[i-s2*d]!==T.WALL)ok=false;if(ok&&P(i-(k+1)*d)){for(let s2=1;s2<=k;s2++)L.map[i-s2*d]=T.FLOOR;fixed=true;}}if(fixed)break;}
+    if(!fixed){L.map[i]=T.WALL;if(reach40(L,L.entry)<base-1)L.map[i]=T.DOOR;else fixed=true;}
+    if(fixed)changed++;}
+  // 3) loose loot lying in a 1-wide hallway moves into the nearest room
+  for(const e of L.items){if(e.price||!e.it||['dogtag','codenote','lkey'].includes(e.it.k))continue;if(!hall40(L,e.pos))continue;const t=roomTile(e.pos,12);if(t>=0){e.pos=t;changed++;}}
+  if(changed){try{mapChanged();}catch(e){}RD.lvl=null;}
+}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{layout40();}catch(e){console.warn('layout40',e);}return r;};}
+
+
+// ===================== v0.40c: implant art v2 (32px), corpse from our models, log fade, elevators flush =====================
+// Design language (ref: Cyberpunk 2077 cyberware icons + real implants — pacemakers, cochlear coils, Argus retinal camera, LUKE arm):
+// brushed chrome shell lit top-left, dark recess, ONE accent glow per part, and a surgical connector with two lead wires
+// at the bottom-left so every piece reads as "goes inside you".
+const IMP32=(function(){
+ const C={hi:'#f2f6fa',lt:'#c4ccd6',md:'#8a94a2',dk:'#4e5664',dd:'#2a3038',bk:'#12151a',sk:'#c99a7a',sk2:'#8f6448'};
+ const box=(R,x,y,w,h,base)=>{const b=base||C.md;R(x,y,w,h,b);R(x,y,w,1,C.lt);R(x,y,1,h,C.lt);R(x,y+h-1,w,1,C.dk);R(x+w-1,y,1,h,C.dk);R(x,y,1,1,C.hi);};
+ const lead=(R,x,y,col)=>{R(x,y,3,3,C.dk);R(x,y,3,1,C.lt);R(x+1,y+1,1,1,col||'#ffd24a');R(x-1,y+3,1,2,'#c0392b');R(x+1,y+3,1,2,'#2f6fd0');R(x-2,y+5,1,1,'#c0392b');R(x+1,y+5,1,1,'#2f6fd0');};
+ const glow=(R,x,y,w,h,c,c2)=>{R(x,y,w,h,c);if(c2&&w>2&&h>2)R(x+1,y+1,w-2,h-2,c2);};
+ const D={
+ thermal(R){ // cyber-eye: chrome eyeball, segmented thermal iris, optic cable out the back
+   R(20,13,10,5,C.dd);R(22,14,9,3,C.dk);for(let x=23;x<31;x+=2)R(x,14,1,3,C.md);
+   R(6,5,18,20,C.dk);R(5,7,20,16,C.dk);R(7,6,16,18,C.lt);R(6,8,18,14,C.lt);R(7,7,14,3,C.hi);
+   R(9,9,12,12,C.dd);R(10,8,10,14,C.dd);R(8,10,14,10,C.dd);
+   for(const [r,c] of [[5,'#5a0a14'],[4,'#c0141e'],[3,'#ff5a2a'],[2,'#ffb02a']])R(15-r,15-r,r*2,r*2,c);R(14,14,2,2,'#fff6c0');
+   R(10,10,2,2,'rgba(255,255,255,.7)');R(7,22,16,2,C.md);R(9,22,1,1,'#ff5a2a');R(12,22,1,1,'#ffb02a');lead(R,4,24,'#ff5a2a');},
+ reflex(R){ // spine: stacked vertebra modules with heat-sink fins, cyan data bus (Sandevistan-style)
+   R(15,1,2,30,C.bk);R(16,1,1,30,'#3fe8ff');
+   for(let i=0;i<5;i++){const y=2+i*6;box(R,10,y,12,4);R(6,y+1,4,2,C.dk);R(22,y+1,4,2,C.dk);R(5,y+1,1,2,C.md);R(26,y+1,1,2,C.md);R(14,y+1,4,2,'#0a2a33');R(15,y+1,2,1,'#3fe8ff');}
+   R(3,10,2,1,'#3fe8ff');R(27,22,2,1,'#3fe8ff');lead(R,6,27,'#3fe8ff');},
+ ghoststep(R){ // leg servos: knee actuator, shin plate with piston, sprung foot, violet phase vents
+   R(11,0,10,6,C.sk);R(11,0,10,1,'#e0b89a');box(R,10,5,12,6);R(13,7,6,2,C.dd);R(15,7,2,1,'#c06aff');
+   R(12,11,8,3,C.dk);R(14,11,4,3,C.md);
+   box(R,11,14,10,10,C.lt);R(13,16,2,6,C.dd);R(13,17,2,1,'#c06aff');R(13,20,2,1,'#c06aff');R(17,15,2,8,C.md);R(17,15,2,1,C.hi);
+   R(12,24,6,3,C.dk);box(R,8,27,20,4,C.lt);R(8,30,20,1,C.dk);R(24,25,4,2,C.md);R(9,28,3,1,'#c06aff');
+   R(3,8,4,18,'rgba(192,106,255,.22)');R(4,10,2,14,'rgba(232,200,255,.3)');R(25,6,3,14,'rgba(192,106,255,.18)');lead(R,24,10,'#c06aff');},
+ dermal(R){ // subdermal armor: skin patch with interlocking hex plates under the cut line
+   R(3,4,26,24,C.sk);R(3,4,26,1,'#e0b89a');R(3,27,26,1,C.sk2);R(28,4,1,24,C.sk2);
+   const H=(x,y)=>{R(x+2,y,5,1,C.hi);R(x+1,y+1,7,1,C.lt);R(x,y+2,9,3,C.md);R(x+1,y+5,7,1,C.dk);R(x+2,y+6,5,1,C.dd);};
+   H(5,6);H(14,6);H(9,12);H(18,12);H(5,18);H(14,18);R(23,6,3,6,C.sk2);R(24,7,1,4,'#f2d0b8');
+   for(let x=4;x<28;x+=3)R(x,26,2,1,'#5a2a22');R(6,25,1,1,'#ffd24a');lead(R,25,22,'#ffd24a');},
+ regen(R){ // nanite regenerator: capsule in a surgical cradle, green nanite swirl
+   box(R,8,2,16,4);R(10,3,12,1,C.dd);box(R,8,26,16,4);
+   R(9,6,14,20,'#0c2216');R(9,6,1,20,C.lt);R(22,6,1,20,C.dk);
+   for(let y=8;y<25;y+=2)for(let x=10;x<22;x+=3){const p=((x*7+y*3)%5);R(x+(p&1),y,1,1,p<2?'#b8ffd0':'#39ff7a');}
+   R(13,12,6,8,'#39ff7a');R(14,13,4,6,'#d8ffe6');R(15,11,2,10,'#ffffff');R(12,15,8,2,'#ffffff');R(10,7,2,18,'rgba(255,255,255,.18)');lead(R,5,24,'#39ff7a');},
+ pump(R){ // adrenal pump: twin bladders, ribbed feed line, amber stim
+   box(R,5,9,10,14);box(R,17,9,10,14);R(7,12,6,8,'#3a2606');R(19,12,6,8,'#3a2606');R(8,14,4,5,'#ffb21a');R(20,14,4,5,'#ffb21a');R(9,15,2,2,'#ffe14a');R(21,15,2,2,'#ffe14a');
+   R(14,13,4,6,C.dk);R(15,14,2,4,'#ffd24a');
+   for(let y=1;y<9;y+=2){R(14,y,4,1,C.lt);R(14,y+1,4,1,C.dk);}R(15,0,2,1,'#ffd24a');
+   R(8,23,4,3,C.dk);R(20,23,4,3,C.dk);lead(R,6,25,'#ffb21a');},
+ capacitor(R){ // capacitor coil: cochlear-style induction disc + bank of cells
+   R(6,3,20,20,C.dk);R(7,4,18,18,C.md);for(let r=8;r>=2;r-=2){R(16-r,13-r,r*2,r*2,r%4?'#c87a3a':'#8a4a1a');}R(14,11,4,4,C.bk);R(15,12,2,2,'#ffe14a');
+   R(7,4,18,1,C.lt);R(7,4,1,18,C.lt);
+   for(let i=0;i<4;i++){box(R,7+i*5,24,4,6);R(8+i*5,25,2,1,'#ffe14a');}
+   R(26,6,2,1,'#ffe14a');R(27,7,2,1,'#ffe14a');R(26,8,2,1,'#ffe14a');lead(R,4,24,'#ffe14a');},
+ scav(R){ // scav scanner: wrist-mount loot scanner, radar sweep, green readout
+   R(2,16,28,10,C.sk);R(2,16,28,1,'#e0b89a');R(2,25,28,1,C.sk2);
+   box(R,7,9,18,14);R(9,11,14,9,'#04140c');R(10,12,12,7,'#0a2a18');
+   R(15,15,2,2,'#39ffb0');R(11,15,10,1,'#155a3a');R(16,12,1,7,'#155a3a');R(16,13,4,1,'#39ffb0');R(19,12,2,1,'#b8ffe0');R(12,17,1,1,'#ffd24a');R(20,18,1,1,'#ffd24a');
+   R(7,22,18,2,C.dk);R(9,22,2,1,'#39ffb0');R(13,22,2,1,C.lt);R(26,4,1,1,'#39ffb0');R(27,3,2,1,'#39ffb0');R(28,5,1,2,'#39ffb0');lead(R,5,26,'#39ffb0');},
+ metab(R){ // bio-recycler: synthetic organ with filter cartridge and loop lines
+   R(6,6,18,18,'#5a3a2a');R(7,5,16,20,'#7a4e38');R(8,6,14,3,'#a8705a');R(9,10,12,10,'#6a4030');
+   box(R,11,11,8,8);R(12,12,6,6,'#0c2216');R(13,13,4,4,'#7dff8a');R(14,14,2,2,'#e8ffe0');
+   R(24,9,4,2,C.md);R(27,11,2,8,C.md);R(24,18,4,2,C.md);R(25,12,1,6,'#7dff8a');
+   R(3,12,3,2,C.md);R(2,14,2,6,C.md);lead(R,8,26,'#7dff8a');},
+ heart2(R){ // second heart: chrome-caged artificial heart, pacemaker lead, red core
+   R(5,6,10,12,'#7a0a18');R(17,6,10,12,'#7a0a18');R(7,16,18,6,'#7a0a18');R(10,22,12,3,'#7a0a18');R(13,25,6,2,'#7a0a18');
+   R(6,7,8,10,'#d81e34');R(18,7,8,10,'#d81e34');R(8,16,16,5,'#d81e34');R(11,21,10,2,'#d81e34');R(7,8,3,3,'#ff8a96');
+   R(15,5,2,20,C.lt);R(5,11,22,1,C.lt);R(7,17,18,1,C.md);R(15,5,1,20,C.hi);
+   box(R,12,1,3,5);box(R,18,1,3,5);R(13,1,1,1,'#ff3b4e');R(19,1,1,1,'#3fe8ff');
+   R(14,13,4,4,'#ffd0d6');R(15,14,2,2,'#ffffff');lead(R,24,24,'#ff3b4e');},
+ s_core(R){ // sentinel core: reactor puck, cyan plasma, clamp ring
+   R(4,6,24,20,C.dk);box(R,5,5,22,20);R(8,8,16,14,C.bk);for(const [r,c] of [[7,'#0a3a48'],[6,'#1a8aa8'],[4,'#3fe8ff'],[2,'#bff8ff']])R(16-r,15-r,r*2,r*2,c);
+   R(5,13,3,4,C.lt);R(24,13,3,4,C.lt);R(14,2,4,3,C.md);R(15,2,2,1,'#3fe8ff');R(14,25,4,3,C.md);R(9,9,2,1,'rgba(255,255,255,.5)');lead(R,4,26,'#3fe8ff');},
+ breaker(R){ // breaker arms: forearm hydraulics + crusher hand
+   R(1,14,10,8,C.sk);R(1,14,10,1,'#e0b89a');R(1,21,10,1,C.sk2);
+   box(R,10,12,12,12);R(12,14,8,2,C.dd);R(13,14,3,1,'#ffe14a');R(12,19,8,3,C.dk);R(14,20,4,1,C.lt);
+   box(R,21,10,9,16,C.lt);for(let y=12;y<25;y+=4){R(29,y,2,3,C.md);R(29,y,2,1,C.hi);}R(23,13,5,10,C.md);R(24,15,3,6,C.dd);
+   R(14,8,2,4,C.md);R(14,7,6,1,C.lt);R(19,8,2,4,C.md);lead(R,6,24,'#ffe14a');},
+ gorilla(R){ // gorilla arms: oversized chrome fist, knuckle plates, orange charge meter
+   R(1,15,8,8,C.sk);R(1,15,8,1,'#e0b89a');R(1,22,8,1,C.sk2);
+   box(R,8,12,8,12);R(9,14,2,8,C.dd);R(10,15,1,1,'#ff9a3c');R(10,17,1,1,'#ff9a3c');R(10,19,1,1,C.dk);
+   box(R,15,6,15,20,C.lt);for(let i=0;i<4;i++){const y=7+i*5;R(28,y,3,4,C.md);R(28,y,3,1,C.hi);R(26,y+4,4,1,C.dd);}
+   R(17,9,8,14,C.md);R(18,10,6,12,C.dk);R(19,11,4,10,C.dd);R(20,12,2,2,'#ff9a3c');R(20,15,2,2,'#ff9a3c');R(20,18,2,2,'#5a3a1a');
+   R(15,26,15,2,C.dk);lead(R,5,24,'#ff9a3c');},
+ knux(R){ // shock knuckles: armored glove with coil knuckle and arcing contacts
+   R(1,15,9,8,C.sk);R(1,15,9,1,'#e0b89a');R(1,22,9,1,C.sk2);
+   box(R,9,11,14,14);R(11,13,10,10,C.dd);R(13,15,6,6,'#0a2a33');R(15,17,2,2,'#bff8ff');R(12,14,8,1,'#3fe8ff');
+   for(let i=0;i<4;i++){box(R,23,11+i*4,6,3,C.lt);R(29,12+i*4,1,1,'#bff8ff');}
+   R(29,8,1,2,'#3fe8ff');R(30,6,1,2,'#3fe8ff');R(28,4,2,1,'#bff8ff');R(30,27,1,2,'#3fe8ff');R(28,29,2,1,'#bff8ff');lead(R,6,24,'#3fe8ff');},
+ gunhand(R){ // gunhand: forearm that hinges open into a barrel, ejection port, orange chamber
+   R(1,14,9,8,C.sk);R(1,14,9,1,'#e0b89a');R(1,21,9,1,C.sk2);
+   box(R,9,11,12,12);R(11,13,8,3,C.dd);R(12,14,3,1,'#ff9a3c');R(11,18,8,3,C.dk);
+   box(R,20,12,11,6,C.lt);R(30,13,2,4,C.dd);R(31,14,1,2,C.bk);R(22,13,5,1,C.hi);R(22,16,8,1,C.dk);
+   R(14,7,4,4,C.md);R(15,6,2,1,C.lt);R(12,23,4,4,C.dk);R(13,24,2,2,'#c87a3a');lead(R,6,24,'#ff9a3c');},
+ mantis(R){ // mantis blades: forearm housing, folded mono-edge blade sweeping out
+   R(1,17,9,8,C.sk);R(1,17,9,1,'#e0b89a');R(1,24,9,1,C.sk2);
+   box(R,9,15,12,11);R(11,17,8,2,C.dd);R(12,17,2,1,'#ff3b4e');R(16,17,2,1,'#ff3b4e');R(11,21,8,3,C.dk);
+   for(let i=0;i<14;i++){const x=17+i,y=15-i;R(x,y,1,3,'#dfe8f0');R(x+1,y+1,1,1,'#8a94a2');R(x,y-1,1,1,'#ffffff');}
+   for(let i=0;i<8;i++)R(16+i,17-i,1,1,'#ff3b4e');R(30,0,1,2,'#ffffff');R(19,14,3,3,C.md);lead(R,6,26,'#ff3b4e');},
+ };
+ return D;})();
+const PAD32=6,SZ32=44;
+function sprite32(key,draw){if(SPR[key])return SPR[key];const c=cvs(SZ32,SZ32),g=c.getContext('2d');g.translate(PAD32,PAD32);
+  draw((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);});g.setTransform(1,0,0,1,0,0);
+  const im=g.getImageData(0,0,SZ32,SZ32),d=im.data,a=new Uint8Array(SZ32*SZ32);for(let i=0;i<a.length;i++)a[i]=d[i*4+3]>60?1:0;
+  const o=g.createImageData(SZ32,SZ32);for(let y=0;y<SZ32;y++)for(let x=0;x<SZ32;x++){const p=x+y*SZ32;if(a[p])continue;let n=0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X2=x+dx,Y2=y+dy;if(X2>=0&&Y2>=0&&X2<SZ32&&Y2<SZ32&&a[X2+Y2*SZ32])n=1;}if(n){o.data[p*4]=8;o.data[p*4+1]=8;o.data[p*4+2]=12;o.data[p*4+3]=255;}}
+  const oc=cvs(SZ32,SZ32);oc.getContext('2d').putImageData(o,0,0);g.globalCompositeOperation='destination-over';g.drawImage(oc,0,0);c._k=key;return SPR[key]=c;}
+{const _ii2=itemIcon;itemIcon=function(it){const d=ITEMS[it&&it.k];if(d&&d.type==='implant'&&it.known&&IMP32[it.k]){return sprite32('i32_'+it.k,R=>IMP32[it.k](R));}return _ii2.apply(this,arguments);};}
+// unidentified implants keep the grey zone silhouette (handled by the v0.40b wrapper); make sure known check is right:
+{const _ii3=itemIcon;itemIcon=function(it){const d=ITEMS[it&&it.k];if(d&&d.type==='implant'&&!it.known){const z=zoneOf(it.k);return sprite('i_impZ'+z,R=>ZONE_ICON[z](R));}return _ii3.apply(this,arguments);};}
+
+// ---- dead guards: drawn from our own character model (MTX security), lying in a blood pool, tag beside them ----
+function deadGuardAt(L,p){const q=[-1,1,-W,W].map(d=>p+d).find(j=>j>=0&&j<N&&L.map[j]===T.FLOOR&&!L.items.some(e=>e.pos===j));return q!=null?q:p;}
+function guardMob(p){return {k:'guard',id:9000+p,lk:p*7+3,b:{}};}
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L)return;const L=G.L;if(!L.decals38||!L.decals38.length)return;
+  const g=RD.g,S=RD.S,TS=16*S;g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;
+  for(const p of L.decals38){const at=deadGuardAt(L,p);if(!L.seen[at]||at===G.hero.pos||mobAt(at))continue;const vis=L.vis[at];
+    const cx=RD.ox+(X(at)+.5)*TS,cy=RD.oy+(Y(at)+.62)*TS;g.globalAlpha=vis?1:.4;
+    g.fillStyle='rgba(120,10,20,.75)';g.beginPath();g.ellipse(cx-1*S,cy+3*S,10.5*S,4.2*S,0,0,7);g.fill();g.fillStyle='rgba(170,20,30,.55)';g.beginPath();g.ellipse(cx-9*S,cy+4*S,5*S,2.2*S,.2,0,7);g.fill();
+    const sp=mobSprite(guardMob(p),0),sw=SZ*S;g.save();g.translate(cx,cy);g.rotate(-Math.PI/2);g.filter=vis?'brightness(.72) saturate(.75)':'brightness(.4)';g.drawImage(sp,-sw*.62,-sw/2,sw,sw);g.filter='none';g.restore();}
+  g.globalAlpha=1;}catch(e){}};}
+// first person: the same body lies on the floor there
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{const L=G.L;if(L&&L.decals38&&FP&&FP.dead){for(const p of L.decals38){const at=deadGuardAt(L,p);if(!FP.dead.some(d=>d.i===at&&d.tag40))FP.dead.push({x:X(at)+.5,y:Y(at)+.5,i:at,m:guardMob(p),t:0,tag40:1});}}}catch(e){}return r;};}
+
+// ---- message log: lines fade out after ~7s instead of sitting on screen; full history lives in Link Sync ----
+(function(){const st=document.createElement('style');st.textContent='#log .l{transition:opacity .6s}#log .l.gone40{opacity:0!important}';document.head.appendChild(st);
+  const lg=document.getElementById('log');if(!lg)return;
+  new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;setTimeout(()=>{n.classList.add('gone40');setTimeout(()=>{if(n.parentNode)n.parentNode.removeChild(n);},650);},7000);}}).observe(lg,{childList:true});})();
+{const _om=openModal;openModal=function(){const p=_om.apply(this,arguments);try{const sg=p&&p.querySelector&&p.querySelector('.syncgrid');if(sg&&!sg.querySelector('[data-log40]')){const b=document.createElement('button');b.dataset.log40=1;b.innerHTML='<i>☰</i>LOG';b.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();closeModal();logHistory();},true);sg.appendChild(b);}}catch(e){}return p;};}
+
+// ---- elevators sit IN the wall: the car is cut into a straight wall run, with floor only in front ----
+function embed40(L){if(!L||L._emb40||L.street||L.boss)return;L._emb40=1;let moved=0;
+  const P=j=>j>=0&&j<N&&(pass(j)||L.map[j]===T.DOOR);
+  const front=i=>[1,-1,W,-W].filter(d=>P(i+d));
+  for(const key of ['exit','entry']){const e=L[key];if(e==null)continue;const t=L.map[e];if(t!==T.EXIT&&t!==T.EXITL&&t!==T.ENTRY)continue;
+    if(front(e).length===1&&[1,-1,W,-W].filter(d=>wallish(L,e+d)).length===3)continue; // already flush
+    const base=reach40(L,G.hero.pos>=0?G.hero.pos:e);
+    let best=-1,bd=99;
+    for(let w=W+1;w<N-W-1;w++){if(L.map[w]!==T.WALL)continue;const x=X(w),y=Y(w);if(x<1||y<1||x>W-2||y>H-2)continue;
+      const fr=[1,-1,W,-W].filter(d=>L.map[w+d]===T.FLOOR&&pass(w+d));if(fr.length!==1)continue;const d=fr[0],f=w+d;
+      const back=w-d,side=(d===1||d===-1)?[W,-W]:[1,-1];
+      if(!(wallish(L,back)||L.map[back]===T.WALL))continue;if(!side.every(s=>L.map[w+s]===T.WALL))continue;
+      if(L.map[back]===T.WINDOW||side.some(s=>L.map[w+s]===T.WINDOW))continue;
+      if(hall40(L,f)||nearDoor40(L,f)||mobAt(f)||(L.props&&L.props[f])||L.items.some(x2=>x2.pos===f))continue;
+      if(dist(w,L.entry)<4&&key==='exit')continue;if(dist(w,L.exit)<4&&key==='entry')continue;
+      const dd=dist(w,e);if(dd<bd&&dd<=14){bd=dd;best=w;}}
+    if(best<0)continue;
+    L.map[best]=t;L.map[e]=T.FLOOR;L[key]=best;
+    if(reach40(L,G.hero.pos)<base-2){L.map[e]=t;L.map[best]=T.WALL;L[key]=e;continue;}
+    if(G.hero.pos===best)G.hero.pos=e;moved++;}
+  if(moved){try{mapChanged();}catch(e){}RD.dirty=true;FP.mapVer=(FP.mapVer|0)+1;}}
+{const _ef=enterFloor;enterFloor=function(){const r=_ef.apply(this,arguments);try{embed40(G.L);}catch(e){console.warn('embed40',e);}return r;};}
+
+// SDF mini-renderer for 32px cyberware icons — mirrors the CraftPix "Cyber Implant" pack language:
+// diagonal composition (wrist bottom-left -> business end top-right), dark gunmetal + hot-pink cables + gold joints,
+// volumetric shading from top-left light, single-pixel speculars, 1px near-black outline (added by sprite32).
+var SDF40K={k:1};
+var SDF40=(function(){
+ const RAMP={
+  metal:['#141824','#232a3c','#36405a','#56637f','#8392b2','#d6e0f4'],
+  dark:['#0c0f16','#151a26','#202839','#2e374d','#4a5670','#9aa8c4'],
+  pink:['#2e0820','#6a1240','#b81c60','#f2408c','#ff9ccb','#ffe0f0'],
+  gold:['#2e1404','#6a3208','#b0620c','#f0a020','#ffd470','#fff4d0'],
+  skin:['#3e1e12','#74402a','#ae6e48','#d99c72','#f4c8a2','#fff0e0'],
+  cyan:['#06202c','#0a4a64','#1496b8','#46dcf4','#b4f6ff','#ffffff'],
+  chrome:['#1a1e28','#3a4252','#6a7486','#a4aebe','#dce4ee','#ffffff'],
+  red:['#2a0408','#6a0a14','#b8142a','#ff3048','#ff9aa4','#ffffff'],
+  orange:['#2a0c02','#7a2a04','#d05a08','#ff9a1a','#ffd26a','#ffffff'],
+ };
+ const L=(()=>{const v=[-.55,-.7,.62],m=Math.hypot(...v);return v.map(x=>x/m);})();
+ function render(R,shapes,size){const K=SDF40K.k||1;size=(size||32)*K;
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){const px=(x+.5)/K,py=(y+.5)/K;let hit=null;
+    for(const s of shapes){let col=null;
+      if(s.t==='cap'||s.t==='cone'){const ax=s.a[0],ay=s.a[1],bx=s.b[0],by=s.b[1],dx=bx-ax,dy=by-ay,ll=dx*dx+dy*dy;
+        let t=((px-ax)*dx+(py-ay)*dy)/ll;const tc=Math.max(0,Math.min(1,t));if(s.flat&&(t<0||t>1))continue;
+        const cx=ax+dx*tc,cy=ay+dy*tc,r=s.r0+(s.r1-s.r0)*tc,ox=px-cx,oy=py-cy,d=Math.hypot(ox,oy);if(d>r)continue;
+        let nx=ox/r,ny=oy/r;if(s.slab){const k=s.slab;nx*=k;ny*=k;}const nz=Math.sqrt(Math.max(0,1-nx*nx-ny*ny));
+        col=shade(s,nx,ny,nz,t);}
+      else if(s.t==='disc'){const ox=px-s.c[0],oy=py-s.c[1],d=Math.hypot(ox,oy);if(d>s.r)continue;
+        if(s.solid){col=s.solid;}else{const nx=ox/s.r*.8,ny=oy/s.r*.8;col=shade(s,s.inv?-nx:nx,s.inv?-ny:ny,Math.sqrt(1-nx*nx-ny*ny),0);}}
+      else if(s.t==='px'){if(Math.floor(x/K)===s.x&&Math.floor(y/K)===s.y)col=s.c;}
+      else if(s.t==='box'){if(px<s.x0||px>s.x1||py<s.y0||py>s.y1)continue;const u=(px-s.x0)/(s.x1-s.x0)*2-1,v=(py-s.y0)/(s.y1-s.y0)*2-1;
+        const nx=Math.abs(u)>.75?Math.sign(u)*.7:0,ny=Math.abs(v)>.75?Math.sign(v)*.7:0;col=shade(s,nx,ny,.7,0);}
+      if(col)hit=col;}
+    if(hit)R(x,y,1,1,hit);}}
+ function shade(s,nx,ny,nz,t){const ramp=RAMP[s.m]||RAMP.metal;
+   let dif=Math.max(0,nx*L[0]+ny*L[1]+nz*L[2]);const amb=s.amb==null?.18:s.amb;let v=amb+(1-amb)*dif;
+   if(s.glow)v=.55+.45*v;
+   const rz=2*dif*nz-L[2];let i=Math.min(4,Math.floor(v*4.6));if(rz>.93&&!s.matte)i=5;
+   if(s.band&&t!=null){const k=Math.floor(t*s.band)%2;if(k&&i>0)i--;}
+   return ramp[Math.max(0,Math.min(5,i))];}
+ return {render,RAMP};})();
+
+var HANDS41=(function(){const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a,b,r0,r1:r1==null?r0:r1,m},o||{});
+ const D=(c,r,m,o)=>Object.assign({t:'disc',c,r,m},o||{});const P=(x,y,c)=>({t:'px',x,y,c});
+ const fist=(F,sc,m,cap,capm,o)=>{const a=[.707,-.707],p=[.707,.707],out=[];o=o||{};
+   out.push(C([F[0]-a[0]*5*sc-p[0]*.5,F[1]-a[1]*5*sc-p[1]*.5],[F[0]-a[0]*1.5*sc,F[1]-a[1]*1.5*sc],5.4*sc,5.2*sc,m,{slab:.92}));
+   for(let k=-1.5;k<=1.5;k++){const c=[F[0]+p[0]*k*2.55*sc,F[1]+p[1]*k*2.55*sc];out.push(C([c[0]-a[0]*2.6*sc,c[1]-a[1]*2.6*sc],[c[0]+a[0]*1.8*sc,c[1]+a[1]*1.8*sc],1.5*sc,1.4*sc,m));
+     if(cap)out.push(D([c[0]+a[0]*2.1*sc,c[1]+a[1]*2.1*sc],1.35*sc,capm,{glow:capm==='cyan'||capm==='orange'?1:0}));}
+   const t0=[F[0]-a[0]*4*sc+p[0]*4.6*sc,F[1]-a[1]*4*sc+p[1]*4.6*sc],t1=[F[0]+a[0]*.5*sc+p[0]*2.2*sc,F[1]+a[1]*.5*sc+p[1]*2.2*sc];
+   out.push(C(t0,t1,1.7*sc,1.5*sc,o.thumb||m));return out;};
+ return {
+ // GUN HAND — Upgrade: a cyber forearm ending in an open palm; four gun ports in the palm, one firing
+ gunhand(R){SDF40.render(R,[
+   C([2,29],[14,17],2.6,2.3,'metal'),C([5,31],[16,20],2.4,2.2,'metal'),              // twin-strut forearm (breaker silhouette)
+   C([4,28],[13,19],1.0,.9,'pink'),C([3,31],[15,21],.9,.8,'pink'),
+   D([4,29],2.8,'gold'),D([15,19],3.2,'gold'),D([15,19],1.4,'dark',{inv:1}),
+   C([8,25],[11,22],2.4,2.4,'dark',{flat:1}),C([8,25],[11,22],1.2,1.2,'orange',{flat:1,glow:1}), // ammo feed
+   C([17,16],[20,13],3.6,3.2,'skin',{slab:.95}),                                     // palm, same place as breaker's plate
+   C([19,11],[22,4],1.25,1.0,'skin'),C([21,12],[26,6],1.25,1.0,'skin'),C([22,14],[28,9],1.25,1.0,'skin'),C([22,16],[27,14],1.15,1.0,'skin'),C([16,12],[14,7],1.25,1.0,'skin'),
+   D([17.5,15],1.4,'chrome'),D([17.5,15],.8,null,{solid:'#120806'}),D([20.5,14.5],1.4,'chrome'),D([20.5,14.5],.8,null,{solid:'#120806'}),D([17,12],1.3,'chrome'),D([17,12],.7,null,{solid:'#120806'}),
+   D([19.5,11.5],1.5,'orange',{glow:1}),D([19.5,11.5],.7,null,{solid:'#fff4c0'}),
+   P(21,10,'#ffd26a'),P(22,9,'#fff4c0'),P(23,11,'#ff9a1a'),P(20,8,'#ff9a1a'),P(24,8,'#ffd26a'),
+ ]);},
+ // GORILLA ARMS — heavy armored forearm, oversized fist, gold knuckle caps, pink cable bundles
+ gorilla(R){SDF40.render(R,[
+   C([2,31],[11,21],5.0,5.6,'metal',{band:4}),C([3,27],[11,18],1.3,1.3,'pink'),C([7,31],[14,23],1.1,1.1,'pink'),
+   D([13,19],4.4,'dark'),D([13,19],2.2,'orange',{glow:1}),
+   ...fist([22,10],1.25,'metal',1,'gold'),
+   P(18,15,'#ff9a1a'),P(16,13,'#ffd26a'),
+ ]);},
+ // SHOCK KNUCKLES — armored fist with coil knuckles, cyan arcs jumping off them
+ knux(R){SDF40.render(R,[
+   C([2,31],[12,20],4.4,4.6,'metal',{band:5}),C([3,28],[12,18],1.2,1.2,'pink'),
+   D([14,18],3.6,'dark'),D([14,18],1.8,'cyan',{glow:1}),
+   ...fist([22,10],1.05,'metal',1,'cyan'),
+   P(25,2,'#b4f6ff'),P(26,1,'#ffffff'),P(27,3,'#46dcf4'),P(29,4,'#b4f6ff'),P(30,6,'#ffffff'),P(30,9,'#46dcf4'),P(31,11,'#b4f6ff'),P(30,14,'#46dcf4'),P(31,15,'#ffffff'),P(23,1,'#46dcf4'),
+ ]);},
+ // BREAKER ARMS — Terminator: open endoskeleton forearm (twin pistons + pink muscle cables), skeletal hand
+ breaker(R){SDF40.render(R,[
+   C([2,29],[14,17],1.8,1.6,'chrome'),C([5,31],[16,20],1.8,1.6,'chrome'),             // radius / ulna rods
+   C([4,28],[13,19],1.3,1.0,'pink'),C([3,31],[15,21],1.0,.9,'pink'),
+   D([4,29],2.8,'gold'),D([15,19],3.2,'gold'),D([15,19],1.4,'dark',{inv:1}),
+   C([8,25],[11,22],2.4,2.4,'dark',{flat:1}),C([8,25],[11,22],1.2,1.2,'gold',{flat:1}),  // piston sleeve
+   C([17,16],[20,13],3.4,3.0,'chrome',{slab:.95}),                                     // metacarpal plate
+   C([19,11],[22,4],1.0,.8,'chrome'),C([21,12],[26,6],1.0,.8,'chrome'),C([22,14],[28,9],1.0,.8,'chrome'),C([22,16],[27,14],.95,.8,'chrome'),C([16,12],[14,7],1.0,.8,'chrome'),
+   D([20.5,8],1.0,'gold'),D([23.5,9],1.0,'gold'),D([25,11.5],1.0,'gold'),D([24.5,15],.9,'gold'),D([15,9.5],.9,'gold'),
+ ]);},
+ // MANTIS BLADES — forearm housing, blade folds out over the fist toward the top-right
+ mantis(R){SDF40.render(R,[
+   C([2,31],[13,20],4.4,4.0,'metal',{band:5}),C([4,28],[13,19],1.1,1.1,'pink'),
+   D([15,18],3.2,'dark'),D([15,18],1.3,'red',{glow:1}),
+   ...fist([21,12],.9,'metal',0),
+   C([12,27.6],[22,23.6],1.1,.9,'red',{glow:1}),C([22,23.6],[31.4,19.6],.9,.3,'red',{glow:1}),          // monoedge (outer rim)
+   C([11,26],[21,21.5],2.3,1.9,'chrome',{slab:.7}),C([21,21.5],[31,17],1.9,.4,'chrome',{slab:.7}),       // blade folds out forward under the fist
+   C([8,24],[12,25.5],1.6,1.6,'dark'),D([10.5,25],2.3,'dark'),D([10.5,25],1.0,'red',{glow:1}),          // hinge housing on the forearm
+ ]);},
+ };})();
+
+Object.assign(IMP32,HANDS41);
+
+// ===================== v0.40e: Gun Hand rework + big inspect art =====================
+// Gun Hand: rare chrome. Takes Box of Rounds ammo (6 per box), and once installed it occupies your RNG 2 slot.
+Object.assign(ITEMS.gunhand,{ch:6,ammo:1,rc:0,val:900,rare:1,
+  desc:'Four gun ports hidden in an ordinary-looking palm. Once installed it takes one of your ranged slots and fires Box of Rounds ammo — raise your hand and it speaks for you.'});
+function ghImp(){const h=G.hero;return h&&h.eq&&h.eq.imp.find(i=>i&&i.k==='gunhand');}
+function ghSync(){try{const h=G.hero;if(!h)return;const gh=ghImp();
+  if(gh){if(gh._v40!==1){gh.ch=gunMax(gh);gh.rp=0;gh._v40=1;}
+    if(h.eq.gun!==gh&&h.eq.gun2!==gh){if(h.eq.gun2){const old=h.eq.gun2;h.eq.gun2=null;stow(old);log(`Your ${ITEMS[old.k].name} goes in the pack — the Gun Hand takes a ranged slot.`,'warn');}h.eq.gun2=gh;}}
+  else{if(h.eq.gun&&h.eq.gun.k==='gunhand')h.eq.gun=null;if(h.eq.gun2&&h.eq.gun2.k==='gunhand')h.eq.gun2=null;}}catch(e){}}
+{const _r=refresh;refresh=function(){ghSync();return _r.apply(this,arguments);};}
+{const _ue=actUnequip;actUnequip=function(slot,i){const h=G.hero,it=slot==='imp'?h.eq.imp[i]:h.eq[slot];if(it&&it.k==='gunhand'&&slot!=='imp'){log('The Gun Hand is part of your arm. A Ripperdoc can take it out.','warn');return false;}return _ue.apply(this,arguments);};}
+// rarity: the Fixer no longer carries it; a Ripperdoc only sometimes does
+{const _ss=shopStock;shopStock=function(vt){const out=_ss.apply(this,arguments);try{for(let i=out.length-1;i>=0;i--){const it=out[i];if(!it||it.k!=='gunhand')continue;
+   if(vt==='ripper'&&chance(.4))continue;out[i]=mk(pick(['heart2','regen','dermal']),{known:true});}}catch(e){}return out;};}
+// raise the hand when it fires (top-down + first person)
+{const _af=actFire;actFire=function(tg){const g=activeGun();const r=_af.apply(this,arguments);try{if(r!==false&&g&&g.k==='gunhand'){G._ghT=performance.now();G._ghTg=typeof tg==='number'?tg:(tg&&tg.pos!=null?tg.pos:null);FP.kick=Math.max(FP.kick||0,1);}}catch(e){}return r;};}
+// top-down: the hero sprite itself switches to a pixel-art "hand up" pose (no vector overlay)
+{const _hl=heroLook;heroLook=function(){const L=_hl.apply(this,arguments);try{if(G._ghT){const a=(performance.now()-G._ghT)/520;if(a>=0&&a<1){const h=G.hero;let dir='r';
+   if(G._ghTg!=null){const dx=X(G._ghTg)-X(h.pos),dy=Y(G._ghTg)-Y(h.pos);dir=Math.abs(dy)>Math.abs(dx)*1.5&&dy<0?'u':dx<0?'l':'r';}L._gh=dir;L._ghf=a<.3?1:0;}}}catch(e){}return L;};}
+{const _ls=lookSprite;const cache=new WeakMap();lookSprite=function(L,f){if(!L||!L._gh)return _ls.apply(this,arguments);
+  const base=_ls(Object.assign({},L,{_gh:undefined,_ghf:undefined}),f);let m=cache.get(base);if(!m){m={};cache.set(base,m);}const key=L._gh+L._ghf;if(m[key])return m[key];
+  const c=cvs(base.width,base.height),g=c.getContext('2d');g.drawImage(base,0,0);const P=(x,y,col)=>{if(col){g.fillStyle=col;g.fillRect(x,y,1,1);}else g.clearRect(x,y,1,1);};
+  const O='#06060c',SL=L.sleeve||L.outfit||'#3f6fb0',SH=shade(SL,.25),SK=L.skin||'#c99a7a',SKD=shade(SK,-.25),F1='#fff4c0',F2='#ffb02a',F3='#ff6a1a';
+  if(L._gh==='r'||L._gh==='l'){const mir=L._gh==='l',X0=x=>mir?21-x:x;
+    for(let y=10;y<=13;y++){P(X0(14),y,y===13?O:shade(SL,-.2));}P(X0(15),12,null);P(X0(15),13,null);P(X0(14),13,O);   // tuck the hanging arm away
+    for(let x=15;x<=20;x++)for(let y=5;y<=12;y++)P(X0(x),y,null);                                                       // clear the held weapon
+    for(let x=14;x<=17;x++){P(X0(x),9,O);P(X0(x),12,O);}
+    for(let x=14;x<=15;x++){P(X0(x),10,SH);P(X0(x),11,SL);}                                                             // raised sleeve (2px shorter)
+    P(X0(16),10,SK);P(X0(16),11,SKD);P(X0(17),10,SK);P(X0(17),11,'#2a1610');P(X0(18),10,O);P(X0(18),11,O);              // open palm, port
+    if(L._ghf){P(X0(18),10,F2);P(X0(18),11,F1);P(X0(19),11,F1);P(X0(19),10,F2);P(X0(19),12,F3);P(X0(19),9,F3);P(X0(18),12,F2);P(X0(20),11,F2);}}
+  else{ // up
+    for(let y=10;y<=13;y++)P(14,y,y===13?O:shade(SL,-.2));P(15,12,null);P(15,13,null);P(14,13,O);
+    for(let x=15;x<=20;x++)for(let y=4;y<=12;y++)P(x,y,null);
+    for(let y=5;y<=10;y++){P(13,y,O);P(16,y,O);}
+    for(let y=8;y<=9;y++){P(14,y,SH);P(15,y,SL);}P(14,6,SK);P(15,6,SKD);P(14,7,SK);P(15,7,'#2a1610');P(14,5,O);P(15,5,O);
+    if(L._ghf){P(14,4,F1);P(15,4,F2);P(14,3,F1);P(13,3,F3);P(16,3,F3);P(14,5,F2);P(15,5,F1);}}
+  return m[key]=c;};}
+{const _fh=fpHands;fpHands=function(g,W2,H2,u,now){let gh=null;try{const ag=activeGun();if(ag&&ag.k==='gunhand'&&!(FP.lastAct==='melee'))gh=ag;}catch(e){}
+  if(!gh)return _fh.apply(this,arguments);
+  try{const a=G._ghT?(now-G._ghT)/520:9,up=a<1?Math.min(1,a*5):0;const fx=W2*(.6-.06*up),fy=H2*(.86-.36*up-.02*Math.sin(now/400));
+    fpArm(g,W2,H2,now,fx,fy,-.18*up,false,1.05);
+    if(a<.35){g.save();g.globalCompositeOperation='lighter';const r=W2*.07*(1.3-a);const gr=g.createRadialGradient(fx,fy-H2*.06,0,fx,fy-H2*.06,r);gr.addColorStop(0,'rgba(255,245,200,1)');gr.addColorStop(.45,'rgba(255,150,40,.9)');gr.addColorStop(1,'rgba(255,80,20,0)');g.fillStyle=gr;g.beginPath();g.arc(fx,fy-H2*.06,r,0,7);g.fill();g.restore();}
+  }catch(e){return _fh.apply(this,arguments);}};}
+// big inspect art: SDF implants re-rendered at 4x resolution (real extra detail, not upscaled pixels)
+function bigImplant(k){const key='i128_'+k;if(SPR[key])return SPR[key];const Kx=4,N=32*Kx+8,c=cvs(N,N),g=c.getContext('2d');SDF40K.k=Kx;
+  try{g.translate(4,4);IMP32[k]((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);});}finally{SDF40K.k=1;}g.setTransform(1,0,0,1,0,0);
+  const im=g.getImageData(0,0,N,N),d=im.data,a=new Uint8Array(N*N);for(let i=0;i<a.length;i++)a[i]=d[i*4+3]>60?1:0;const o=g.createImageData(N,N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const p=x+y*N;if(a[p])continue;let n=0;for(let dy=-2;dy<=2&&!n;dy++)for(let dx=-2;dx<=2;dx++){const X2=x+dx,Y2=y+dy;if(Math.abs(dx)+Math.abs(dy)<=2&&X2>=0&&Y2>=0&&X2<N&&Y2<N&&a[X2+Y2*N]){n=1;break;}}if(n){o.data[p*4]=8;o.data[p*4+1]=8;o.data[p*4+2]=12;o.data[p*4+3]=255;}}
+  const oc=cvs(N,N);oc.getContext('2d').putImageData(o,0,0);g.globalCompositeOperation='destination-over';g.drawImage(oc,0,0);return SPR[key]=c;}
+{const _dh=detailHTML;detailHTML=function(it,ref){let html=_dh.apply(this,arguments);try{if(it&&it.known&&((typeof HANDS41!=='undefined'&&HANDS41[it.k])||(typeof IMPC!=='undefined'&&IMPC[it.k]))){
+   html=`<div style="display:flex;justify-content:center;margin:2px 0 6px"><img class="pix" style="width:136px;height:136px;image-rendering:auto;background:radial-gradient(circle,#1a2232,#0b0d14 70%);border:1px solid #2a3a4e;border-radius:6px" src="${bigImplant(it.k).toDataURL()}"></div>`+html;}}catch(e){}return html;};}
+
+{const _iv=itemValue;itemValue=function(it){if(it&&it.k==='gunhand')return Math.round(900*(1+.4*Math.max(0,it.lvl||0)));return _iv.apply(this,arguments);};}
+
+// CONCEPTS (not in game): the other 12 implants in the SDF style + a hi-detail body page character
+SDF40.RAMP.jacket=['#0e1628','#1a2a4a','#28427a','#3a62a8','#6a96d8','#c8dcff'];
+SDF40.RAMP.pants=['#0a0a10','#14141c','#22222e','#343444','#55556a','#9a9ab0'];
+SDF40.RAMP.hair=['#1a0612','#3a0c26','#7a1450','#c02080','#ff4aaa','#ffc0e0'];
+SDF40.RAMP.glass=['#06221a','#0c4a36','#168a5e','#3ee09a','#a8ffd8','#ffffff'];
+SDF40.RAMP.violet=['#140828','#2e1260','#5a24b0','#9a5aff','#d4b4ff','#ffffff'];
+SDF40.RAMP.flesh=['#2a0a10','#5a1a22','#9a3440','#d4606a','#f4a0a4','#fff0f0'];
+var IMPC=(function(){const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a,b,r0,r1:r1==null?r0:r1,m},o||{});
+ const D=(c,r,m,o)=>Object.assign({t:'disc',c,r,m},o||{});const P=(x,y,c)=>({t:'px',x,y,c});const R=SDF40.render;
+ return {
+ thermal(g){R(g,[C([20,20],[25,23],2.0,1.6,'dark'),C([25,23],[28,29],1.6,1.2,'dark'),C([21,19],[27,26],.6,.5,'pink'),
+   D([13,13],10.5,'chrome'),D([13,13],7.2,'dark'),D([13,13],6.2,'red',{glow:1}),D([13,13],4.4,'orange',{glow:1}),D([13,13],2.6,'gold',{glow:1}),D([13,13],1.1,null,{solid:'#fff6d0'}),
+   D([9.5,9],1.3,null,{solid:'#ffffffcc'}),P(7,13,'#6a7486'),P(19,13,'#6a7486'),P(13,7,'#6a7486'),P(13,19,'#6a7486')]);},
+ reflex(g){const s=[C([4,29],[28,3],.9,.9,'cyan',{glow:1})];for(let i=0;i<6;i++){const x=5+i*4.4,y=28-i*4.6;s.push(C([x-3.2,y-3],[x+3.2,y+3],1.9,1.9,'metal',{slab:.9}),D([x,y],1.6,'dark'),D([x,y],.8,'cyan',{glow:1}));}R(g,s);},
+ ghoststep(g){R(g,[
+   C([24,0],[18,12],5.0,4.2,'chrome',{slab:.92}),C([23.5,1],[18,11],.7,.6,'cyan',{glow:1}),C([20,2],[15,10],1.6,1.2,'metal'),   // thigh shell, light strip, cable
+   C([17,14],[12.5,25.5],3.4,2.6,'chrome',{slab:.9}),C([15.6,14.5],[11.5,25],1.0,.8,'metal'),                                    // heavy shin
+   C([19.6,15],[15.4,25.5],.9,.7,'cyan',{glow:1}),C([20.6,15.4],[16.4,25.8],.7,.5,'chrome'),                                    // piston + rod
+   D([17.5,13],4.2,'dark'),D([17.5,13],3.0,'chrome'),D([17.5,13],1.5,'cyan',{glow:1}),                                          // knee actuator
+   C([8.6,28.2],[12,28],2.5,2.1,'chrome',{slab:.9}),                                                                            // armored heel
+   C([12,27.8],[19.5,27.6],2.4,2.1,'metal',{slab:.9}),C([12.5,26.4],[19,26.2],.45,.4,'chrome'),C([13,28.6],[18.5,28.4],.4,.4,'cyan',{glow:1}), // midfoot plate, rod, light strip
+   C([19.5,28],[24.5,28.6],2.2,1.5,'chrome',{slab:.9,band:2}),                                                                  // toe cap
+   C([8.5,30.5],[24.5,30.7],.65,.6,'dark'),                                                                                      // sole
+   D([13,26],2.8,'dark'),D([13,26],1.6,'chrome'),D([13,26],.8,'cyan',{glow:1}),                                                 // ankle
+ ]);},
+ dermal(g){const s=[C([3,22],[29,10],8,8,'skin',{slab:.85})];[[9,15],[15,12],[21,9],[12,21],[18,18],[24,15]].forEach(([x,y])=>{s.push(D([x,y],3.2,'chrome'),D([x,y],1.4,'metal'));});
+   s.push(C([4,27],[27,16],.6,.6,'red'));R(g,s);},
+ regen(g){R(g,[C([9,27],[23,5],6.2,6.2,'glass',{slab:.8,amb:.35}),D([12,22],1.4,null,{solid:'#e8fff4'}),D([18,13],1.1,null,{solid:'#e8fff4'}),D([15,17],2.4,'glass',{glow:1}),D([20,9],.9,null,{solid:'#ffffff'}),
+   C([6,30],[11,25],5.2,5.2,'gold',{flat:1}),C([21,7],[26,2],5.0,5.0,'gold',{flat:1}),C([26,2],[29,-1],1.4,1.4,'chrome')]);},
+ pump(g){R(g,[C([4,28],[12,20],1.2,1.2,'pink'),C([27,4],[21,11],1.2,1.2,'pink'),D([12,20],6,'orange',{glow:1}),D([12,20],3.4,'gold',{glow:1}),D([21,11],5.4,'orange',{glow:1}),D([21,11],3,'gold',{glow:1}),
+   C([10,18],[23,13],1.4,1.4,'chrome'),D([16.5,15.5],2.2,'metal'),P(10,17,'#fff4d0'),P(19,9,'#fff4d0')]);},
+ capacitor(g){const s=[C([5,27],[27,5],3.4,3.4,'cyan',{glow:1})];for(let i=0;i<7;i++){const t=i/6,x=6+t*20,y=26-t*20;s.push(C([x-3.4,y-3.4],[x+3.4,y+3.4],1.2,1.2,'gold'));}
+   s.push(C([2,30],[6,26],3.2,3.2,'metal',{flat:1}),C([26,6],[30,2],3.2,3.2,'metal',{flat:1}));R(g,s);},
+ scav(g){R(g,[C([6,24],[24,10],7,7,'dark',{slab:.9}),C([7,23],[23,11],5.6,5.6,'metal',{slab:.95}),D([16,16],5,'dark'),D([16,16],4.2,'glass',{glow:1,amb:.2}),
+   C([16,16],[19,12],.4,.4,null,{m:'glass'}),P(17,14,'#a8ffd8'),P(18,13,'#ffffff'),P(14,18,'#ffd470'),P(19,18,'#ffd470'),C([23,8],[28,3],1.0,.6,'chrome'),D([28,3],1.4,'glass',{glow:1})]);},
+ metab(g){R(g,[D([12,18],8,'flesh'),D([19,13],6.5,'flesh'),D([10,13],5,'flesh'),C([18,22],[26,28],3,2,'flesh'),
+   C([14,12],[20,18],3,3,'metal',{flat:1}),C([15,13],[19,17],1.8,1.8,'glass',{flat:1,glow:1}),C([4,26],[9,22],1.2,1.2,'chrome'),C([24,6],[28,3],1.2,1.2,'chrome')]);},
+ heart2(g){R(g,[D([11,12],7,'red'),D([21,12],7,'red'),C([10,15],[16,27],5.6,1.2,'red'),C([22,15],[16,27],5.6,1.2,'red'),
+   C([16,5],[16,26],1.1,1.1,'chrome'),C([5,14],[27,14],1.0,1.0,'chrome'),D([16,15],3.2,'flesh',{glow:1}),D([16,15],1.6,null,{solid:'#ffe8ec'}),
+   C([12,4],[11,0],1.4,1.4,'gold'),C([20,4],[21,0],1.4,1.4,'gold'),D([8,9],1.6,null,{solid:'#ffb0b8'})]);},
+ s_core(g){R(g,[D([16,16],13,'chrome'),D([16,16],10.4,'dark'),D([16,16],8.6,'cyan',{glow:1}),D([16,16],5.6,'cyan',{glow:1,amb:.7}),D([16,16],2.6,null,{solid:'#e8ffff'}),
+   C([1,16],[5,16],2.2,2.2,'gold'),C([27,16],[31,16],2.2,2.2,'gold'),C([16,1],[16,5],2.2,2.2,'gold'),C([16,27],[16,31],2.2,2.2,'gold'),D([11,11],1.2,null,{solid:'#ffffffaa'})]);},
+ };})();
+
+// hi-detail character for the body page: 48x48 grid, rendered at K=3 (144px)
+function bodyShapes(o){o=o||{};if(o.look){const L=o.look,r=c=>[-.72,-.5,-.28,0,.3,.62].map(k=>shade(c,k));SDF40.RAMP.jacket=r(L.outfit||'#3a62a8');SDF40.RAMP.hair=r(L.hair||'#c02080');SDF40.RAMP.skin=r(L.skin||'#d99c72');SDF40.RAMP.pants=r(L.pants||'#343444');}const C=(a,b,r0,r1,m,x)=>Object.assign({t:'cap',a,b,r0,r1:r1==null?r0:r1,m},x||{});const D=(c,r,m,x)=>Object.assign({t:'disc',c,r,m},x||{});const P=(x,y,c)=>({t:'px',x,y,c});
+ const s=[
+  C([20.5,30],[19.5,43],2.9,2.4,'pants'),C([27.5,30],[28.5,43],2.9,2.4,'pants'),C([18,44.5],[21,44.5],1.8,1.8,'dark'),C([27,44.5],[30,44.5],1.8,1.8,'dark'),   // legs, boots
+  C([20,29],[28,29],3.4,3.4,'pants'),                                                                                                                      // hips
+  C([17.5,16],[15.5,23],2.3,2.0,'jacket'),C([15.5,23],[14.5,29],1.7,1.6,'skin'),D([14.3,30.6],1.8,'skin'),                                                // left arm
+  C([24,15],[24,27],6.6,5.8,'jacket',{slab:.9}),C([24,14],[24,27],.6,.6,'dark'),                                                                           // torso + zip
+  C([24,10],[24,14],1.9,1.9,'skin'),
+  D([24,7.4],5.0,'hair'),D([19.4,9.2],1.2,'skin'),D([28.6,9.2],1.2,'skin'),D([24,9.3],4.4,'skin'),C([24,1.2],[24,6.2],1.7,1.3,'hair'),   // head, ears, mohawk
+  P(22,9,'#14141c'),P(26,9,'#14141c'),P(22,8,'#5a2a1c'),P(26,8,'#5a2a1c'),P(24,10,'#b07050'),P(24,11,'#b07050'),P(23,12,'#7a3a30'),P(24,12,'#7a3a30'),P(25,12,'#7a3a30'),
+ ];
+ if(o.gunhand){s.push(C([30.5,16],[32.5,22],2.3,2.0,'jacket'),D([32.6,22.5],2.2,'gold'),C([32.6,23],[33.8,29],1.3,1.1,'chrome'),C([33.6,23],[34.8,29],1.0,.9,'chrome'),C([33,23.5],[34,28.5],.5,.5,'pink'),
+   D([34.4,30.6],1.9,'skin'),D([34.4,30.6],.6,null,{solid:'#2a1610'}),D([34,31.4],.5,null,{solid:'#ff9a1a'}));}
+ else s.push(C([30.5,16],[32.5,23],2.3,2.0,'jacket'),C([32.5,23],[33.5,29],1.7,1.6,'skin'),D([33.7,30.6],1.8,'skin'));
+ if(o.thermal)s.push(D([26.5,9.5],1.1,'red',{glow:1}),P(26,9,'#ffd26a'),P(27,9,'#ff3048'),P(27,8,'#ff3048'));
+ if(o.heart2)s.push(D([21.5,19.5],2.4,'red',{glow:1,amb:.5}),D([21.5,19.5],1.1,null,{solid:'#ffb0b8'}),C([19,19.5],[24,19.5],.35,.35,'chrome'));
+ if(o.reflex)s.push(C([24,13],[24,28],.5,.5,'cyan',{glow:1}));
+ if(o.ghost)s.push(C([19.5,34],[19.2,42],.5,.5,'cyan',{glow:1}),C([28.5,34],[28.8,42],.5,.5,'cyan',{glow:1}));
+ return s;}
+
+Object.assign(IMP32,IMPC);
+ITEMS.heart2.name='TwinTicker';
+function bodyFlags(){const h=G.hero,f={look:heroLook()};for(const it of h.eq.imp){if(!it)continue;const k=it.k;
+  if(k==='gunhand')f.gunhand=1;else if(['gorilla','knux','breaker','mantis'].includes(k))f.cyberarm=k;
+  if(k==='thermal')f.thermal=1;if(k==='heart2'||k==='s_core'||k==='dermal')f[k]=1;if(k==='reflex')f.reflex=1;if(k==='ghoststep')f.ghost=1;if(['regen','metab','pump'].includes(k))f.gut=k;}return f;}
+{const _bs=bodyShapes;bodyShapes=function(o){const s=_bs(o);const C=(a,b,r0,r1,m,x)=>Object.assign({t:'cap',a,b,r0,r1:r1==null?r0:r1,m},x||{}),D=(c,r,m,x)=>Object.assign({t:'disc',c,r,m},x||{});
+  if(o.cyberarm){const acc={gorilla:'orange',knux:'cyan',breaker:'pink',mantis:'red'}[o.cyberarm];
+    for(let i=s.length-1;i>=0;i--){const q=s[i];if(q.t==='cap'&&q.a&&q.a[0]>=32&&q.a[1]>=22)s.splice(i,1);else if(q.t==='disc'&&q.c&&q.c[0]>33&&q.c[1]>29)s.splice(i,1);}
+    s.push(D([32.6,22.5],2.2,'dark'),C([32.6,23],[33.8,29],1.9,1.7,'metal'),C([33,23.5],[34,28.5],.5,.5,acc,{glow:1}),D([34.2,30.8],2.3,'chrome'));
+    if(o.cyberarm==='mantis')s.push(C([34.6,27],[38,34],1.0,.3,'chrome'),C([35,27],[38.4,33.6],.35,.2,'red',{glow:1}));}
+  if(o.s_core)s.push(D([24,20],2.2,'cyan',{glow:1}),D([24,20],1,null,{solid:'#e8ffff'}));
+  if(o.dermal)s.push(D([20,24],1.3,'chrome'),D([28,24],1.3,'chrome'),D([24,25],1.3,'chrome'));
+  if(o.gut)s.push(D([24,26],1.8,o.gut==='pump'?'orange':'glass',{glow:1}));
+  return s;};}
+function bodyRender(){const f=bodyFlags();const Kx=3,N=48*Kx+8,c=cvs(N,N),g=c.getContext('2d');SDF40K.k=Kx;
+  try{g.translate(4,4);SDF40.render((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},bodyShapes(f),48);}finally{SDF40K.k=1;}g.setTransform(1,0,0,1,0,0);
+  const d=g.getImageData(0,0,N,N).data,a=new Uint8Array(N*N);for(let i=0;i<a.length;i++)a[i]=d[i*4+3]>60?1:0;const o=g.createImageData(N,N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const p=x+y*N;if(a[p])continue;let n=0;for(let dy=-2;dy<=2&&!n;dy++)for(let dx=-2;dx<=2;dx++){if(Math.abs(dx)+Math.abs(dy)>2)continue;const X2=x+dx,Y2=y+dy;if(X2>=0&&Y2>=0&&X2<N&&Y2<N&&a[X2+Y2*N]){n=1;break;}}if(n){o.data[p*4]=6;o.data[p*4+1]=6;o.data[p*4+2]=10;o.data[p*4+3]=255;}}
+  const oc=cvs(N,N);oc.getContext('2d').putImageData(o,0,0);g.globalCompositeOperation='destination-over';g.drawImage(oc,0,0);return c;}
+{const _bp=bodyPage;bodyPage=function(){const r=_bp.apply(this,arguments);try{const img=document.querySelector('#modal .detail img[style*="192px"]');if(img){img.src=bodyRender().toDataURL();img.style.width='150px';img.style.height='150px';img.style.imageRendering='auto';}}catch(e){console.warn('body40',e);}return r;};}
+
+// ===== BODY SCAN v2 — ripperdoc surgical-software look: black glass, white x-ray hologram, slot cards both sides, tab bar =====
+function xrayBody(){const f=bodyFlags();const keep={};const GR=['#0a0c10','#2a2e36','#5a606c','#9aa2b0','#d6dce6','#ffffff'];
+  const save={};for(const k of ['jacket','pants','skin','hair'])save[k]=SDF40.RAMP[k];
+  const Kx=3,N=48*Kx+8,c=cvs(N,N),g=c.getContext('2d');SDF40K.k=Kx;
+  try{const shapes=bodyShapes(f);for(const k of ['jacket','pants','skin','hair'])SDF40.RAMP[k]=GR;g.translate(4,4);
+    // body as translucent hologram
+    const bc=cvs(N,N),bg=bc.getContext('2d');bg.translate(4,4);
+    const isBody=s=>['jacket','pants','skin','hair'].includes(s.m)||(s.t==='px');
+    SDF40.render((x,y,w,h,col)=>{bg.fillStyle=col;bg.fillRect(x,y,w,h);},shapes.filter(isBody),48);
+    g.setTransform(1,0,0,1,0,0);g.globalAlpha=.38;g.drawImage(bc,0,0);g.globalAlpha=1;
+    // skeleton
+    const S=(x)=>x*Kx+4;g.strokeStyle='rgba(235,242,255,.9)';g.lineCap='round';
+    const ln=(a,b,w)=>{g.lineWidth=w||2;g.beginPath();g.moveTo(S(a[0]),S(a[1]));g.lineTo(S(b[0]),S(b[1]));g.stroke();};
+    g.lineWidth=2;g.beginPath();g.ellipse(S(24),S(8),3.6*Kx,4.4*Kx,0,0,7);g.stroke();g.fillStyle='rgba(235,242,255,.85)';g.fillRect(S(22.2),S(8),3,3);g.fillRect(S(25.2),S(8),3,3);
+    for(let y=12;y<=28;y+=1.3){g.fillStyle='rgba(235,242,255,.9)';g.fillRect(S(23.6),S(y),4,2);}
+    for(let r=0;r<6;r++){const y=15.5+r*1.7,w=5.2-Math.abs(r-1.5)*.45;g.lineWidth=1.4;g.beginPath();g.ellipse(S(24),S(y),w*Kx,1.1*Kx,0,Math.PI*.05,Math.PI*.95);g.stroke();}
+    g.lineWidth=2;g.beginPath();g.ellipse(S(24),S(29.5),4.6*Kx,2.2*Kx,0,0,7);g.stroke();
+    ln([18,15.5],[30,15.5],1.6);ln([17.5,16],[15.6,23]);ln([15.6,23],[14.7,29.5]);ln([30.5,16],[32.4,23]);if(!f.gunhand&&!f.cyberarm)ln([32.4,23],[33.4,29.5]);
+    ln([21,31],[19.8,43]);ln([27,31],[28.2,43]);ln([18.5,44.5],[21.5,44.5],1.6);ln([26.5,44.5],[29.5,44.5],1.6);
+    // chrome in full colour on top
+    g.translate(4,4);SDF40.render((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},shapes.filter(s=>!isBody(s)&&s.m!=='dark'||s.m==='dark'&&s.c&&s.c[1]<40),48);
+  }finally{SDF40K.k=1;for(const k in save)SDF40.RAMP[k]=save[k];}
+  g.setTransform(1,0,0,1,0,0);return c;}
+function mcode(k){let h=2166136261;for(const ch of k)h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;const A='ABCDEFGHJKLMNPRSTUVWXZ0123456789';let s='';for(let i=0;i<8;i++){s+=A[h%A.length];h=(Math.imul(h,1103515245)+12345)>>>0;}return 'MTX-'+s.slice(0,4)+' '+s.slice(4);}
+bodyPage=function(back){const h=G.hero;initStats(h);const zone={};h.eq.imp.forEach((it,i)=>{if(it)zone[zoneOf(it.k)]={it,i};});
+  const card=(z,lab,side)=>{const e=z==='jack'?(h.jack?{it:h.jack}:null):zone[z];const syn=z==='jack'?effStat('tech')>=13:(e&&synergy(z));
+    const icon=e?`<img src="${itemURL(e.it)}" style="width:30px;height:30px;image-rendering:pixelated">`:`<span style="font-size:18px;color:#5a606c">⬡</span>`;
+    return `<div class="bs40c" data-z="${z}" style="display:flex;gap:5px;align-items:center;flex-direction:${side==='l'?'row-reverse':'row'};margin:0 0 7px;cursor:pointer">
+      <div style="flex:none;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:${e?'#16191f':'#0c0e12'};border:1px solid ${e?(syn?'#39ffb0':'#c8ccd4'):'#3a3e46'};clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%)">${icon}</div>
+      <div style="min-width:0;text-align:${side==='l'?'right':'left'}"><div style="font:bold 8px monospace;color:${e?'#f2f4f8':'#6a707c'};letter-spacing:.3px;word-break:break-word">${e?mcode(e.it.k):'— EMPTY —'}</div>
+      <div style="font:7px monospace;color:#8a909c;word-break:break-word">${lab}${e?' · '+esc(itemName(e.it)).toUpperCase():''}</div>${syn?'<div style="font:7px monospace;color:#39ffb0">SYNERGY ON</div>':''}</div></div>`;};
+  const used=h.eq.imp.filter(Boolean).length;
+  const p=openModal(`<div style="background:#020304;border:1px solid #c8ccd4;margin:-6px;padding:8px 8px 6px;position:relative;font-family:monospace">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #3a3e46;padding-bottom:4px;margin-bottom:6px"><div style="font:bold 8px monospace;color:#d6dce6;letter-spacing:1px">MTX MEDTECH · CHROME SCAN v2 <span style="color:#6a707c">| PROCEDURE SUMMARY</span></div><button class="x" data-bp="x" style="color:#d6dce6">✕</button></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,1fr);align-items:center;gap:2px;position:relative">
+      <div>${card('jack','HEAD JACK','l')}${card('eyes','OPTICS','l')}${card('arms','ARMS','l')}</div>
+      <div style="position:relative;height:190px;overflow:hidden"><img src="${xrayBody().toDataURL()}" style="width:150px;height:150px;position:absolute;top:18px;left:-11px;image-rendering:auto;filter:drop-shadow(0 0 4px rgba(220,235,255,.35))"><div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 3px);pointer-events:none"></div><div class="bs40scan" style="position:absolute;left:0;right:0;height:2px;background:rgba(200,230,255,.5);box-shadow:0 0 8px rgba(200,230,255,.8);top:0"></div></div>
+      <div>${card('chest','CHEST','r')}${card('spine','SPINE','r')}${card('gut','GUT','r')}</div>
+    </div>
+    <div class="bs40info" style="min-height:30px;border-top:1px solid #3a3e46;margin-top:2px;padding:4px 2px;font:8px monospace;color:#9aa2b0">PORTS ${used}/3 · STR ${h.str||10} · PER ${effStat('per')} · TECH ${effStat('tech')} · LV ${h.lvl} · ${h.mhp} MAX HP<br>Tap a slot for details. Green border = synergy on.</div>
+    <div style="display:flex;gap:2px;margin-top:4px">${['SCAN','CARDIO','NEURAL','STATS'].map((t,i)=>`<div class="bs40tab" data-t="${t}" style="flex:1;text-align:center;font:bold 7px monospace;padding:5px 0;background:${i===0?'#e6eaf0':'#2a2e36'};color:${i===0?'#020304':'#c8ccd4'};cursor:pointer">${t}</div>`).join('')}${back?'<div class="bs40tab" data-bp="back" style="flex:1;text-align:center;font:bold 7px monospace;padding:5px 0;background:#2a2e36;color:#ffd24a;cursor:pointer">BACK</div>':''}</div>
+  </div>`);
+  try{const sc=p.querySelector('.bs40scan');let t0=performance.now();const an=()=>{if(!sc.isConnected)return;sc.style.top=(((performance.now()-t0)/2400)%1*190)+'px';requestAnimationFrame(an);};an();}catch(e){}
+  const info=p.querySelector('.bs40info');
+  p.onclick=ev=>{const b=ev.target.closest('[data-bp]');if(b){closeModal();if(b.dataset.bp==='back'&&back)back();return;}
+    const c=ev.target.closest('.bs40c');if(c){const z=c.dataset.z;const e=z==='jack'?(h.jack?{it:h.jack}:null):zone[z];
+      info.innerHTML=e?`<b style="color:#f2f4f8">${esc(itemName(e.it))}</b> — ${esc(ITEMS[e.it.k].desc||'')}<br><span style="color:${(z==='jack'?effStat('tech')>=13:synergy(z))?'#39ffb0':'#7d8aa6'}">${SYN_T[z]||''}</span>`:`<span style="color:#6a707c">${z==='jack'?'Neural chips seat here (STATS ▸ SLOT CHIP).':'No chrome in this zone. A Ripperdoc can install it.'}</span>`;return;}
+    const t=ev.target.closest('.bs40tab');if(t){p.querySelectorAll('.bs40tab[data-t]').forEach(x=>{const on=x===t;x.style.background=on?'#e6eaf0':'#2a2e36';x.style.color=on?'#020304':'#c8ccd4';});
+      const T=t.dataset.t;info.innerHTML=T==='CARDIO'?`HR ${h.eq.imp.some(i=>i&&i.k==='heart2')?'48 (TWINTICKER SYNCED)':'72'} BPM · HP ${h.hp}/${h.mhp}<br><span style="color:#ff5a6a">${'▁▂▁▁▇▁▂▁▁▁▁▂▁▁▇▁▂▁▁'}</span>`:T==='NEURAL'?`HEAD JACK: ${h.jack?esc(ITEMS[h.jack.k].name):'EMPTY'} · TECH ${effStat('tech')}<br>${SYN_T.jack}`:T==='STATS'?`STR ${h.str||10} · PER ${effStat('per')} · TECH ${effStat('tech')} · LV ${h.lvl}<br>${Object.keys(SYN_T).filter(z=>z!=='jack').map(z=>`<span style="color:${synergy(z)?'#39ffb0':'#6a707c'}">${z.toUpperCase()}</span>`).join(' · ')}`:`PORTS ${used}/3 · STR ${h.str||10} · PER ${effStat('per')} · TECH ${effStat('tech')} · LV ${h.lvl} · ${h.mhp} MAX HP<br>Tap a slot for details. Green border = synergy on.`;}};
+  return p;};
+
+// ===== surgery walk-in: you walk to the chair and hop on, the ripper comes over, THEN the anesthetic blackout =====
+{const _as2=actSurgery;actSurgery=function(){const h=G.hero;const from=h&&h.pos;const r=_as2.apply(this,arguments);if(r){G._surgFrom=from;G._surgT=performance.now();}return r;};}
+function path40(a,b){const prev=new Int32Array(N).fill(-1),q=[a];prev[a]=a;while(q.length){const c=q.shift();if(c===b)break;for(const d of [1,-1,W,-W,W+1,W-1,-W+1,-W-1]){const n=c+d;if(n<0||n>=N||prev[n]>=0)continue;if(n!==b&&(!pass(n)||mobAt(n)))continue;prev[n]=c;q.push(n);}}
+  if(prev[b]<0)return null;const p=[];for(let c=b;c!==a;c=prev[c])p.push(c);return p.reverse();}
+{const _bo=blackout;blackout=function(lines,cb){const L=G.L,h=G.hero;const fresh=G._surgT&&performance.now()-G._surgT<1500&&L&&L.chair!=null&&G._surgFrom!=null&&!FP.on&&G._surgFrom!==L.chair;
+  if(!fresh)return _bo.apply(this,arguments);G._surgT=0;const chair=L.chair,from=G._surgFrom;
+  const rip=L.mobs.find(m=>m.vt==='ripper'||m.k==='ripper'||(MOBS[m.k]&&MOBS[m.k].vt==='ripper'));const rip0=rip?rip.pos:null;
+  const shield=document.createElement('div');shield.style.cssText='position:fixed;inset:0;z-index:60';document.body.appendChild(shield);
+  h.pos=from;updateFov();refresh();
+  const route=path40(from,chair)||[chair];let ripRoute=null;
+  if(rip){const spots=[1,-1,W,-W,W+1,W-1,-W+1,-W-1].map(d=>chair+d).filter(j=>pass(j)&&!mobAt(j)&&j!==from&&!route.includes(j)).sort((a,b)=>dist(a,rip.pos)-dist(b,rip.pos));if(spots.length)ripRoute=path40(rip.pos,spots[0]);}
+  const steps=[];route.forEach(p=>steps.push(()=>{h.pos=p;}));steps.push(()=>{G._hop40=performance.now();log('You step into the surgical pod. The chop doc heads for the console.','dim');});
+  (ripRoute||[]).forEach(p=>steps.push(()=>{rip.pos=p;}));steps.push(()=>{});steps.push(()=>{});
+  let i=0;const tick=()=>{if(i<steps.length){steps[i++]();try{updateFov();refresh();}catch(e){}setTimeout(tick,i<=route.length?170:210);return;}
+    G._podT=performance.now();log('The pod seals. Pneumatic arms unfold from the ceiling.','dim');const self=this;setTimeout(()=>{shield.remove();_bo.call(self,lines,function(){if(rip&&rip0!=null&&!mobAt(rip0))rip.pos=rip0;G._podT=0;try{refresh();}catch(e){}if(cb)return cb.apply(this,arguments);});},1500);};
+  setTimeout(tick,120);};}
+
+// ===== v0.40 final sense pass =====
+// SilentStep Servos live in the legs now (new LEGS zone); scanner is an eye overlay; adrenal pump sits on the kidneys (gut)
+Object.assign(ITEMS.ghoststep,{name:'SilentStep Servos',desc:'Gel-damped leg servos with noise-cancelling actuators and shock-absorbing soles. Your footsteps barely register — enemies notice you later.'});
+Object.assign(ITEMS.scav,{desc:'Retinal loot overlay. Tags valuables and hidden stashes in your vision — more creds and drops.'});
+Object.assign(ITEMS.pump,{desc:'Adrenal glands rebuilt to dump on command. More melee damage.'});
+Object.assign(ITEMS.capacitor,{desc:'Chest-mounted battery bank wired to your guns. Tech guns recharge faster.'});
+Object.assign(ITEMS.s_core,{desc:'Security-grade power core. Part of the Sentinel kit — wear the full set and the cameras read you as staff.'});
+BODYZ.spine=BODYZ.spine.filter(k=>k!=='ghoststep');BODYZ.legs=['ghoststep'];
+BODYZ.gut=BODYZ.gut.filter(k=>k!=='scav');BODYZ.eyes.push('scav');
+BODYZ.chest=BODYZ.chest.filter(k=>k!=='pump');BODYZ.gut.push('pump');
+SYN_T.legs='STR 12+: legs carry the servo frame — leg chrome one level higher';
+{const _sy=synergy;synergy=function(z){if(z==='legs'){const h=G.hero;initStats(h);return (h.str||10)>=12;}return _sy.apply(this,arguments);};}
+// body scan: LEGS gets its own card
+{const _bp2=bodyPage;bodyPage=function(back){const p=_bp2.apply(this,arguments);try{
+   const sp=p.querySelector('.bs40c[data-z="spine"]');if(sp){     const h=G.hero,e=h.eq.imp.find(it=>it&&zoneOf(it.k)==='legs');const syn=e&&synergy('legs');const c=document.createElement('div');c.className='bs40c';c.dataset.z='legs';c.style.cssText='display:flex;gap:5px;align-items:center;margin:0 0 7px;cursor:pointer';
+     c.innerHTML=`<div style="flex:none;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:${e?'#16191f':'#0c0e12'};border:1px solid ${e?(syn?'#39ffb0':'#c8ccd4'):'#3a3e46'};clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%)">${e?`<img src="${itemURL(e)}" style="width:30px;height:30px;image-rendering:pixelated">`:'<span style="font-size:18px;color:#5a606c">⬡</span>'}</div><div style="min-width:0"><div style="font:bold 8px monospace;color:${e?'#f2f4f8':'#6a707c'};word-break:break-word">${e?mcode(e.k):'— EMPTY —'}</div><div style="font:7px monospace;color:#8a909c">LEGS${e?' · '+esc(itemName(e)).toUpperCase():''}</div>${syn?'<div style="font:7px monospace;color:#39ffb0">SYNERGY ON</div>':''}</div>`;
+     sp.after(c);}
+   // re-bind clicks so the LEGS card answers too
+   const info=p.querySelector('.bs40info'),old=p.onclick;p.onclick=ev=>{const c=ev.target.closest('.bs40c[data-z="legs"]');if(c){const h=G.hero,e=h.eq.imp.find(it=>it&&zoneOf(it.k)==='legs');info.innerHTML=e?`<b style="color:#f2f4f8">${esc(itemName(e))}</b> — ${esc(ITEMS[e.k].desc||'')}<br><span style="color:${synergy('legs')?'#39ffb0':'#7d8aa6'}">${SYN_T.legs}</span>`:'<span style="color:#6a707c">No chrome in this zone. A Ripperdoc can install it.</span>';return;}return old&&old(ev);};
+  }catch(e){console.warn('legs card',e);}return p;};}
+// sitting in the ripper chair: hero sprite gets a seated pose (body drops 2px, thighs forward, shins down)
+{const _hl3=heroLook;heroLook=function(){const L=_hl3.apply(this,arguments);try{if(!window.POD2&&G.L&&G.L.chair!=null&&G.hero.pos===G.L.chair&&!L._gh)L._sit=1;}catch(e){}return L;};}
+{const _ls2=lookSprite;const cache=new WeakMap();lookSprite=function(L,f){if(!L||!L._sit)return _ls2.apply(this,arguments);
+  const base=_ls2(Object.assign({},L,{_sit:undefined}),0);if(cache.has(base))return cache.get(base);
+  const c=cvs(base.width,base.height),g=c.getContext('2d');g.drawImage(base,0,0,base.width,15,0,2,base.width,15);
+  const d=base.getContext('2d').getImageData(10,15,1,1).data;const pants=`rgb(${d[0]},${d[1]},${d[2]})`;const O='#06060c';
+  const P=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  P(7,16,9,1,O);P(7,17,9,3,pants);P(7,20,9,1,O);P(15,17,1,3,O);           // thighs forward
+  P(12,20,3,1,pants);P(11,20,1,1,O);P(15,20,1,1,O);P(12,21,3,1,'#14141c');P(11,21,1,1,O);P(15,21,1,1,O);P(12,22,4,1,O); // shins + boots
+  cache.set(base,c);return c;};}
+
+// ===== surgical pod: the chair becomes an automated pod with pneumatic arms; the chop doc runs it from a console =====
+function podConsole(L){if(L._con40!==undefined)return L._con40;let best=-1;if(L.chair!=null)for(const d of [1,-1,W+1,W-1,-1-W,1-W,W,-W]){const j=L.chair+d;if(j>=0&&j<N&&pass(j)&&L.map[j]!==T.DOOR&&!nearDoor40(L,j)){best=j;break;}}return L._con40=best;}
+function podArm(g,ox,oy,S,side,t,work){ // ox,oy = tile top-left in px
+  const P=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(ox+x*S),Math.round(oy+y*S),Math.ceil(w*S),Math.ceil(h*S));};
+  const sw=work?Math.sin(t/90+side)*1.2:0,dip=work?Math.max(0,Math.sin(t/140+side*2))*1.5:0;
+  const bx=side<0?1:15,ex=side<0?3.5+sw:12.5+sw,ey=1.5+dip,tx=side<0?6+sw*.6:10+sw*.6,ty=5.5+dip*1.4;
+  const seg=(x0,y0,x1,y1)=>{const n=Math.ceil(Math.hypot(x1-x0,y1-y0)*2);for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n;P(x-1.1,y-1.1,2.2,2.2,'#06060c');}for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n;P(x-.6,y-.6,1.2,1.2,'#a4aebe');P(x-.6,y-.6,1.2,.5,'#dce4ee');}};
+  seg(bx,-3,ex,ey);seg(ex,ey,tx,ty);P(ex-1.2,ey-1.2,2.4,2.4,'#06060c');P(ex-.8,ey-.8,1.6,1.6,'#ffb02a');P(bx-1.6,-4,3.2,2,'#3a4252');
+  P(tx-.9,ty-.4,1.8,2.2,'#06060c');P(tx-.5,ty,1,1.6,'#6a7486');if(work&&((t/80|0)+side)%3===0){P(tx-.4,ty+1.6,.8,.8,'#ff3048');P(tx+(side*.8),ty+2.2,.6,.6,'#ffd26a');P(tx-side*.6,ty+2.6,.5,.5,'#fff4c0');}}
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L)return;const L=G.L;if(L.chair==null||!L.seen[L.chair])return;
+  const g=RD.g,S=RD.S,TS=16*S;g.setTransform(1,0,0,1,0,0);const ox=RD.ox+X(L.chair)*TS,oy=RD.oy+Y(L.chair)*TS;const P=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(ox+x*S),Math.round(oy+y*S),Math.ceil(w*S),Math.ceil(h*S));};
+  g.globalAlpha=L.vis[L.chair]?1:.45;const work=G._podT&&now-G._podT<1600;
+  if(!window.POD2){  // pod frame: back ring, base plate with cyan rim, glass canopy over whoever is inside
+  P(0,-4,16,3,'#06060c');P(1,-3,14,1,'#5a6270');P(1,-2,14,1,'#2a3038');P(0,13,16,3,'#06060c');P(1,13,14,2,'#3a4252');P(1,13,14,1,'#7a8494');P(2,15,12,1,'#2ad8f0');
+  P(0,-2,1,15,'#06060c');P(15,-2,1,15,'#06060c');P(1,-1,1,14,'#6a7486');P(14,-1,1,14,'#3a4252');
+  g.globalAlpha*=.16;P(2,-1,12,14,work?'#ff6a6a':'#7adcff');g.globalAlpha=L.vis[L.chair]?1:.45;P(3,0,1,9,'rgba(255,255,255,.35)');
+  podArm(g,ox,oy,S,-1,now,work);podArm(g,ox,oy,S,1,now,work);
+  }
+  // console the chop doc drives it from
+  const c=podConsole(L);if(c>=0&&L.seen[c]){const occ=mobAt(c)||G.hero.pos===c;const cx=RD.ox+X(c)*TS+(occ?(X(c)>X(L.chair)?7*S:-7*S):0),cy=RD.oy+Y(c)*TS-(occ?6*S:0);const Q=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(Math.round(cx+x*S),Math.round(cy+y*S),Math.ceil(w*S),Math.ceil(h*S));};
+    Q(2,1,12,9,'#06060c');Q(3,2,10,7,'#14202a');Q(4,3,8,5,work?'#3a0a12':'#0a2a1e');for(let i=0;i<3;i++)Q(5,4+i*1.5,(((now/(work?60:300))|0)+i*3)%7+1,.8,work?'#ff3048':'#39ffb0');
+    Q(6,10,4,2,'#3a4252');Q(1,12,14,3,'#06060c');Q(2,12,12,2,'#5a6270');Q(2,12,12,1,'#8a94a2');for(let x=3;x<13;x+=2)Q(x,13,1,.6,'#1a1e26');}
+  g.globalAlpha=1;}catch(e){}};}
+// walk-in now: you step into the pod, the doc goes to the console, the arms go to work, then lights out
+{const _bo2=blackout;blackout=function(lines,cb){const L=G.L;const fresh=G._surgT&&performance.now()-G._surgT<1500&&L&&L.chair!=null&&G._surgFrom!=null&&!FP.on&&G._surgFrom!==L.chair;
+  if(!fresh)return _bo2.apply(this,arguments);
+  // run the base walk-in (hero to the pod, ripper over), but steer the ripper to the console and add the arm sequence before the blackout
+  const rip=L.mobs.find(m=>m.vt==='ripper');const con=podConsole(L);const self=this;
+  if(rip&&con>=0&&rip.pos!==con){G._ripTarget40=con;}
+  return _bo2.call(self,lines.concat([]),cb);};}
+{const _p40=path40;path40=function(a,b){if(G._ripTarget40!=null&&b!==G.L.chair&&G.L.mobs.some(m=>m.vt==='ripper'&&m.pos===a)){const t=G._ripTarget40;G._ripTarget40=null;const r=_p40(a,t);if(r)return r;}return _p40(a,b);};}
+
+// ===== POD v2: two-tile clamshell pod (taller than you), white cobot arms pop out of the sides, sparks, you shake inside =====
+window.POD2=true;
+SDF40.RAMP.white=['#2a3038','#6a7480','#a8b2bc','#d8dee4','#f2f5f8','#ffffff'];SDF40.RAMP.joint=['#141820','#2a303a','#4a5260','#6e7886','#a0aab8','#e0e8f0'];
+SDF40.RAMP.green=['#04200e','#0a5a26','#18a848','#3cf078','#b4ffcc','#ffffff'];SDF40.RAMP.glassb=['#061420','#0c2a40','#164a6a','#2a7aa0','#7ac8e8','#ffffff'];
+const POD_OX=6,POD_OY=22,POD_G=40; // pod sprite grid: tile (0,0) sits at (POD_OX,POD_OY) inside a 40x40 tile-pixel canvas
+function podSDF(shapes){const c=cvs(POD_G+2,POD_G+2),g=c.getContext('2d');g.translate(1,1);SDF40.render((x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},shapes,POD_G);g.setTransform(1,0,0,1,0,0);
+  const N=POD_G+2,d=g.getImageData(0,0,N,N).data,a=new Uint8Array(N*N);for(let i=0;i<a.length;i++)a[i]=d[i*4+3]>60?1:0;const o=g.createImageData(N,N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const p=x+y*N;if(a[p])continue;let n=0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X2=x+dx,Y2=y+dy;if(X2>=0&&Y2>=0&&X2<N&&Y2<N&&a[X2+Y2*N])n=1;}if(n){o.data[p*4]=6;o.data[p*4+1]=6;o.data[p*4+2]=10;o.data[p*4+3]=255;}}
+  const oc=cvs(N,N);oc.getContext('2d').putImageData(o,0,0);g.globalCompositeOperation='destination-over';g.drawImage(oc,0,0);return c;}
+function podShell(){if(SPR.pod2shell)return SPR.pod2shell;const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a:[a[0]+POD_OX,a[1]+POD_OY],b:[b[0]+POD_OX,b[1]+POD_OY],r0,r1:r1==null?r0:r1,m},o||{}),D=(c,r,m,o)=>Object.assign({t:'disc',c:[c[0]+POD_OX,c[1]+POD_OY],r,m},o||{});
+  return SPR.pod2shell=podSDF([C([-1,-17],[-1,13],2.2,2.2,'white'),C([17,-17],[17,13],2.2,2.2,'white'),C([-2,-19],[18,-19],3.2,3.2,'white'),C([0,-18.6],[16,-18.6],.6,.6,'green',{glow:1}),D([8,-19],1.8,'red',{glow:1}),
+    C([-3,15],[19,15],3.0,3.0,'white'),C([-1,14],[17,14],.6,.6,'green',{glow:1}),D([-1,-4],2.2,'joint'),D([17,-4],2.2,'joint')]);}
+function podArmSpr(side,t,work){const ext=work?Math.min(1,t/320):0;if(!ext)return null;const sw=Math.sin(t/110+side)*1.4,dip=Math.max(0,Math.sin(t/150+side*1.7))*1.6;
+  const sx=side<0?-1:17,ox=sx+side*(-3)*ext,C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a:[a[0]+POD_OX,a[1]+POD_OY],b:[b[0]+POD_OX,b[1]+POD_OY],r0,r1:r1==null?r0:r1,m},o||{}),D=(c,r,m,o)=>Object.assign({t:'disc',c:[c[0]+POD_OX,c[1]+POD_OY],r,m},o||{});
+  const sh=[sx,-4],el=[sx-side*4.5*ext,-11+sw*.4],tip=[8-side*(2.2-sw*.5),-6+dip*ext];
+  return podSDF([C(sh,el,1.7,1.5,'white'),D(el,1.9,'white'),D(el,1,'joint'),C(el,tip,1.5,1.3,'white'),D(tip,1.4,'green',{glow:1}),D(tip,.8,'joint'),C(tip,[tip[0],tip[1]+2.4],.8,.7,'joint'),D([tip[0],tip[1]+2.2],.9,'red',{glow:1})]);}
+{const _hl4=heroLook;heroLook=function(){const L=_hl4.apply(this,arguments);if(G._podIn40)L._hide=1;return L;};}
+{const _ls4=lookSprite;const blank=cvs(22,22);lookSprite=function(L,f){if(L&&L._hide)return blank;return _ls4.apply(this,arguments);};}
+const SPARK=[];
+{const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L)return;const L=G.L;if(L.chair==null||!L.seen[L.chair])return;
+  const g=RD.g,S=RD.S,TS=16*S;g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;const ox=RD.ox+X(L.chair)*TS,oy=RD.oy+Y(L.chair)*TS;
+  const vis=L.vis[L.chair];g.globalAlpha=vis?1:.45;const work=G._podT&&now-G._podT<1600,t=work?now-G._podT:0;
+  const P=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(ox+x*S),Math.round(oy+y*S),Math.ceil(w*S),Math.ceil(h*S));};
+  // whoever is inside, shaking while the arms work
+  if(G._podIn40){const jx=work&&Math.random()<.5?(Math.random()<.5?-1:1)*S*.6:0,jy=work&&Math.random()<.3?-S*.5:0;const Lk=Object.assign({},heroLook(),{_hide:0,_sit:0,_gh:0});
+    g.drawImage(lookSprite(Lk,0),ox-3*S+jx,oy-3*S-2*S+jy,22*S,22*S);}
+  // glass, then shell
+  {const cx=ox+8*S,top=oy-17*S,bot=oy+13*S,r=9.2*S;g.save();g.beginPath();g.moveTo(cx-r,top+r);g.arc(cx,top+r,r,Math.PI,0);g.lineTo(cx+r,bot-r);g.arc(cx,bot-r,r,0,Math.PI);g.closePath();
+    g.globalAlpha=(vis?1:.45)*.2;g.fillStyle=work?'#ff8a8a':'#7ad8ff';g.fill();g.clip();g.globalAlpha=vis?1:.45;
+    const pl=.35+.35*Math.sin(now/900);g.fillStyle=work?`rgba(255,80,90,${pl+.2})`:`rgba(70,230,255,${pl})`;g.fillRect(cx-r,top+r*.6,1.4*S,bot-top-r*1.2);g.fillRect(cx+r-1.4*S,top+r*.6,1.4*S,bot-top-r*1.2);
+    g.fillStyle='rgba(255,255,255,.35)';g.fillRect(cx-r+3*S,top+3*S,1*S,(bot-top)*.55);g.fillRect(cx-r+5*S,top+2*S,1*S,6*S);g.restore();}
+  const sh=podShell();g.drawImage(sh,ox-(POD_OX+1)*S,oy-(POD_OY+1)*S,sh.width*S,sh.height*S);
+  // arms pop out of the sides and go to work
+  for(const side of [-1,1]){const a=podArmSpr(side,t,work);if(a)g.drawImage(a,ox-(POD_OX+1)*S,oy-(POD_OY+1)*S,a.width*S,a.height*S);}
+  if(work&&t>300){if(Math.random()<.7)for(let k=0;k<2;k++)SPARK.push({x:8+(Math.random()-.5)*5,y:-5+Math.random()*2,vx:(Math.random()-.5)*.9,vy:-.6-Math.random()*.6,l:1,c:Math.random()<.12?'#c0141e':Math.random()<.5?'#ffd26a':'#ffffff'});}
+  for(let i=SPARK.length-1;i>=0;i--){const p=SPARK[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.l-=.05;if(p.l<=0){SPARK.splice(i,1);continue;}P(p.x,p.y,.8,.8,p.c);}
+  g.globalAlpha=1;}catch(e){}};}
+// walk-in: mark you as inside the pod for the arm sequence
+{const _sb=blackout;blackout=function(lines,cb){return _sb.call(this,lines,function(){G._podIn40=0;if(cb)return cb.apply(this,arguments);});};}
+{const _lg2=log;log=function(m){if(typeof m==='string'&&m.indexOf('You step into the surgical pod')===0)G._podIn40=1;return _lg2.apply(this,arguments);};}
+
+// ===== POD v3 (concept A): upright glass pill, white rim, four slim arms (two per side), slow pulsing side rims =====
+podShell=function(){if(SPR.pod3shell)return SPR.pod3shell;const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a:[a[0]+POD_OX,a[1]+POD_OY],b:[b[0]+POD_OX,b[1]+POD_OY],r0,r1:r1==null?r0:r1,m},o||{}),D=(c,r,m,o)=>Object.assign({t:'disc',c:[c[0]+POD_OX,c[1]+POD_OY],r,m},o||{});
+  const rim=podSDF([C([8,-8],[8,4],10.4,10.4,'white')]);const cut=cvs(rim.width,rim.height),cg=cut.getContext('2d');cg.translate(1,1);
+  SDF40.render((x,y,w,h,col)=>{cg.fillStyle='#000';cg.fillRect(x,y,w,h);},[C([8,-8],[8,4],9.2,9.2,'white')],POD_G);
+  const rg=rim.getContext('2d');rg.globalCompositeOperation='destination-out';rg.drawImage(cut,0,0);rg.globalCompositeOperation='source-over';
+  const extra=podSDF([C([1,16],[15,16],2.6,2.6,'white'),C([3,15.6],[13,15.6],.5,.5,'green',{glow:1}),C([4,14],[12,14],1.1,1.1,'joint'),D([8,-19.2],1.0,'red',{glow:1}),
+    D([-1.6,-7],1.2,'joint'),D([-1.6,3],1.2,'joint'),D([17.6,-7],1.2,'joint'),D([17.6,3],1.2,'joint')]);
+  rg.drawImage(extra,0,0);return SPR.pod3shell=rim;};
+podArmSpr=function(side,t,work){const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',a:[a[0]+POD_OX,a[1]+POD_OY],b:[b[0]+POD_OX,b[1]+POD_OY],r0,r1:r1==null?r0:r1,m},o||{}),D=(c,r,m,o)=>Object.assign({t:'disc',c:[c[0]+POD_OX,c[1]+POD_OY],r,m},o||{});
+  const ext=work?Math.min(1,t/360):0;const sh=[];
+  for(const [j,ty0] of [[-7,-3],[3,4]]){const sx=side<0?-1.6:17.6,w1=Math.sin(t/120+j+side)*1.1,w2=Math.max(0,Math.sin(t/170+j*.7+side*2))*1.3;
+    const el=[sx-side*(1.2+3.2*ext),j-2.4*ext+w1*.3*ext],tip=ext?[8-side*(1.6-w1*.4),ty0+w2*ext]:[sx-side*1.8,j+2.6];
+    sh.push(C([sx,j],el,.85,.75,'white'),D(el,.95,'joint'),C(el,tip,.75,.6,'white'),D(tip,.8,'green',{glow:1}),D([tip[0],tip[1]+.9],.5,'red',{glow:1}));}
+  const key='pa3_'+side;if(!work){if(SPR[key])return SPR[key];return SPR[key]=podSDF(sh);}return podSDF(sh);};
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
