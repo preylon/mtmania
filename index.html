@@ -2067,7 +2067,7 @@ function rdFrame(now){
     g.fillStyle='#05060c';g.fillRect(sx-tw/2,sy-TS*.28,tw,TS*.56);g.globalAlpha=fl;g.strokeStyle=sg.c;g.lineWidth=Math.max(1,S*.6);if(st==='round'){g.beginPath();g.roundRect(sx-tw/2,sy-TS*.28,tw,TS*.56,TS*.28);g.stroke();}else g.strokeRect(sx-tw/2,sy-TS*.28,tw,TS*.56);g.shadowColor=sg.c;g.shadowBlur=TS*.4;g.fillStyle=sg.c;g.fillText(sg.t,sx,sy+1);g.shadowBlur=0;g.globalAlpha=1;}
   drawBarHolos(g,ox,oy,TS,S,now);
   RD.corpses=RD.corpses.filter(c=>{
-    const a=now-c.t0,d=MOBS[c.m.k],px=ox+(X(c.p)+.5)*TS,py=oy+(Y(c.p)+1)*TS,sc=d.boss?1.7:d.big?1.3:1,sw=SZ*S*sc,sp=mobSprite(c.m,0),vis=L.vis[c.p];
+    const a=now-c.t0,d=MOBS[c.m.k],px=ox+(X(c.p)+.5)*TS,py=oy+(Y(c.p)+1)*TS,sc=d===MOBS.sky?1.12:d.boss?1.7:d.big?1.3:1,sw=SZ*S*sc,sp=mobSprite(c.m,0),vis=L.vis[c.p];
     if(c.heavy)return heavyFin(c,a,d,px,py,sw,sp,g,ox,oy,TS,S,now);
     const draw=(rot,al,wh,dx,dy)=>{if(!vis)return;g.save();g.globalAlpha=al;g.translate(px+(dx||0),py+(dy||0));if(c.f<0)g.scale(-1,1);if(rot)g.rotate(rot);g.drawImage(wh?whiteOf(sp._k):sp,-sw/2,-sw*(PAD+15)/SZ,sw,sw);g.restore();g.globalAlpha=1;};
     if(c.ty==='boss'){if(a>2300)return false;const p=a/2300;if(a>c.nb){c.nb+=170;RD.fx.push({t:'boom',p:c.p+pick([0,-1,1,-W,W,-W-1,W+1]),c:pick(['#ffb03c','#ffffff','#ff5a2a',d.p?d.p[2]:'#ff3fa4']),r:1+Math.random()*1.4,t0:now});RD.shake=Math.min(8,RD.shake+3);for(let n=0;n<6;n++)RD.parts.push({x:X(c.p)+.5,y:Y(c.p)+.3,vx:(Math.random()-.5)*10,vy:-Math.random()*8,t:now,c:n%2?'#ffe14a':'#ffffff'});}
@@ -2130,7 +2130,7 @@ function rdFrame(now){
     if(Math.abs(tx-rp.x)>.05)rp.f=tx>rp.x?1:-1;rp.x+=(tx-rp.x)*k;rp.y+=(ty-rp.y)*k;
     let lx=0,ly=0,tilt=0;const lg=RD.lunge[m.id];if(lg){const p=(now-lg.t)/160;if(p>=1)delete RD.lunge[m.id];else{const q=Math.sin(p*Math.PI)*.4;lx=lg.dx*q;ly=lg.dy*q;if(lg.dx)rp.f=lg.dx>0?1:-1;if(d.a==='hum')tilt=Math.sin(p*Math.PI)*.45;}}
     {const kk=RD.kick[m.id];if(kk){const p=(now-kk.t)/150;if(p>=1)delete RD.kick[m.id];else{lx-=kk.dx*.22*(1-p);ly-=kk.dy*.22*(1-p);tilt=-.18*(1-p);}}const pv=RD.pv[m.id];ents.push({x:rp.x+.5,y:rp.y+.5,vx:pv?(rp.x-pv.x)/dt:0,vy:pv?(rp.y-pv.y)/dt:0});RD.pv[m.id]={x:rp.x,y:rp.y};}
-    const sc=d.boss?1.7:d.big?1.3:1,sw=SZ*S*sc,fl0=RD.flash[m.id]&&now-RD.flash[m.id]<130,px=ox+(rp.x+lx)*TS+TS/2+(fl0?Math.sin(now/12)*1.6*S:0),py=oy+(rp.y+ly)*TS+TS;
+    const sc=d===MOBS.sky?1.12:d.boss?1.7:d.big?1.3:1,sw=SZ*S*sc,fl0=RD.flash[m.id]&&now-RD.flash[m.id]<130,px=ox+(rp.x+lx)*TS+TS/2+(fl0?Math.sin(now/12)*1.6*S:0),py=oy+(rp.y+ly)*TS+TS;
     const still=m.st==='sleep'||m.b.stun>0||m.b.frozen>0,key=mobSprite(m,still?0:fr);
     g.fillStyle='rgba(0,0,0,.4)';g.fillRect(px-5*S*sc,py-3*S,10*S*sc,2*S);
     const fl=RD.flash[m.id]&&now-RD.flash[m.id]<110,ghost=(!L.vis[m.pos])||(d.cloak&&!m.rev)||d.ghost;
@@ -3698,7 +3698,7 @@ function fpFrame(now){
   const L=G.L,h=G.hero,g=RD.g;if(!L||!h)return;
   if(RD.lvl!==L){RD.lvl=L;RD.dirty=true;FP.init=false;FP.dead=[];}
   if(RD.dirty){rdMap();RD.dirty=false;}
-  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;try{const L_=G.L;FP.fsub=new Int32Array(N).fill(-1);for(let q=0;q<N;q++){if(!fpDecorTile(L_,q))continue;for(const d of [1,-1,W,-W])if(L_.map[q+d]===T.FLOOR){FP.fsub[q]=q+d;break;}}}catch(e){FP.fsub=null;}}
+  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;try{const L_=G.L;FP.fsub=new Int32Array(N).fill(-1);for(let q=0;q<N;q++){if(!fpDecorTile(L_,q)&&L_.map[q]!==T.RAIL&&!(window.POD2&&q===L_.chair))continue;for(const d of [1,-1,W,-W])if(L_.map[q+d]===T.FLOOR){FP.fsub[q]=q+d;break;}}}catch(e){FP.fsub=null;}}
   // drain the top-down effect queue so nothing replays when you switch back
   for(const f of FX.splice(0)){if(f.t==='die'){const adj=dist(f.p,h.pos)<=1;FP.dead.push({x:X(f.p)+.5,y:Y(f.p)+.5,i:f.p,m:Object.assign({id:f.id,b:{}},f.m||{k:f.k}),t:now});if(FP.dead.length>40)FP.dead.shift();if(adj){FP.slash=now;RD.shake=7;FP.fxl.push({k:'blood',i:f.p,w:0,t:now,big:1});}}
     else if(f.t==='hit'){if(f.id!=null)FP.hit[f.id]=now;FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now});}
@@ -3745,7 +3745,7 @@ function fpFrame(now){
     FP.sd[x]=1e9;
     for(let n=0;n<64;n++){if(sdx<sdy){sdx+=ddx;mx+=stx;side=0;}else{sdy+=ddy;my+=sty;side=1;}if(mx<0||my<0||mx>=W||my>=H)break;const i=my*W+mx;
       if(fpSolid(L,i)||fpIsElev(L,i)||L.map[i]===T.SKY){hit=i;break;}
-      if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh,pout:Math.min(sdx,sdy),rx,ry};}}}
+      if(!slab){const lh=fpLow(L,i);if(lh>=1){hit=i;break;}if(lh>0){const pd=side===0?(sdx-ddx):(sdy-ddy);let wx=side===0?FP.y+pd*ry:FP.x+pd*rx;wx-=Math.floor(wx);slab={i,pd,side,u:(wx*16)|0,h:lh,pout:Math.min(sdx,sdy),rx,ry,rail:L.map[i]===T.RAIL};}}}
     if(slab){slabs.push([x,slab]);FP.sd[x]=slab.pd;}
     if(hit<0){FP.z[x]=1e9;continue;}
     const pd=side===0?(sdx-ddx):(sdy-ddy),lh=Math.round(U/pd);FP.z[x]=pd;
@@ -3753,24 +3753,26 @@ function fpFrame(now){
     const t=L.map[hit];let tex=null,src=hit;
     let etex=null,wv=0;if(fpIsElev(L,hit))etex=fpElevData(L.map[hit]===T.EXITL?'lock':hit===L.entry&&G.depth>0?'down':'up');
     const pr=L.props&&L.props[hit],wart=pr&&pr.k==='scr'&&side===1&&ry<0?fpPropSprite(pr,hit,now):null,wd=wart?(wart._d||(wart._d=wart.getContext('2d').getImageData(0,0,16,16).data)):null;
-    if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.WINDOW||t===T.SKY)wv=t===T.WINDOW?1:2;
+    if(etex){}else if(t===T.DOOR||t===T.LOCKED)tex=fpDoorTex(t===T.LOCKED);else if(t===T.SKY||(t===T.WINDOW&&!(out&&OUT&&OUT[side===0?hit-stx:hit-sty*W])))wv=t===T.WINDOW?1:2;
     else if(!(!wallish(L,hit+W)&&hit+W<N))src=faces[(hit*2654435761>>>8)%faces.length];
     const s=wv?(wv===2?1:.95):shadeOf(hit,pd)*(side?0.8:1),y0=wv===2?0:Math.max(0,horizon-(lh>>1)),y1=Math.min(RH-1,horizon+(lh>>1)),hx0=(src%W)*16,hy0=((src/W)|0)*16,pl=pulse(hit);
     for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-(horizon-lh/2))/lh)*16)|0)),o=(y*RW+x)*4;let r,gg,b;
       if(etex){const ev=Math.min(23,(tv*1.5)|0),eo=FP.elevOpen&&FP.elevOpen.i===hit?FP.elevOpen.amt:0;let su=tu;if(eo>0&&ev>=4&&tu>=1&&tu<=12){const gap=eo*6;if(tu>=7-gap&&tu<7+gap){const back=ev<8?.55:ev>21?.35:.8;r=230*back;gg=205*back;b=150*back;if(tu===(7-gap|0)||tu===((7+gap-1)|0)){r*=.6;gg*=.6;b*=.6;}su=-1;}else su=tu<7?Math.min(12,tu+gap|0):Math.max(1,tu-gap|0);}if(su>=0){const q=(ev*16+su)*4;r=etex[q];gg=etex[q+1];b=etex[q+2];}}else if(wv){const c_=skyPix(x,y,wv,tu,tv,horizon,rx,ry,RH);r=c_[0];gg=c_[1];b=c_[2];}else if(tex){const q=(tv*16+tu)*4;r=tex[q];gg=tex[q+1];b=tex[q+2];}else{const m=((hy0+tv)*MW+hx0+tu)*4;r=M[m];gg=M[m+1];b=M[m+2];const mx_=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx_>150&&mx_-mn>70){r*=pl;gg*=pl;b*=pl;}}
       if(wd){let sv=tv,su=tu;if(pr.k==='cam'){if(tu<3||tu>12||tv>9)sv=99;else{su=5+((tu-3)*.62|0);sv=10+(tv*.62|0);}}if(sv<16){const q=(sv*16+su)*4;if(wd[q+3]>8){r=wd[q];gg=wd[q+1];b=wd[q+2];}}}
       D[o]=r*s;D[o+1]=gg*s;D[o+2]=b*s;D[o+3]=255;}
+    if(out&&OUT&&!wv&&!etex){const pv=side===0?hit-stx:hit-sty*W;if(pv>=0&&pv<N&&OUT[pv])try{fpTallCol(D,RW,x,y0,horizon,lh,hit,tu,s,now,L);}catch(e){}}
   }
   for(const [x,sl] of slabs){if(sl.pd>=FP.z[x])continue;const lh=U/sl.pd,bot=horizon+lh/2,top=bot-lh*sl.h,y0=Math.max(0,Math.round(top)),y1=Math.min(RH-1,Math.round(bot));
-    {const farTop=horizon+(U/Math.min(sl.pout,FP.z[x]))*(.5-sl.h),ty0=Math.max(0,Math.round(farTop));FP.st[x]=Math.min(top,farTop);const hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
+    if(!sl.rail){const farTop=horizon+(U/Math.min(sl.pout,FP.z[x]))*(.5-sl.h),ty0=Math.max(0,Math.round(farTop));FP.st[x]=Math.min(top,farTop);const hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
      for(let y=ty0;y<y0&&y<RH;y++){const dd=U*(.5-sl.h)/Math.max(.5,(y-horizon)),wx=FP.x+sl.rx*dd,wy=FP.y+sl.ry*dd,tu=Math.min(15,Math.max(0,((wx-Math.floor(wx))*16)|0)),tvv=Math.min(5,Math.max(0,((wy-Math.floor(wy))*6)|0)),m=((hy0+tvv)*MW+hx0+tu)*4,o=(y*RW+x)*4,s2=shadeOf(sl.i,dd)*1.1;D[o]=Math.min(255,M[m]*s2);D[o+1]=Math.min(255,M[m+1]*s2);D[o+2]=Math.min(255,M[m+2]*s2);D[o+3]=255;}}
     const s=shadeOf(sl.i,sl.pd)*(sl.side?.8:1),hx0=(sl.i%W)*16,hy0=((sl.i/W)|0)*16;
-    for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-top)/(bot-top))*12+2)|0)),m=((hy0+tv)*MW+hx0+Math.min(15,sl.u))*4,o=(y*RW+x)*4;const edge=y-y0<1?1.35:1;D[o]=Math.min(255,M[m]*s*edge);D[o+1]=Math.min(255,M[m+1]*s*edge);D[o+2]=Math.min(255,M[m+2]*s*edge);D[o+3]=255;}}
+    for(let y=y0;y<=y1;y++){const tv=Math.min(15,Math.max(0,(((y-top)/(bot-top))*12+2)|0)),m=((hy0+tv)*MW+hx0+Math.min(15,sl.u))*4,o=(y*RW+x)*4;if(sl.rail){if(y-y0<2){D[o]=205;D[o+1]=214;D[o+2]=228;}else if(y1-y<1){D[o]=60;D[o+1]=66;D[o+2]=80;}else{D[o]=D[o]*.6+24;D[o+1]=D[o+1]*.6+62;D[o+2]=D[o+2]*.6+84;if(sl.u%8===0){D[o]=120;D[o+1]=130;D[o+2]=146;}}D[o+3]=255;continue;}const edge=y-y0<1?1.35:1;D[o]=Math.min(255,M[m]*s*edge);D[o+1]=Math.min(255,M[m+1]*s*edge);D[o+2]=Math.min(255,M[m+2]*s*edge);D[o+3]=255;}}
   FP.buf.getContext('2d').putImageData(FP.img,0,0);
   // billboards
   const bg=FP.buf.getContext('2d');bg.imageSmoothingEnabled=false;const inv=1/(px*dy-dx*py),list=[];FP.hits=[];
   for(const m of L.mobs){if(m===h||!L.vis[m.pos])continue;if(m.vx==null){m.vx=X(m.pos)+.5;m.vy=Y(m.pos)+.5;}m.vx+=(X(m.pos)+.5-m.vx)*k;m.vy+=(Y(m.pos)+.5-m.vy)*k;list.push({ex:m.vx,ey:m.vy,kind:'mob',o:m,i:m.pos});}
   for(const e of L.items)if(e.pos>=0&&L.vis[e.pos]&&!mobAt(e.pos))list.push({ex:X(e.pos)+.5,ey:Y(e.pos)+.5,kind:'item',o:e,i:e.pos});
+  if(window.POD2&&L.chair!=null&&L.vis[L.chair]&&h.pos!==L.chair&&!fpDecorTile(L,L.chair))list.push({ex:X(L.chair)+.5,ey:Y(L.chair)+.5,kind:'decor',o:L.map[L.chair],i:L.chair});
   for(const d of FP.dead)if(L.seen[d.i])list.push({ex:d.x,ey:d.y,kind:'dead',o:d,i:d.i});
   if(L.holo)L.holo.forEach((i,n)=>{if(L.seen[i])list.push({ex:X(i)+.5,ey:Y(i)+.5,kind:'tube',o:n,i});});
   {const x0=Math.max(0,Math.floor(FP.x)-14),x1=Math.min(W-1,Math.floor(FP.x)+14),y0=Math.max(0,Math.floor(FP.y)-14),y1=Math.min(H-1,Math.floor(FP.y)+14);
@@ -3788,7 +3790,7 @@ function fpFrame(now){
     else if(b.kind==='item'){img=itemIcon(b.o.it);wW=unit*.38;hH=unit*.38;yb=floorY+Math.sin(now/350+b.i)*unit*.015;}
     else if(b.kind==='dead'){const d=b.o,a=Math.min(1,(now-d.t)/420),[sc]=fpScale(d.m);img=mobSprite(d.m,0);wW=unit*sc*1.05;hH=unit*sc*1.05*(1-.78*a);if(a<1)tint=a<.3?1:0;}
     else if(b.kind==='tube'){const look=MTMDancer.lookFor(barThemeOf(L,b.i),(b.i*13+(L.depth||0)*5)%64);img=fpTubeCanvas(look,now,b.o*3);wW=unit*.8;hH=unit*2;}
-    else if(b.kind==='decor'){img=fpDecorSprite(L,b.i);const hh=FP_DH[b.o]||.5;wW=unit*.95;hH=unit*hh;}
+    else if(b.kind==='decor'){if(window.POD2&&b.i===L.chair&&typeof fpPodCv==='function'){img=fpPodCv(now,L);wW=unit*.62;hH=unit*1.3;}else{img=fpDecorSprite(L,b.i);const hh=FP_DH[b.o]||.5;wW=unit*.95;hH=unit*hh;}}
     else if(b.kind==='prop'){img=fpPropSprite(b.o,b.i,now);const hh=FP_PH[b.o.k]||.55;wW=unit*.95;hH=unit*hh;if(b.o.k==='cam'){wW=unit*.55;hH=unit*.55;yb=floorY-unit*.52;}}
     else if(b.kind==='veh'){img=b.o.spr||vehSprite(b.o.key,b.o.fr);wW=unit*1.9;hH=unit*.95;}
     let sx0=0,sy0=0,iw=img.width,ih=img.height;if(b.kind==='decor'||b.kind==='prop'){const bb=fpCut(img);sx0=bb[0];sy0=bb[1];iw=bb[2];ih=bb[3];wW=Math.min(wW,unit*.95*iw/12+unit*.1);}
@@ -3977,6 +3979,8 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.41c','ELEVATORS are back in fixed spots: the way UP is always on the north edge near the middle, the way DOWN on the south edge, flush in the wall. SURGICAL POD in first person is a real capsule: white shell, glass with reflections, pulsing side rims (cyan idle, red while it works), four arms that reach in, you visible inside. Tapping a tile straight ahead walks straight. Cy-Step (was SilentStep Servos): quieter, springier legs, a bit harder to hit. JETT is rider-sized on a rebuilt hover sled; no more jumping, melee swings sometimes whiff on him, guns work. Allies shout when they are close to dying and can bleed after a heavy hit. WALK AWAY achievement only if every deserter you met walked. Balconies have a standing glass rail in first person. Gravity Hammer has a new sledge look.'],
+ ['v0.41b','FIRST PERSON STREET: the buildings around the street now rise full height — storefronts on the ground floor, then stories of lit windows, ledges, vertical neon signs and billboards; the MTX tower is dark glass with a red MTX sign that goes off the top of the screen. Tower windows seen from the street are glass, not a view of the city.'],
  ['v0.41','FIRST PERSON WEAPONS: Tech Pistol and Scatter Shotgun redrawn in the same blocky style as your arms, held straight out (pistol one-handed, shotgun two-handed); recoil kicks but stays in your hands. Mono-Katana and Machete redrawn at twice the detail and sit in your fist. All first-person weapons are bigger. TASER KNUCKLES (were Shock Gauntlets): a gunmetal knuckle duster you can see on both fists, live arcs between the electrodes, a burst on every punch. Brass Knuckles show on your fists too. NEW: BASEBALL BAT. FIXES: turning cameras off at a security console stops the beams; standing in a beam gets you caught; throwing knives go in your hand instead of a hidden slot and show a count; the message log has a close button up top; first-person ◀ ▶ step sideways and « » turn; fire/gas immune enemies say IMMUNE; computers in first person no longer have a flat copy on the floor.'],
  ['v0.40','RESCUES: tapping a civilian you saved now opens their rescue dialogue (thanks / run / join / owe you later) instead of a dead companion menu; joining is a choice and rarer (~12%). Companion orders now answer back and show over their head. FIRST PERSON: vaults are knee-high armored strongboxes on the floor (were wall-sized); windows and balcony edges show the window-view city (towers, lit windows, Super Mart / RAHMUN / Volt Cola signs, the eye billboard, flying cars) instead of a flat tile or black void; elevators are moved into a nook against a wall so they never block a hallway. SENTINEL EDGE redrawn for first person: long hooked blade, cyan edge glow, red-wrapped grip, with real fists and a swing arc for all melee weapons (no more see-through squares). Sleeping enemies show z z Z; robots and drones show UPDATING / RECHARGING. THERMAL EYES in first person: hostiles behind walls get a red Oracle box with distance, allies blue; on the map, allies seen through walls glow blue instead of red. Camera cones are a smooth sweeping wedge with a scan line. LINK SYNC: SMALL / MEDIUM / FULL size and a minimise button (– on the panel or HUD settings). THROWING: wrist flick + whoosh; throwing a melee weapon (crowbar, machete...) hits for real damage. DEV: THE CONSTRUCT — every item in the game laid out by category (HUD settings in dev mode). IMPLANTS only go in at a Ripperdoc\'s chair now (Jack Chips still slot yourself); every implant has its own icon, and unidentified ones show which body zone they go in. DOG TAGS lie next to a slumped dead guard; carry them into the Voss fight and each one turns a loyalist, all 8 changes what Voss says. BARTENDERS visibly pop up with the shotgun, hit hard enough to matter, only fire with a clear line, and only say it once a fight (the old weak, see-through-walls version is gone). CAMERAS sweep a real red beam in real time, and that beam is what catches you (the white light pool is gone). ZOOM goes out to the whole floor; FIT WHOLE FLOOR in HUD settings, or double-tap the minimap. FIRST PERSON LOOK 360: the stick turns you freely and stays where you leave it, and walking/tapping goes where you face. STORAGE: Stim Bandolier, Chip Case and Gear Rig (Fixer stocks the next one; floors 3, 8 and 13 drop one) with tabs in the backpack; what they hold doesn\'t use pack slots. ECONOMY: shops no longer sell Firmware Patches or Myo-Grafts; floors 26–29 now get their guaranteed 3 Patches + 2 Myo-Grafts. AMBUSH: hit an enemy the turn it follows you through a door for a sneak attack. APARTMENTS: residents who need food or meds are holed up in a quiet room with a bunk and rug. LAYOUT: bystanders and wrecks no longer park in doorways, dead-end doors get opened up or bricked, loose loot moves out of 1-wide halls into rooms. Tube dancers stay inside the glass; the skirt hem no longer flares past the legs. IMPLANTS: every implant redrawn in a new lit 3D-pixel style, with a big detailed close-up when you tap it; Second Heart is now TwinTicker, Ghoststep is now SilentStep Servos (legs). GUN HAND: rare and pricey at Ripperdocs only, takes a ranged slot, fires Box of Rounds, and your character throws the hand up to fire. BODY SCAN v2: ripperdoc surgical readout with an x-ray of you and your chrome, slot cards, CARDIO/NEURAL/STATS tabs. SURGERY: you walk to the chair, sit, the ripper comes over, then lights out. ZONES: new LEGS zone (STR 12+ synergy); Scan N\' Scav moved to the eyes, Adrenal Pump to the gut. Dead guards are drawn from the real guard model; bait crates removed; message log lines fade and the full log lives in Link Sync; elevators sit flush in the wall.'],
  ['v0.39','BODY SCAN: a skeleton view of your 3 implant ports and head jack (Link Sync ▸ STATS, and at ripperdocs). STATS BOOST CHROME by zone: STR 14+ arms, PER 13+ eyes, PER 12 + STR 11 spine, level 8+ gut, 60+ max HP chest, TECH 13+ head-jack chip — boosted chrome works one level higher. IDENTIFYING: everything except Redline still starts unknown; high TECH can read gear and implants on pickup; Gunners know guns, Enforcers know melee + armor, Tinkers know implants, Ghosts can tell which stims are drinkable; Rook appraises unknown gear (◈25 each), ripperdocs scan unmarked implants (◈30 each). REAL AMMO: Needler, Scatter and Minigun no longer recharge — they reload from Boxes of Rounds (floor loot, Rook sells them, Gunners start with 3). THROWN ITEMS set off traps where they land (the trap hits whoever is there, not you; alarms pull enemies to the noise). K9: pet it (heals it and you a bit) and give it a name. ACHIEVEMENTS: 11 new ones and a list in HUD settings. TUTORIAL: 9 quick cards on your first run (skippable), replay any time from HUD settings ▸ HOW TO PLAY. First person draws the arcade cabinet.'],
@@ -4073,7 +4077,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.41 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.41c · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4634,7 +4638,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
     refresh();};}
 // cameras watch
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.props&&!(G.camOff&&G.camOff[sectorOf(G.depth)])&&!invFind('s_mod')&&G.turn-(L.camT||-99)>30&&!(h.b.invis>0)){
-  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&camCone(c,h.pos)&&chance(h.cls==='ghost'?.35:.85)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
+  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&camCone(c,h.pos)&&chance(h.cls==='ghost'?.35:.85)){L.camT=G.turn;L.camC=c;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
 // tap support
 {const _tk=tapKind;tapKind=function(i){const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.seen[i])return 'use';return _tk.apply(this,arguments);};}
 // ---------- drawing
@@ -6766,7 +6770,7 @@ ITEMS.breaker.desc+=' Also turns your fists into rams.';
 {const _ha=heroAttack;heroAttack=function(m){const h=G.hero,hp0=m.hp,fly=MOBS[m.k]&&(MOBS[m.k].fly||MOBS[m.k].a==='drone');
   let _f=null;if(fly){_f=fx;fx=function(f){if(f&&f.t==='lunge'&&f.hero){f=Object.assign({},f,{to:f.to-W});}return _f.apply(this,arguments);};}
   try{_ha.apply(this,arguments);}finally{if(_f)fx=_f;}
-  try{if(fly){fx({t:'txt',p:h.pos,s:'JUMP',c:'#3af5f5'});FP.jump=performance.now();}
+  try{if(fly){}
     if(!h.eq.melee&&imp('mantis')<=0){if(FP&&FP.on){FP.kick=performance.now();FP.pn=(FP.pn|0)^1;}
       if(m.hp>0&&m.hp<hp0&&imp('knux')>0&&chance(.22+.06*imp('knux'))){m.b.stun=2;fx({t:'zap',p:m.pos});log('Your knuckles discharge. It locks up.','hi');}}}catch(e){}};}
 function fpFists(g,W2,H2,u,now){const lk=heroLook(),skin=lk.skin||'#c99a7a',slv=lk.outfit||'#2a2e38',chrome=imp('gorilla')>0||imp('breaker')>0,kn=imp('knux')>0,P=Math.max(2,Math.round(u*4)),bob=Math.sin(FP.bob)*3*u;
@@ -8408,6 +8412,166 @@ logHistory=function(){const H=(G&&G.hist)||[];let body='',cur=null;
 
 // IMMUNE feedback when gas/fire can't touch a target
 function immune41(m,what){if(!m||m.hp<=0)return;const t=G.turn||0;if((m._imT||-99)+5>t)return;m._imT=t;fx({t:'txt',p:m.pos,s:'IMMUNE',c:'#9aa7b4'});if(MOBS[m.k].boss&&!m._imLog){m._imLog=1;log(`${mobName(m)} shrugs off the ${what}. ${what==='gas'?'Machines do not breathe.':'It runs hotter than that.'}`,'warn');}}
+
+// ===================== v0.41b: full-height street buildings in first person =====================
+// Street walls that face the open street keep their storefront art on the ground story, then rise
+// several stories (the MTX tower goes off the top of the screen). Facades follow the style bible:
+// dark 3-tone concrete, ledges, lit windows (warm / cyan / pink), vertical neon signs, billboards.
+const TALL={pal:[[35,32,46],[30,38,48],[42,34,48],[28,34,40],[43,38,34],[24,28,40]],
+  win:[[255,210,138],[127,232,255],[255,122,216],[200,230,255],[255,170,90]],neon:[[255,59,170],[58,245,245],[255,210,58],[255,90,60],[120,255,140]],
+  glyph:{M:['10001','11011','10101','10001','10001','10001','10001'],T:['11111','00100','00100','00100','00100','00100','00100'],X:['10001','01010','00100','00100','00100','01010','10001'],
+   R:['11110','10001','11110','10100','10010','10001','10001'],A:['01110','10001','10001','11111','10001','10001','10001'],H:['10001','10001','11111','10001','10001','10001','10001'],U:['10001','10001','10001','10001','10001','10001','01110'],N:['10001','11001','10101','10011','10001','10001','10001'],
+   V:['10001','10001','10001','10001','01010','01010','00100'],O:['01110','10001','10001','10001','10001','10001','01110'],L:['10000','10000','10000','10000','10000','10000','11111'],C:['01110','10001','10000','10000','10000','10001','01110'],S:['01111','10000','10000','01110','00001','00001','11110'],P:['11110','10001','10001','11110','10000','10000','10000'],E:['11111','10000','10000','11110','10000','10000','11111'],B:['11110','10001','11110','10001','10001','10001','11110'],
+   K:['10001','10010','11100','10100','10010','10001','10001'],I:['11111','00100','00100','00100','00100','00100','11111'],G:['01110','10000','10000','10111','10001','10001','01110'],D:['11110','10001','10001','10001','10001','10001','11110']},
+  words:['RAHMUN','VOLT','SUPERMART','HELIX','NEON','KIBO','OPEN','HOTEL','BAR','CLINIC']};
+function tallH(n){n=(n^61)^(n>>>16);n=n+(n<<3);n=n^(n>>>4);n=Math.imul(n,0x27d4eb2d);return (n^(n>>>15))>>>0;}
+function tallInfo(L,hit){const x=hit%W,y=(hit/W)|0;
+  if(G.depth===0&&y<=14&&x>=13&&x<=27)return {tower:1,st:70,bid:999};
+  const side=(x<=2)?'w':(x>=W-2)?'e':(y>=H/2?'s':'n');const k=side==='s'||side==='n'?(x/5|0):(y/5|0);const bid=(side.charCodeAt(0)*31+k)|0;
+  return {tower:0,st:4+tallH(bid)%9,bid};}
+function tallPix(info,hit,tu,tv,st,now){ // returns [r,g,b,emissive]
+  const x=hit%W,y=(hit/W)|0,h=tallH(hit*131+st*977);
+  if(info.tower){
+    // MTX: dark glass curtain wall, cyan floor lines, red vertical MTX sign down the middle
+    const cxm=20,dxs=x-cxm;
+    if(Math.abs(dxs)<=1&&st>=3&&st<=14){const li=(st-3)/4|0,ch='MTX'[li];if(ch){const gx=((dxs+1)*16+tu)/48*9|0,gy=(((st-3)%4)*16+tv)/64*11|0,gl=TALL.glyph[ch],rowc=gl[gy-2]||'',on=gx>=2&&gx<7&&rowc[gx-2]==='1';
+      if(on){const f=.85+.15*Math.sin(now/180+st);return [255*f,59*f,78*f,1];}return [26,10,16,0];}}
+    if(tv===15)return [30,120,150,.6];
+    if(tu%4===0)return [26,36,58,0];
+    if(h%100<22&&tv>3&&tv<13){const c=TALL.win[h%2?1:3];return [c[0]*.85,c[1]*.85,c[2]*.85,1];}
+    const g=tv<4?6:0;return [14+g,20+g,36+g,0];}
+  const pal=TALL.pal[tallH(info.bid)%TALL.pal.length];
+  if(st>=info.st){ // parapet / roof edge
+    if(tv>=13)return [pal[0]*1.5,pal[1]*1.5,pal[2]*1.5,0];if(tv>=11)return [pal[0]*.6,pal[1]*.6,pal[2]*.6,0];return null;}
+  // vertical neon sign on some buildings
+  const sgn=tallH(info.bid*7)%3===0,signX=(info.bid%5+5)%5;
+  if(sgn&&((x+y)%5===signX)&&st>=1&&st<=Math.min(info.st-1,6)&&tu>=4&&tu<=11){const w=TALL.words[tallH(info.bid)%TALL.words.length],ci=st-1+(tv>=8?0:0),ch=w[(st-1)%w.length],gl=TALL.glyph[ch]||TALL.glyph.O,c=TALL.neon[tallH(info.bid*3)%TALL.neon.length];
+    if(tu===4||tu===11)return [40,40,52,0];const gx=tu-5,gy=((tv-2)/1.7)|0,on=gy>=0&&gy<7&&gx>=0&&gx<5&&gl[gy][gx]==='1';const fl=(tallH(info.bid+((now/700)|0))%23===0)?.35:1;
+    return on?[c[0]*fl,c[1]*fl,c[2]*fl,1]:[18,14,24,0];}
+  // billboard band on some buildings
+  if(tallH(info.bid*11)%4===1&&st===2+tallH(info.bid)%2&&tv>=2&&tv<=13){const c=TALL.neon[tallH(info.bid*5)%TALL.neon.length],edge=tv===2||tv===13;if(edge)return [c[0]*.6,c[1]*.6,c[2]*.6,1];
+    const stripe=((x*16+tu)>>2)%5;return stripe<2?[c[0],c[1],c[2],1]:stripe===2?[240,240,250,1]:[20,18,30,0];}
+  // ledges
+  if(tv>=14)return [pal[0]*.55,pal[1]*.55,pal[2]*.55,0];if(tv===13)return [pal[0]*1.45,pal[1]*1.45,pal[2]*1.45,0];
+  // windows: two per tile per story
+  const wl=tu>=2&&tu<=6,wr=tu>=9&&tu<=13;
+  if((wl||wr)&&tv>=4&&tv<=10){const wh=tallH(hit*17+st*29+(wr?7:0));if(tv===4||tu===2||tu===9)return [10,12,18,0];
+    if(wh%100<42){const c=TALL.win[wh%TALL.win.length],bl=(wh%7===0&&tv%2===0)?.55:1;return [c[0]*bl,c[1]*bl,c[2]*bl,1];}return [16,18,28,0];}
+  // concrete with a light left strip and speckle
+  const sp=(tallH(hit*3+tu*7+tv*13+st)%17===0)?.82:1;const lit=tu<2?1.18:tu>13?.78:1;return [pal[0]*lit*sp,pal[1]*lit*sp,pal[2]*lit*sp,0];}
+function fpTallCol(D,RW,x,y0,horizon,lh,hit,tu,s,now,L){
+  if(y0<=0||lh<2)return;const info=tallInfo(L,hit),base=horizon+lh/2,yTop=Math.max(0,Math.round(base-lh*(info.st+1)));
+  for(let y=yTop;y<y0;y++){const hg=(base-y)/lh,st=Math.floor(hg);if(st<1)continue;const tv=Math.min(15,Math.max(0,((1-(hg-st))*16)|0));
+    const p=tallPix(info,hit,tu,tv,st,now);if(!p)continue;const o=(y*RW+x)*4,em=p[3],k=em?Math.max(s,.8):s*(.95-Math.min(.25,st*.012)),hz=Math.min(.35,st*.018);
+    D[o]=p[0]*k*(1-hz)+28*hz;D[o+1]=p[1]*k*(1-hz)+16*hz;D[o+2]=p[2]*k*(1-hz)+48*hz;D[o+3]=255;}}
+
+// ===================== v0.41c: design + aesthetic pass (test build) =====================
+// ---- 1. Voss PA speech bubble: PINNED by user (wants companion-style splash text instead) — not in this build
+
+// ---- 2. tap straight ahead = walk straight (ties go to the step closest to the target) ----
+heroStep=(function(_hs){return function(target){const r=_hs.apply(this,arguments);try{if(r<0)return r;const h=G.hero,L=G.L;
+  // distance field from the target using the same walkable rule as the step the game picked
+  const ok=i=>i===target||i===h.pos||(L.seen[i]&&pass(i)&&!(L.traps[i]&&!L.traps[i].hid)&&!(L.items.some(e=>e.pos===i&&e.price)));
+  const d=new Int16Array(N).fill(-1),q=new Int32Array(N);let qh=0,qt=0;d[target]=0;q[qt++]=target;
+  while(qh<qt){const c=q[qh++];if(c===h.pos)break;for(const dd of DIRS){const n=c+dd;if(n<0||n>=N||d[n]>=0||Math.abs(X(n)-X(c))>1)continue;if(ok(n)){d[n]=d[c]+1;q[qt++]=n;}}}
+  if(d[h.pos]<0||d[r]!==d[h.pos]-1)return r;
+  const tx=X(target),ty=Y(target),ex=i=>(X(i)-tx)**2+(Y(i)-ty)**2;let best=r,be=ex(r);
+  for(const dd of DIRS){const n=h.pos+dd;if(n<0||n>=N||Math.abs(X(n)-X(h.pos))>1||d[n]!==d[h.pos]-1)continue;const m=mobAt(n);if(m&&!MOBS[m.k].ally&&!MOBS[m.k].npc)continue;const e=ex(n);if(e<be-1e-9){be=e;best=n;}}
+  return best;}catch(e){return r;}};})(heroStep);
+
+// ---- 3. Cy-Step (was SilentStep Servos): quieter, springier, a little harder to hit ----
+Object.assign(ITEMS.ghoststep,{name:'Cy-Step',desc:'Cybernetic leg rebuild — gel-damped servos, noise-cancelling actuators and spring-loaded calves. Your steps barely register, you jump higher than you should, and you slip out of the way a half-step faster: enemies notice you later and land fewer hits.'});
+{const _he41=heroEva;heroEva=function(){const e=_he41.apply(this,arguments),l=imp('ghoststep');return l>0?e*(1.08+.03*Math.min(4,l)):e;};}
+
+// ---- 4. Jett: rider-sized, rebuilt drone, no "jump" — melee struggles, guns work ----
+Object.assign(MOBS.sky,{desc:'Courier-turned-raider on a cargo drone he gutted and rewired to ride. Fast, loud, always just out of reach — hard to tag up close, much easier to shoot down.'});
+{const _fs41=fpScale;fpScale=function(m){if(m&&m.k==='sky')return [1.02,.18];return _fs41.apply(this,arguments);};}
+{const _ms41=mobSprite;mobSprite=function(m,f){if(!m||m.k!=='sky')return _ms41.apply(this,arguments);return sprite('m_sky41_'+(f|0),R=>{const b=(f|0)%2,R2=(x,y,w,h,c)=>R(x,y-4,w,h,c);try{drawHum(R2,Object.assign({},MOBS.sky.look),f|0);}catch(e){}
+  // sled body: gunmetal hull, orange racing stripe, cyan underglow; rotor pods spin (frame swaps the blur)
+  R(2,12,12,3,'#2c313b');R(2,12,12,1,'#7c8594');R(3,14,10,1,'#1b1e25');R(4,13,8,1,'#ff6a2a');R(6,13,1,1,'#ffe14a');
+  R(0,12,3,2,'#3c424e');R(13,12,3,2,'#3c424e');R(0,11,3,1,b?'#cfd6e0':'#6a7384');R(13,11,3,1,b?'#6a7384':'#cfd6e0');R(-1,11,1,1,b?'#cfd6e0':'rgba(0,0,0,0)');R(16,11,1,1,b?'rgba(0,0,0,0)':'#cfd6e0');
+  R(4,15,2,1,'#3fe8ff');R(10,15,2,1,'#3fe8ff');R(5,16,1,1,'#7ff8ff');R(10,16,1,1,'#7ff8ff');});};}
+{const _hat41=heroAttack;heroAttack=function(m){try{if(m&&MOBS[m.k]&&MOBS[m.k].fly&&chance(.2)){fx({t:'txt',p:m.pos,s:'too high',c:'#9aa7ad'});sfx('whoosh');spend(1);return true;}}catch(e){}return _hat41.apply(this,arguments);};}
+
+// ---- 5. allies: red warning lines when close to dying; bad hits can make them bleed ----
+const ALLY_LOW=['Not doing too hot…','I\u2019m hit bad..','Patch me up!','Can\u2019t take much more!','I\u2019m bleeding out here!','Need a medic!'];
+{const _dm41=dmgMob;dmgMob=function(m,n,quiet){const d=MOBS[m.k],hp0=m.hp;const r=_dm41.apply(this,arguments);try{if(d&&d.ally&&!d.npc&&!m.cower&&m.hp>0&&hp0>m.hp){const mh=m.mhp||d.hp||30,lost=hp0-m.hp;
+  if(!d.robot&&lost>=mh*.2&&chance(.35)&&!(m.b.bleed>0)){m.b.bleed=4;fx({t:'txt',p:m.pos,s:'BLEEDING',c:'#ff3b4e',dur:1400});log(`${mobName(m)} is bleeding.`,'warn');}
+  if(m.hp<=mh*.3&&G.turn-(m._lowT||-99)>8){m._lowT=G.turn;const s=d.robot?pick(['!! CRITICAL','HULL 20%','*sparking*']):pick(ALLY_LOW);fx({t:'txt',p:m.pos,s,c:'#ff3b4e',dur:2400});
+    try{if(FP&&FP.on&&FP.fxl)FP.fxl.push({k:'num',i:m.pos,s,c:'#ff3b4e',t:performance.now(),dur:2400});}catch(e){}}}}catch(e){}return r;};}
+
+// ---- 6. WALK AWAY: only when every deserter you met walked ----
+ACH.mercy=['WALK AWAY','Let every deserter you found walk away — and hurt none of them.'];
+{const _a41=ach39;ach39=function(k){if(k==='mercy'){G.desFree=(G.desFree|0)+1;if(!G.desHurt&&G.desFree>=(G.desMet|0)&&G.depth>=26)return _a41.call(this,k);return;}return _a41.apply(this,arguments);};}
+{const _dt41=deserterTalk;deserterTalk=function(m){if(m&&!m._met){m._met=1;G.desMet=(G.desMet|0)+1;}return _dt41.apply(this,arguments);};}
+{const _dm41b=dmgMob;dmgMob=function(m,n,q){if(m&&m.k==='desert'&&n>0)G.desHurt=1;return _dm41b.apply(this,arguments);};}
+{const _vi41=vossIntro;vossIntro=function(){try{if((G.desMet|0)>0&&!G.desHurt&&(G.desFree|0)>=(G.desMet|0))achieve('mercy');}catch(e){}return _vi41.apply(this,arguments);};}
+
+// ---- 7. balcony edge: a standing glass rail in first person (was flat lines on the floor) ----
+{const _fl41=fpLow;fpLow=function(L,i){if(L.map[i]===T.RAIL)return .52;return _fl41.apply(this,arguments);};}
+
+// ---- 8. Gravity Hammer → sledge silhouette with a glowing grav core (test look) ----
+FPM_DRAW.hammer=function(px){const G1='#1c1f26',G2='#2c313b';
+  fpmDiag(px,5,40,0,36,t=>{
+   if(t<=1)return [0,['#3a3f4a','#5a6070','#3a3f4a']];
+   if(t<=8){const w=(t%3===0);return [0,[G1,w?'#4a5060':G2,G1]];}
+   if(t<=25)return [0,['#2a2e37','#5a6272','#3a3f48']];
+   const head={26:[-4,11],27:[-5,13],28:[-5,13],29:[-5,13],30:[-5,13],31:[-5,13],32:[-4,11]}[t];
+   if(head){const [j0,w]=head,c=[];for(let j=0;j<w;j++){const e=j===0||j===w-1;const mid=Math.abs(j-(w-1)/2)<1.6;c.push(e?'#1b1e25':(t===26||t===32)?'#5a6272':mid?(t%2?'#3af5f5':'#7ff8ff'):(j<w/2?'#8a94a6':'#5a6272'));}return [j0,c];}
+   if(t<=34)return [0,['#2a2e37','#5a6272','#3a3f48']];return null;});};
+ICON2.hammer=function(R){R(2,13,1,2,'#1c1f26');for(let i=0;i<7;i++)R(3+i,12-i,1,1,'#5a6272');R(9,1,5,7,'#5a6272');R(9,1,5,1,'#8a94a6');R(9,7,5,1,'#1b1e25');R(10,3,3,3,'#3af5f5');R(11,4,1,1,'#e8ffff');};
+
+// ===================== v0.41c: elevators back at fixed spots — UP on the north edge, DOWN on the south edge =====================
+function elevEdge41(L,north){const xs=[];for(let x=1;x<W-1;x++)xs.push(x);xs.sort((a,b)=>Math.abs(a-20)-Math.abs(b-20));
+  const rows=[];for(let y=1;y<H-1;y++)rows.push(y);if(!north)rows.reverse();
+  for(const y of rows){const ey=north?y-1:y+1;if(ey<0||ey>=H)continue;for(const x of xs){if(Math.abs(x-20)>9)break;const f=idx(x,y),e=idx(x,ey);
+      if(!pass(f)||L.map[f]===T.DOOR||L.map[e]!==T.WALL)continue;if(L.map[idx(x-1,ey)]!==T.WALL||L.map[idx(x+1,ey)]!==T.WALL)continue;if(L.props&&L.props[e])continue;return [e,f];}
+    // only accept the outermost walkable row band (stop once we've seen walkable tiles near the centre)
+    let any=false;for(let x=12;x<=28;x++)if(pass(idx(x,y))){any=true;break;}if(any&&y!==rows[0]){}}
+  return null;}
+function reach41(L,a,b){const seen=new Uint8Array(N),q=[a];seen[a]=1;while(q.length){const c=q.pop();if(c===b)return true;for(const d of [1,-1,W,-W]){const n=c+d;if(n<0||n>=N||seen[n])continue;if(pass(n)||L.map[n]===T.DOOR||L.map[n]===T.LOCKED||n===b){seen[n]=1;q.push(n);}}}return false;}
+function placeElev41(L,down){if(!L||L.street||L.boss||L.construct||L._el41||G.depth<=0)return;L._el41=1;
+  const up=elevEdge41(L,true),dn=elevEdge41(L,false);if(!up||!dn||up[0]===dn[0])return;
+  const oldE=L.exit,oldN=L.entry,tE=L.map[oldE],tN=L.map[oldN];
+  if(!reach41(L,up[1],dn[1]))return;
+  L.map[oldE]=T.FLOOR;L.map[oldN]=T.FLOOR;
+  L.map[up[0]]=(tE===T.EXITL?T.EXITL:T.EXIT);L.map[dn[0]]=(tN===T.EXITL?T.EXITL:T.EXIT);L.exit=up[0];L.entry=dn[0];
+  for(const e of L.items)if(e.pos===up[0]||e.pos===dn[0])e.pos=e.pos===up[0]?up[1]:dn[1];
+  const h=G.hero,arrive=down?up[1]:dn[1];{const m=mobAt(arrive);if(m){const p=freeNear(arrive,2);if(p>=0)m.pos=p;}h.pos=arrive;}
+  for(const a of L.mobs)if(MOBS[a.k].ally&&dist(a.pos,h.pos)>3){const p=freeNear(h.pos,2);if(p>=0)a.pos=p;}
+  L._emb40=1;try{mapChanged();}catch(e){}RD.dirty=true;FP.mapVer=(FP.mapVer|0)+1;try{updateFov();}catch(e){}}
+{const _ef41=enterFloor;enterFloor=function(d,down){const r=_ef41.apply(this,arguments);try{placeElev41(G.L,down);}catch(e){console.warn('elev41',e);}return r;};}
+
+// ===================== v0.41c: surgical pod drawn as a real capsule in first person =====================
+const PODC={};
+function fpPodCv(now,L){const work=!!(G._podT&&performance.now()-G._podT<2000),fr=((now/140)|0)%8,key=(work?'w':'i')+fr;if(PODC[key])return PODC[key];
+  const Wc=36,Hc=74,c=cvs(Wc,Hc),g=c.getContext('2d'),P=(x,y,col)=>{g.fillStyle=col;g.fillRect(x,y,1,1);},R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const cx=18,r=14,top=4,bot=62,shell=(t)=>{const v=Math.round(150+105*t);return `rgb(${v},${v+4},${Math.min(255,v+14)})`;};
+  const pulse=.55+.45*Math.sin(fr/8*Math.PI*2),rim=work?`rgba(255,59,78,${.6+.4*pulse})`:`rgba(58,245,245,${.45+.45*pulse})`;
+  // capsule shell with cylindrical shading (dark edges, bright core)
+  for(let y=top;y<=bot;y++)for(let x=cx-r;x<=cx+r;x++){const dx=x-cx+.5;let inside;if(y<top+r){const dy=(top+r)-y;inside=dx*dx+dy*dy<=r*r;}else inside=Math.abs(dx)<=r;if(!inside)continue;
+    const t=Math.cos(Math.min(1,Math.abs(dx+3)/r)*Math.PI/2);P(x,y,shell(t));}
+  // glass window
+  const gr=10,gt=top+5,gb=bot-6;for(let y=gt;y<=gb;y++)for(let x=cx-gr;x<=cx+gr;x++){const dx=x-cx+.5;let inside;if(y<gt+gr){const dy=(gt+gr)-y;inside=dx*dx+dy*dy<=gr*gr;}else inside=Math.abs(dx)<=gr;if(!inside)continue;
+    const t=Math.cos(Math.min(1,Math.abs(dx)/gr)*Math.PI/2),depth=(y-gt)/(gb-gt);P(x,y,`rgb(${Math.round(8+14*t)},${Math.round(28+40*t+10*depth)},${Math.round(40+56*t)})`);}
+  // what's inside: padded back + headrest, or a shaking patient silhouette while it works
+  if(work){const j=(fr%2)?1:0;R(cx-4+j,gt+10,8,7,'#3a2a24');R(cx-6+j,gt+17,12,16,'#2a2e38');R(cx-5+j,gt+33,4,12,'#1e222a');R(cx+1+j,gt+33,4,12,'#1e222a');}
+  else{R(cx-5,gt+8,10,6,'#1b3a46');R(cx-7,gt+15,14,28,'#163240');R(cx-7,gt+15,14,1,'#2a5a6a');}
+  // reflections on the glass
+  for(let y=gt+4;y<gb-4;y++){P(cx-6,y,'rgba(220,250,255,.55)');if(y%3)P(cx-5,y,'rgba(220,250,255,.25)');}for(let y=gt+10;y<gt+24;y++)P(cx+5,y,'rgba(220,250,255,.35)');
+  // pulsing light rims down both sides of the glass
+  for(let y=gt+gr;y<=gb;y++){P(cx-gr-1,y,rim);P(cx+gr+1,y,rim);}
+  // top sensor + seam
+  R(cx-1,top+1,2,2,work&&fr%2?'#ff3b4e':'#a01828');for(let x=cx-r+2;x<=cx+r-2;x++)P(x,gt+gr+1+((x+fr)%9===0?0:0),'rgba(0,0,0,0)');
+  // arms: 2 per side, folded at idle, reaching in while it works
+  const arm=(sx,sy,dir,out)=>{const L1=out?7:4,L2=out?6:3;const a=out?-.6:-1.4,b2=out?.9:2.6;let x=sx,y=sy;for(let k=0;k<L1;k++){x+=Math.cos(a)*dir;y+=Math.sin(a);R(Math.round(x),Math.round(y),2,2,'#e6edf6');}
+    R(Math.round(x),Math.round(y),2,2,'#5a6272');for(let k=0;k<L2;k++){x+=Math.cos(b2)*dir;y+=Math.sin(b2);R(Math.round(x),Math.round(y),1,2,'#cfd6e0');}if(out&&fr%3===0){P(Math.round(x),Math.round(y)+2,'#ffe08a');P(Math.round(x)+dir,Math.round(y)+3,'#ffffff');}};
+  for(const [sy,ph] of [[22,0],[40,1]]){const out=work&&((fr+ph)%4<3);R(cx-r-2,sy,3,3,'#5a6272');R(cx+r,sy,3,3,'#5a6272');arm(cx-r-1,sy+1,-1,out);arm(cx+r+1,sy+1,1,out);}
+  // base plinth with a rim light
+  R(cx-r-2,bot+1,2*r+4,8,'#2a2e37');R(cx-r-2,bot+1,2*r+4,1,'#7c8594');R(cx-r,bot+5,2*r,1,rim);R(cx-r-2,bot+8,2*r+4,1,'#14161c');
+  // outline
+  const id=g.getImageData(0,0,Wc,Hc),dd=id.data,a=(x,y)=>x>=0&&y>=0&&x<Wc&&y<Hc&&dd[(y*Wc+x)*4+3]>40,o=[];for(let y=0;y<Hc;y++)for(let x=0;x<Wc;x++)if(!a(x,y)&&(a(x+1,y)||a(x-1,y)||a(x,y+1)||a(x,y-1)))o.push([x,y]);g.fillStyle='#07080c';for(const [x,y] of o)g.fillRect(x,y,1,1);
+  return PODC[key]=c;}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
