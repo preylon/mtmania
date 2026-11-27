@@ -1541,8 +1541,8 @@ function worldTick(){
   }
   for(const key of Object.keys(L.clouds)){
     const i=+key,c=L.clouds[key];if(!c)continue;const m=mobAt(i);
-    if(c.t==='toxic'){if(i===h.pos)h.b.poison=Math.max(h.b.poison||0,3);if(m&&!MOBS[m.k].robot)m.b.poison=Math.max(m.b.poison||0,3);}
-    else if(c.t==='fire'){if(i===h.pos)h.b.burn=Math.max(h.b.burn||0,2);if(m&&!MOBS[m.k].vent&&MOBS[m.k].fx!=='burn')m.b.burn=Math.max(m.b.burn||0,2);
+    if(c.t==='toxic'){if(i===h.pos)h.b.poison=Math.max(h.b.poison||0,3);if(m&&!MOBS[m.k].robot)m.b.poison=Math.max(m.b.poison||0,3);else if(m&&!MOBS[m.k].ally)immune41(m,'gas');}
+    else if(c.t==='fire'){if(i===h.pos)h.b.burn=Math.max(h.b.burn||0,2);if(m&&!MOBS[m.k].vent&&MOBS[m.k].fx!=='burn')m.b.burn=Math.max(m.b.burn||0,2);else if(m&&!MOBS[m.k].ally)immune41(m,'fire');
       if(L.map[i]===T.GRASS){L.map[i]=T.DEBRIS;mapChanged();}
       for(const dd of [-W,W,-1,1])if(L.map[i+dd]===T.GRASS&&!L.clouds[i+dd]&&chance(.4))L.clouds[i+dd]={t:'fire',n:3};}
     if(--c.n<=0)delete L.clouds[key];
@@ -3428,6 +3428,7 @@ function drawHand(now){
    if(Math.floor(t*2)%2)P(21,2,1,1,'#05080d');
    const fw=aw-1*u,fh=fw/2;g.imageSmoothingEnabled=false;g.drawImage(sc,-aw/2+.5*u,wy+(wh-fh)/2,fw,fh);
    g.globalCompositeOperation='lighter';g.globalAlpha=.12+.06*Math.sin(t*3);g.fillStyle='#3fe8ff';g.fillRect(-aw/2,wy,aw,wh);g.globalAlpha=1;g.globalCompositeOperation='source-over';}
+  if(window.__kn)try{knuxOnFist(g,R,u,aw,Lr,hand,dd,t,window.__kn);}catch(e){}
   // held items
   const toCanvas=(x,y)=>{const m=g.getTransform(),q=m.transformPoint(new DOMPoint(x,y));return q;};
   if(st==='drink'){
@@ -3697,7 +3698,7 @@ function fpFrame(now){
   const L=G.L,h=G.hero,g=RD.g;if(!L||!h)return;
   if(RD.lvl!==L){RD.lvl=L;RD.dirty=true;FP.init=false;FP.dead=[];}
   if(RD.dirty){rdMap();RD.dirty=false;}
-  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;}
+  if(FP.mapVer!==FP.dataVer||!FP.mapData){FP.mapData=RD.mapCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W*16,H*16).data;FP.dataVer=FP.mapVer;try{const L_=G.L;FP.fsub=new Int32Array(N).fill(-1);for(let q=0;q<N;q++){if(!fpDecorTile(L_,q))continue;for(const d of [1,-1,W,-W])if(L_.map[q+d]===T.FLOOR){FP.fsub[q]=q+d;break;}}}catch(e){FP.fsub=null;}}
   // drain the top-down effect queue so nothing replays when you switch back
   for(const f of FX.splice(0)){if(f.t==='die'){const adj=dist(f.p,h.pos)<=1;FP.dead.push({x:X(f.p)+.5,y:Y(f.p)+.5,i:f.p,m:Object.assign({id:f.id,b:{}},f.m||{k:f.k}),t:now});if(FP.dead.length>40)FP.dead.shift();if(adj){FP.slash=now;RD.shake=7;FP.fxl.push({k:'blood',i:f.p,w:0,t:now,big:1});}}
     else if(f.t==='hit'){if(f.id!=null)FP.hit[f.id]=now;FP.fxl.push({k:'num',i:f.p,s:f.s,c:f.c,t:now});}
@@ -3728,7 +3729,7 @@ function fpFrame(now){
     for(let x=0,o=o0;x<RW;x++,fx_+=sx,fy_+=sy,o+=4){const tx=Math.floor(fx_),ty=Math.floor(fy_);
       if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
       const i=ty*W+tx,s=shadeOf(i,dist),u=((fx_-tx)*16)|0,v=((fy_-ty)*16)|0;
-      if(floor){const m=((ty*16+v)*MW+tx*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
+      if(floor){const sb=FP.fsub&&FP.fsub[i],tx2=sb>=0?sb%W:tx,ty2=sb>=0?(sb/W|0):ty;const m=((ty2*16+v)*MW+tx2*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
       else if(out&&OUT&&OUT[i]){const f=y/horizon,sk=SK[x],bh=BH[x];let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;const wq=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*90)*12.9898+Math.floor((horizon-y)/3)*78.233)*43758.5)%1+1)%1;if(wq>.86&&((horizon-y)%3)!==0){r=wq>.95?120:255;gg=wq>.95?220:200;b=wq>.95?235:120;}}else{const st=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*160)*91.7+y*47.3)*43758.5)%1+1)%1;if(st>.997&&y<horizon*.6){r=gg=b=200;}}D[o]=r;D[o+1]=gg;D[o+2]=b;}
       else{let r=22,gg=20,b=30;if(u===0||v===0){r=12;gg=11;b=18;}if(L.map[i]===T.SKY){r=14;gg=12;b=40;}else if((tx*3+ty*5)%7===0&&u>3&&u<12&&v>5&&v<10){r=150;gg=230;b=235;}else if((tx+ty)%11===0&&u>5&&u<10&&v>5&&v<10){r=255;gg=190;b=120;}
         const sc=Math.max(s,.18);D[o]=r*sc+3;D[o+1]=gg*sc+3;D[o+2]=b*sc+5;}
@@ -3878,7 +3879,7 @@ function fpBuildUI(host,b){
     if(t.dataset.k==='side')FP.set.padPos=null;let v=t.dataset.v;if(v==='true')v=true;else if(v==='false')v=false;FP.set[t.dataset.k]=v;fpSave();draw();fpUI();});
   gear.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();draw();pan.style.display=pan.style.display==='block'?'none':'block';place2();});
   const pad=document.createElement('div');pad.id='fpPad';pad.setAttribute('aria-label','First-person movement');
-  const keys=[['«','sl','Sidestep left','s'],['▲','f','Step forward'],['»','sr','Sidestep right','s'],['◀','tl','Turn left'],['●','w','Wait a turn','s'],['▶','tr','Turn right'],['','',''],['▼','b','Step back'],['','','']];
+  const keys=[['«','tl','Turn left','s'],['▲','f','Step forward'],['»','tr','Turn right','s'],['◀','sl','Sidestep left'],['●','w','Wait a turn','s'],['▶','sr','Sidestep right'],['','',''],['▼','b','Step back'],['','','']];
   pad.innerHTML=keys.map(([t,a,l,c])=>a?`<button type="button" data-a="${a}" aria-label="${l}" class="${c||''}">${t}</button>`:'<span></span>').join('');
   let rep=null;const fire=a=>{if(!G||G.over||busy())return;initAudio();if(a==='f')fpStep(false);else if(a==='b')fpStep(true);else if(a==='tl')fpTurn(-1);else if(a==='tr')fpTurn(1);else if(a==='sl')fpStrafe(-1);else if(a==='sr')fpStrafe(1);else if(a==='w'){const w=document.getElementById('tWait');if(w)w.click();}};
   let drag=null;
@@ -3976,6 +3977,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.41','FIRST PERSON WEAPONS: Tech Pistol and Scatter Shotgun redrawn in the same blocky style as your arms, held straight out (pistol one-handed, shotgun two-handed); recoil kicks but stays in your hands. Mono-Katana and Machete redrawn at twice the detail and sit in your fist. All first-person weapons are bigger. TASER KNUCKLES (were Shock Gauntlets): a gunmetal knuckle duster you can see on both fists, live arcs between the electrodes, a burst on every punch. Brass Knuckles show on your fists too. NEW: BASEBALL BAT. FIXES: turning cameras off at a security console stops the beams; standing in a beam gets you caught; throwing knives go in your hand instead of a hidden slot and show a count; the message log has a close button up top; first-person ◀ ▶ step sideways and « » turn; fire/gas immune enemies say IMMUNE; computers in first person no longer have a flat copy on the floor.'],
  ['v0.40','RESCUES: tapping a civilian you saved now opens their rescue dialogue (thanks / run / join / owe you later) instead of a dead companion menu; joining is a choice and rarer (~12%). Companion orders now answer back and show over their head. FIRST PERSON: vaults are knee-high armored strongboxes on the floor (were wall-sized); windows and balcony edges show the window-view city (towers, lit windows, Super Mart / RAHMUN / Volt Cola signs, the eye billboard, flying cars) instead of a flat tile or black void; elevators are moved into a nook against a wall so they never block a hallway. SENTINEL EDGE redrawn for first person: long hooked blade, cyan edge glow, red-wrapped grip, with real fists and a swing arc for all melee weapons (no more see-through squares). Sleeping enemies show z z Z; robots and drones show UPDATING / RECHARGING. THERMAL EYES in first person: hostiles behind walls get a red Oracle box with distance, allies blue; on the map, allies seen through walls glow blue instead of red. Camera cones are a smooth sweeping wedge with a scan line. LINK SYNC: SMALL / MEDIUM / FULL size and a minimise button (– on the panel or HUD settings). THROWING: wrist flick + whoosh; throwing a melee weapon (crowbar, machete...) hits for real damage. DEV: THE CONSTRUCT — every item in the game laid out by category (HUD settings in dev mode). IMPLANTS only go in at a Ripperdoc\'s chair now (Jack Chips still slot yourself); every implant has its own icon, and unidentified ones show which body zone they go in. DOG TAGS lie next to a slumped dead guard; carry them into the Voss fight and each one turns a loyalist, all 8 changes what Voss says. BARTENDERS visibly pop up with the shotgun, hit hard enough to matter, only fire with a clear line, and only say it once a fight (the old weak, see-through-walls version is gone). CAMERAS sweep a real red beam in real time, and that beam is what catches you (the white light pool is gone). ZOOM goes out to the whole floor; FIT WHOLE FLOOR in HUD settings, or double-tap the minimap. FIRST PERSON LOOK 360: the stick turns you freely and stays where you leave it, and walking/tapping goes where you face. STORAGE: Stim Bandolier, Chip Case and Gear Rig (Fixer stocks the next one; floors 3, 8 and 13 drop one) with tabs in the backpack; what they hold doesn\'t use pack slots. ECONOMY: shops no longer sell Firmware Patches or Myo-Grafts; floors 26–29 now get their guaranteed 3 Patches + 2 Myo-Grafts. AMBUSH: hit an enemy the turn it follows you through a door for a sneak attack. APARTMENTS: residents who need food or meds are holed up in a quiet room with a bunk and rug. LAYOUT: bystanders and wrecks no longer park in doorways, dead-end doors get opened up or bricked, loose loot moves out of 1-wide halls into rooms. Tube dancers stay inside the glass; the skirt hem no longer flares past the legs. IMPLANTS: every implant redrawn in a new lit 3D-pixel style, with a big detailed close-up when you tap it; Second Heart is now TwinTicker, Ghoststep is now SilentStep Servos (legs). GUN HAND: rare and pricey at Ripperdocs only, takes a ranged slot, fires Box of Rounds, and your character throws the hand up to fire. BODY SCAN v2: ripperdoc surgical readout with an x-ray of you and your chrome, slot cards, CARDIO/NEURAL/STATS tabs. SURGERY: you walk to the chair, sit, the ripper comes over, then lights out. ZONES: new LEGS zone (STR 12+ synergy); Scan N\' Scav moved to the eyes, Adrenal Pump to the gut. Dead guards are drawn from the real guard model; bait crates removed; message log lines fade and the full log lives in Link Sync; elevators sit flush in the wall.'],
  ['v0.39','BODY SCAN: a skeleton view of your 3 implant ports and head jack (Link Sync ▸ STATS, and at ripperdocs). STATS BOOST CHROME by zone: STR 14+ arms, PER 13+ eyes, PER 12 + STR 11 spine, level 8+ gut, 60+ max HP chest, TECH 13+ head-jack chip — boosted chrome works one level higher. IDENTIFYING: everything except Redline still starts unknown; high TECH can read gear and implants on pickup; Gunners know guns, Enforcers know melee + armor, Tinkers know implants, Ghosts can tell which stims are drinkable; Rook appraises unknown gear (◈25 each), ripperdocs scan unmarked implants (◈30 each). REAL AMMO: Needler, Scatter and Minigun no longer recharge — they reload from Boxes of Rounds (floor loot, Rook sells them, Gunners start with 3). THROWN ITEMS set off traps where they land (the trap hits whoever is there, not you; alarms pull enemies to the noise). K9: pet it (heals it and you a bit) and give it a name. ACHIEVEMENTS: 11 new ones and a list in HUD settings. TUTORIAL: 9 quick cards on your first run (skippable), replay any time from HUD settings ▸ HOW TO PLAY. First person draws the arcade cabinet.'],
  ['v0.38b','ARCADE: prize creds run out after 3 wins per floor (it was an infinite money glitch). HEAD JACK: neural chips you pick up seat themselves when the jack is empty (they used to sit in the pack; swapping is in STATS ▸ HEAD JACK).'],
@@ -4071,7 +4073,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.40 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.41 · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4632,7 +4634,7 @@ function secDesk(i,p){const s=sectorOf(G.depth);
     refresh();};}
 // cameras watch
 {const _s=spend;spend=function(t){const r=_s.apply(this,arguments);try{const L=G.L,h=G.hero;if(!G.over&&L&&L.props&&!(G.camOff&&G.camOff[sectorOf(G.depth)])&&!invFind('s_mod')&&G.turn-(L.camT||-99)>30&&!(h.b.invis>0)){
-  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&camCone(c,h.pos)&&chance(h.cls==='ghost'?.12:.3)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
+  for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off)continue;const c=+k;if(dist(c,h.pos)<=6&&L.vis[c]&&camLOS(c,h.pos)&&camCone(c,h.pos)&&chance(h.cls==='ghost'?.35:.85)){L.camT=G.turn;fx({t:'txt',p:c,s:'REC',c:'#ff3b4e'});raiseAlarm(c,'A corner camera swivels onto you. ALARM.');break;}}}}catch(e){}return r;};}
 // tap support
 {const _tk=tapKind;tapKind=function(i){const L=G&&G.L;if(L&&L.props&&L.props[i]&&L.seen[i])return 'use';return _tk.apply(this,arguments);};}
 // ---------- drawing
@@ -6342,7 +6344,7 @@ function camAim(c){return .55*Math.sin((G.turn||0)*.3+c*.7);}
 function camCone(c,hp){const L=G.L;if(!wallish(L,c))return dist(c,hp)<=4;const dy=Y(hp)-Y(c),dx=X(hp)-X(c);if(dy<1||dist(c,hp)>6)return false;return Math.abs(Math.atan2(dx,dy)-camAim(c))<=.52;}
 {const _rf=rdFrame;rdFrame=function(now){_rf.apply(this,arguments);try{if(!RD.on||(FP.on&&!G.over)||!G||!G.L||!G.L.props)return;const g=RD.g,S=RD.S,TS=16*S,L=G.L;g.setTransform(1,0,0,1,0,0);
   for(const k in L.props){const i=+k,p=L.props[k];if(p.k!=='cam'||!L.seen[i])continue;const px=RD.ox+X(i)*TS,py=RD.oy+Y(i)*TS;if(px<-3*TS||py<-3*TS||px>RD.w+3*TS||py>RD.h+3*TS)continue;
-    if(!p.off&&!p.broke&&L.vis[i]){if(wallish(L,i))camWedge(g,i,TS,now);}
+    if(!p.off&&!p.broke&&L.vis[i]&&!(G.camOff&&G.camOff[sectorOf(G.depth)])){if(wallish(L,i))camWedge(g,i,TS,now);}
     g.globalAlpha=L.vis[i]?1:.45;g.imageSmoothingEnabled=false;g.drawImage(camSpr(p,Math.floor(now/400+i)%2),px,py+6*S,TS,TS);g.globalAlpha=1;}}catch(e){}};}
 
 // SKATER: one of our box people on a small hover board
@@ -7156,10 +7158,10 @@ function fpArm(g,W2,H2,now,fx,fy,rot,mir,sc){const c=armCanvas(now,W2,H2),u=c.wi
 fpFists=function(g,W2,H2,u,now){const pt=Math.min(1,(now-(FP.kick||0))/300),pk=Math.sin(pt*Math.PI),R=FP.pn===1,bob=Math.sin(FP.bob)*3*u;
   {const p=R?0:pk;fpArm(g,W2,H2,now,W2*.32+(W2*.12)*p+bob*.5,H2*.74-H2*.14*p,-.05+.25*p,true,1+.25*p);}
   {const p=R?pk:0;fpArm(g,W2,H2,now,W2*.68-(W2*.12)*p+bob,H2*.74-H2*.14*p,.05-.25*p,false,1+.25*p);}};
-fpMelee=function(g,W2,H2,u,now,it){const P=Math.max(2,Math.round(u*3.4)),bob=Math.sin(FP.bob)*3*u,sw=Math.min(1,(now-(FP.kick||0))/260),k=sw<1?Math.sin(sw*Math.PI):0,fl=Math.min(1,(now-(FP.flick||0))/240),fk=fl<1?Math.sin(fl*Math.PI):0;
+fpMelee=function(g,W2,H2,u,now,it){const P=Math.max(2,Math.round(u*3.4)),bob=Math.sin(FP.bob)*3*u,sw=Math.min(1,(now-(FP.kick||0))/260),k=(window.FPR&&FPR.mk!=null)?FPR.mk:(sw<1?Math.sin(sw*Math.PI):0),fl=Math.min(1,(now-(FP.flick||0))/240),fk=fl<1?Math.sin(fl*Math.PI):0;
   fpArm(g,W2,H2,now,W2*.26-bob*.4,H2*.82,-.1,true,.85);
-  const fx=W2*.66+bob-k*W2*.18,fy=H2*.72+k*H2*.04;
-  g.save();g.translate(fx,fy);g.rotate(-.25-k*1.15-fk*.9);if(it&&it.k===SENT_K)sentBlade(g,P,now,k);else if(it){g.imageSmoothingEnabled=false;g.drawImage(itemIcon(it),-8*P,-16*P,16*P,16*P);}g.restore();
+  const fx=W2*FPVM.mx+bob-k*W2*.18,fy=H2*FPVM.my+k*H2*.04;
+  g.save();g.translate(fx,fy);g.rotate(-.25-k*1.15-fk*.9);if(it&&it.k===SENT_K)sentBlade(g,P,now,k);else if(it){g.imageSmoothingEnabled=false;g.drawImage(fpMeleeArt(it),-1.6*P*FPVM.ms,-14.2*P*FPVM.ms,16*P*FPVM.ms,16*P*FPVM.ms);}g.restore();
   fpArm(g,W2,H2,now,fx,fy+3*P,.1-k*.5-fk*.4,false,1);
   if(k>.2){g.save();g.globalAlpha=(k-.2)*.8;g.strokeStyle=it&&it.k===SENT_K?'#3af5f5':'#e6edf6';g.lineWidth=2*P;g.beginPath();g.arc(W2*.5,H2*.55,W2*.28,-.2-k,.35-k*.4);g.stroke();g.restore();}};
 // guns: draw the arm holding the grip first, the gun on top
@@ -7221,7 +7223,7 @@ function drawGun(g,it,ox,oy,S,now,kick){const d=ITEMS[it.k],fam=GUNOF[it.k]||(d.
   let mx=0,my=0;for(const b of M)if(b[3]>mx){mx=b[3];my=(b[1]+b[4])/2;}const mz=1.5;
   g.restore();return {muz:P(mx+.5,my,mz),grip:P(...(GUNGRIP[fam]),1.5),fore:GUNFORE[fam]?P(GUNFORE[fam][0],GUNFORE[fam][1],1.5):null,port:P(6,7.5,3),fam,bul};}
 {const _fh40c=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');if(!(gunMode&&h.eq.gun))return _fh40c.apply(this,arguments);
-  const it=h.eq.gun,d=ITEMS[it.k],kick=Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,S=Math.max(3,W2/44),ox=W2*.74+bob,oy=H2*.8+kick*S*.6;
+  const it=h.eq.gun,d=ITEMS[it.k],kick=(window.FPR&&FPR.fk!=null)?FPR.fk:Math.max(0,1-(now-FP.kick)/220),bob=Math.sin(FP.bob)*3*u,S=Math.max(3,W2/44)*FPVM.gs,ox=W2*FPVM.gx+bob,oy=H2*FPVM.gy+kick*S*.6;
   g.save();g.globalAlpha=1;
   // pre-compute grip spots with a dry run so the off-hand can sit under the gun
   const dry=drawGun({save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){},stroke(){},set lineJoin(v){},set strokeStyle(v){},set lineWidth(v){},set fillStyle(v){},set shadowColor(v){},set shadowBlur(v){}},it,ox,oy,S,now,kick);
@@ -7608,9 +7610,9 @@ function embed40(L){if(!L||L._emb40||L.street||L.boss)return;L._emb40=1;let move
       const back=w-d,side=(d===1||d===-1)?[W,-W]:[1,-1];
       if(!(wallish(L,back)||L.map[back]===T.WALL))continue;if(!side.every(s=>L.map[w+s]===T.WALL))continue;
       if(L.map[back]===T.WINDOW||side.some(s=>L.map[w+s]===T.WINDOW))continue;
-      if(hall40(L,f)||nearDoor40(L,f)||mobAt(f)||(L.props&&L.props[f])||L.items.some(x2=>x2.pos===f))continue;
+      if(nearDoor40(L,f)||mobAt(f)||(L.props&&L.props[f])||L.items.some(x2=>x2.pos===f))continue;
       if(dist(w,L.entry)<4&&key==='exit')continue;if(dist(w,L.exit)<4&&key==='entry')continue;
-      const dd=dist(w,e);if(dd<bd&&dd<=14){bd=dd;best=w;}}
+      const dd=dist(w,e);if(dd<bd&&dd<=24){bd=dd;best=w;}}
     if(best<0)continue;
     L.map[best]=t;L.map[e]=T.FLOOR;L[key]=best;
     if(reach40(L,G.hero.pos)<base-2){L.map[e]=t;L.map[best]=T.WALL;L[key]=e;continue;}
@@ -8041,6 +8043,371 @@ podArmSpr=function(side,t,work){const C=(a,b,r0,r1,m,o)=>Object.assign({t:'cap',
     const el=[sx-side*(1.2+3.2*ext),j-2.4*ext+w1*.3*ext],tip=ext?[8-side*(1.6-w1*.4),ty0+w2*ext]:[sx-side*1.8,j+2.6];
     sh.push(C([sx,j],el,.85,.75,'white'),D(el,.95,'joint'),C(el,tip,.75,.6,'white'),D(tip,.8,'green',{glow:1}),D([tip[0],tip[1]+.9],.5,'red',{glow:1}));}
   const key='pa3_'+side;if(!work){if(SPR[key])return SPR[key];return SPR[key]=podSDF(sh);}return podSDF(sh);};
+
+var FPVM={gs:1,gx:.74,gy:.8,mx:.66,my:.72,ms:1};
+// ===================== v0.41 visual pass: first-person weapons at 2x detail =====================
+// Gun models: layer 0 = body boxes, layer 1 = surface detail (drawn after, thin outline).
+// box: [x0,y0,z0,x1,y1,z1,colorKey,layer]
+const GUNM2={
+ techpistol:[
+  [1,2,.3,9.5,4,2.7,'D'],[6,1.3,.6,9.5,2,2.4,'D'],
+  [0,4,0,11,7,3,'B'],[0,7,0,11,7.5,3,'S'],
+  [11,4.4,.6,12.4,6.6,2.4,'D'],
+  [0,-3.2,.3,3,2,2.7,'D'],[-.3,-3.9,.2,3.3,-3.2,2.8,'S'],
+  [-.6,6,.9,0,7,2.1,'D'],
+  [3,.6,.9,6.4,1,2.1,'D'],[6,.6,.9,6.4,2,2.1,'D'],[3.8,1,1.2,4.3,2,1.8,'S'],
+  // detail
+  [0,4,2.98,11,4.5,3.04,'M',1],
+  [.6,4.9,3,.95,6.7,3.08,'D',1],[1.3,4.9,3,1.65,6.7,3.08,'D',1],[2,4.9,3,2.35,6.7,3.08,'D',1],[2.7,4.9,3,3.05,6.7,3.08,'D',1],
+  [5,6.3,1.5,7.6,7.53,2.95,'K',1],[5.2,6.6,1.6,7.4,7.2,2.9,'Y',1],
+  [12.4,4.9,1,12.55,6.1,2,'K',1],
+  [10,7.5,1.2,10.8,8.4,1.8,'D',1],[10.15,8.05,1.25,10.65,8.4,1.86,'G',1],
+  [.3,7.5,.6,1.7,8.4,2.4,'D',1],[.45,8.05,1.2,.8,8.4,1.86,'G',1],[1.2,8.05,1.2,1.55,8.4,1.86,'G',1],
+  [4,5.25,3.04,9.6,5.65,3.14,'G',1],
+  [.35,-2.7,2.7,2.65,1.5,2.82,'B',1],
+  [.55,-2.2,2.82,2.45,-1.95,2.88,'D',1],[.55,-1.2,2.82,2.45,-.95,2.88,'D',1],[.55,-.2,2.82,2.45,.05,2.88,'D',1],[.55,.8,2.82,2.45,1.05,2.88,'D',1],
+  [6.6,1.45,2.4,9.2,1.9,2.48,'S',1],[7.2,1.45,2.48,7.5,1.9,2.52,'K',1],[8.2,1.45,2.48,8.5,1.9,2.52,'K',1],
+  [9.6,2.6,2.7,10.2,3.4,2.78,'S',1]
+ ],
+ scatter:[
+  [0,5,.5,24,7.2,2.5,'D'],[9,5.3,2.5,21,7,2.75,'M'],[9,7.2,.9,22,7.7,2.1,'M'],
+  [23.2,4.7,.3,24.6,7.5,2.7,'B'],
+  [0,3,0,9,8,3,'B'],[0,8,.4,9,8.5,2.6,'S'],
+  [6,3.4,.7,22,5,2.3,'D'],[22,3.5,.8,22.6,4.9,2.2,'S'],
+  [10,2.6,.2,16,5.2,2.8,'W'],
+  [-8,3,.5,0,7,2.5,'W'],[-8.8,2.4,.4,-8,7.6,2.6,'K'],
+  [0,-3,.6,3,3,2.4,'D'],
+  [3,1.2,.9,6.5,1.6,2.1,'D'],[6.1,1.2,.9,6.5,3,2.1,'D'],[4,1.6,1.2,4.5,3,1.8,'S'],
+  [1.5,3.5,3,7.9,6,3.2,'D'],
+  // detail
+  [10,5.8,2.75,11.4,6.5,2.82,'K',1],[12.6,5.8,2.75,14,6.5,2.82,'K',1],[15.2,5.8,2.75,16.6,6.5,2.82,'K',1],[17.8,5.8,2.75,19.2,6.5,2.82,'K',1],
+  [10,7.7,1.2,10.6,7.85,1.8,'K',1],[12,7.7,1.2,12.6,7.85,1.8,'K',1],[14,7.7,1.2,14.6,7.85,1.8,'K',1],[16,7.7,1.2,16.6,7.85,1.8,'K',1],[18,7.7,1.2,18.6,7.85,1.8,'K',1],[20,7.7,1.2,20.6,7.85,1.8,'K',1],
+  [24.6,5.4,.9,24.7,6.8,2,'K',1],[23,7.5,1.2,23.6,8.2,1.8,'G',1],
+  [3.2,6.2,3,6.8,7.5,3.06,'K',1],[3.4,6.5,3.06,6.6,7.1,3.1,'Y',1],
+  [.4,4,3,8.6,4.4,3.1,'G',1],[.4,7.4,3,.9,7.9,3.08,'S',1],[8.1,7.4,3,8.6,7.9,3.08,'S',1],
+  [10.6,2.9,2.8,11,4.9,2.88,'K',1],[11.8,2.9,2.8,12.2,4.9,2.88,'K',1],[13,2.9,2.8,13.4,4.9,2.88,'K',1],[14.2,2.9,2.8,14.6,4.9,2.88,'K',1],[15.4,2.9,2.8,15.8,4.9,2.88,'K',1],
+  [-7.6,4.1,2.5,-.6,4.3,2.56,'w',1],[-7,5.5,2.5,-1.2,5.7,2.56,'w',1],[-6,6.4,2.5,-2.5,6.55,2.56,'w',1],
+  [-8.8,3,2.6,-8.4,3.3,2.66,'D',1],[-8.8,4.2,2.6,-8.4,4.5,2.66,'D',1],[-8.8,5.4,2.6,-8.4,5.7,2.66,'D',1],[-8.8,6.6,2.6,-8.4,6.9,2.66,'D',1],
+  [.35,-2.5,2.4,2.65,2.5,2.5,'B',1],[.5,-1.8,2.5,2.5,-1.6,2.55,'D',1],[.5,-.6,2.5,2.5,-.4,2.55,'D',1],[.5,.6,2.5,2.5,.8,2.55,'D',1],[.5,1.8,2.5,2.5,2,2.55,'D',1],
+  [1.9,3.8,3.2,2.9,5.7,3.5,'R',1],[3.5,3.8,3.2,4.5,5.7,3.5,'R',1],[5.1,3.8,3.2,6.1,5.7,3.5,'R',1],[6.7,3.8,3.2,7.7,5.7,3.5,'R',1],
+  [1.9,3.8,3.5,2.9,4.4,3.52,'Y',1],[3.5,3.8,3.5,4.5,4.4,3.52,'Y',1],[5.1,3.8,3.5,6.1,4.4,3.52,'Y',1],[6.7,3.8,3.5,7.7,4.4,3.52,'Y',1]
+ ]
+};
+drawGun=function(g,it,ox,oy,S,now,kick){const d=ITEMS[it.k],fam=GUNOF[it.k]||(d.icon==='gun3'?'rifle':'pistol'),hd=!!GUNM2[it.k],M=GUNM2[it.k]||GUNM[fam],acc=d.c||'#3fe8ff',bul=!!d.ammo;
+  const vx=[-.74*S,-.4*S],vy=[.06*S,-1*S],vz=[.42*S,.2*S],rb=kick*S*.45,P=(x,y,z)=>[ox+(x-rb)*vx[0]+y*vy[0]+z*vz[0],oy+(x-rb)*vx[1]+y*vy[1]+z*vz[1]];
+  const COL={B:'#5a6274',D:'#363b48',M:'#464c5a',S:'#c9d1dc',W:'#6a3e22',w:'#8a5634',R:'#d8303e',Y:'#e0b040',K:'#0a0b10',A:shade(acc,-.25),G:acc};
+  const boxes=M.slice().sort((a,b)=>((a[7]||0)-(b[7]||0))||((b[0]+b[3])-(a[0]+a[3]))||(a[1]-b[1]));g.save();g.lineJoin='round';
+  for(const bx of boxes){const [x0,y0,z0,x1,y1,z1,ck,ly]=bx,c=COL[ck],glow=ck==='G',det=ly===1;
+    const poly=(pts,col,st)=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=col;g.fill();if(st)g.stroke();};
+    g.strokeStyle='#07080c';g.lineWidth=Math.max(1,S*(hd?(det?.05:.1):.14));if(glow){g.shadowColor=acc;g.shadowBlur=S*(1.5+Math.sin(now/200));}
+    const st=!det||ck!=='K';
+    poly([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)],glow?shade(c,.35):shade(c,.32),st);
+    poly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],c,st);
+    poly([P(x0,y0,z0),P(x0,y0,z1),P(x0,y1,z1),P(x0,y1,z0)],glow?shade(c,-.1):shade(c,-.38),st);
+    g.shadowBlur=0;
+    if(hd&&!det&&(x1-x0)>1.5&&ck!=='K'){ // bevel: light top edge of the camera-facing side, dark bottom edge
+      const a=P(x0+.1,y1-.08,z1),b=P(x1-.1,y1-.08,z1),e=P(x0+.1,y0+.06,z1),f=P(x1-.1,y0+.06,z1);
+      g.lineWidth=Math.max(1,S*.09);g.strokeStyle=shade(c,.55);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+      g.strokeStyle=shade(c,-.5);g.beginPath();g.moveTo(e[0],e[1]);g.lineTo(f[0],f[1]);g.stroke();}}
+  let mx=0,my=0;for(const b of M)if(!b[7]&&b[3]>mx){mx=b[3];my=(b[1]+b[4])/2;}const mz=1.5;
+  g.restore();return {muz:P(mx+.5,my,mz),grip:P(...(GUNGRIP[fam]),1.5),fore:GUNFORE[fam]?P(GUNFORE[fam][0],GUNFORE[fam][1],1.5):null,port:P(6,7.5,3),fam,bul};};
+
+// Melee: 44px first-person sprites (2x the 22px bag icon), drawn into the same box so detail doubles.
+const FPM2={};
+function fpm2Canvas(k,draw){if(FPM2[k])return FPM2[k];const c=cvs(44,44),g=c.getContext('2d'),px=(x,y,col)=>{if(x<0||y<0||x>43||y>43)return;g.fillStyle=col;g.fillRect(x,y,1,1);};
+  draw(px);
+  // outline pass
+  const id=g.getImageData(0,0,44,44),a=(x,y)=>x>=0&&y>=0&&x<44&&y<44&&id.data[(y*44+x)*4+3]>0,out=[];
+  for(let y=0;y<44;y++)for(let x=0;x<44;x++)if(!a(x,y)&&(a(x+1,y)||a(x-1,y)||a(x,y+1)||a(x,y-1)))out.push([x,y]);
+  g.fillStyle='#07080c';for(const [x,y] of out)g.fillRect(x,y,1,1);
+  return FPM2[k]=c;}
+// diagonal helper: walks from (bx,by) up-right; row(t) returns an array of colors for the horizontal run at step t (j offset may start negative)
+function fpmDiag(px,bx,by,t0,t1,row){for(let t=t0;t<=t1;t++){const r=row(t);if(!r)continue;const [j0,cols]=r;cols.forEach((col,j)=>{if(col)px(bx+t+j0+j,by-t,col);});}}
+const FPM_DRAW={
+ katana(px){const K='#07080c',Y='#c9a227',YL='#ffe08a',YD='#7a5e12';
+  fpmDiag(px,3,40,0,41,t=>{
+   if(t<=1)return [0,[YD,Y,YL,YD]];
+   if(t<=11){const a=(t%2===0);return [0,[K,a?'#c8d0dc':'#1c2030',a?'#1c2030':'#c8d0dc',K]];}
+   if(t<=13)return [-3,[YD,Y,Y,YL,Y,Y,Y,YD,YD,YD].slice(0,t===12?10:9)];
+   if(t<=15)return [0,[YD,YL,Y,YD]];
+   if(t<=37)return [0,['#5a6272','#aab4c4','#dfe8f0','#f8fbff']];
+   if(t===38)return [0,['#5a6272','#c9d1dc','#f8fbff']];
+   if(t===39)return [0,['#aab4c4','#f8fbff']];
+   if(t===40)return [1,['#f8fbff']];
+   return null;});
+  // hamon glow line along the blade
+  fpmDiag(px,3,40,17,36,t=>t%2?[2,['#9ff7ff']]:null);}
+};
+function fpMeleeArt(it){return FPM_DRAW[it.k]?fpm2Canvas(it.k,FPM_DRAW[it.k]):itemIcon(it);}
+
+// ---- REAR VIEW: gun held straight out, seen from behind (Doom-style perspective) ----
+var GUNREAR={techpistol:[[-.3,4.3,.35,0,6.9,2.65,'D',1],[-.32,5.3,.8,-.3,5.8,2.2,'G',1],[-.32,6.2,.8,-.3,6.5,2.2,'M',1],[-.5,6.9,1.2,0,7.6,1.8,'D',1]],scatter:[[-.3,3.4,.35,0,7.7,2.65,'D',1],[-.32,4.2,.8,-.3,4.6,2.2,'G',1],[-.32,6.6,.8,-.3,7,2.2,'G',1],[2,8.5,1.1,8.5,8.75,1.9,'K',1]]};
+var FPR={cx:-10,cy:11,cz:3.2,F:.73,vpx:.56,vpy:.55,clip:-1.5,arot:0,asc:1,ax:0,ay:0};
+function drawGunRear(g,it,W2,H2,now,kick){const d=ITEMS[it.k],fam=GUNOF[it.k]||(d.icon==='gun3'?'rifle':'pistol'),M0=GUNM2[it.k]||GUNM[fam],acc=d.c||'#3fe8ff',bul=!!d.ammo;
+  const F=FPR.F*W2,VX=W2*FPR.vpx+Math.sin(FP.bob)*W2*.008,VY=H2*FPR.vpy+Math.abs(Math.cos(FP.bob))*H2*.006,kb=kick*1.6,rise=kick*.05;
+  const P=(x,y,z)=>{const xx=x-kb,yy=y+xx*rise,dz=Math.max(.5,xx-FPR.cx);return [VX+(z-FPR.cz)*F/dz,VY-(yy-FPR.cy)*F/dz];};
+  const COL={B:'#5a6274',D:'#363b48',M:'#464c5a',S:'#c9d1dc',W:'#6a3e22',w:'#8a5634',R:'#d8303e',Y:'#e0b040',K:'#0a0b10',A:shade(acc,-.25),G:acc};
+  const M=M0.concat(GUNREAR[it.k]||[]).filter(b=>Math.max(b[0],b[3])>FPR.clip).map(b=>{const c=b.slice();const lo=Math.min(c[0],c[3]),hi=Math.max(c[0],c[3]);c[0]=Math.max(lo,FPR.clip);c[3]=hi;
+    const ylo=Math.min(c[1],c[4]),yhi=Math.max(c[1],c[4]);c[1]=ylo;c[4]=yhi;return c;});
+  // far first: sort by front x descending, then details last within depth bands
+  const boxes=M.slice().sort((a,b)=>((a[7]||0)-(b[7]||0))||(b[0]-a[0])||(Math.abs((a[2]+a[5])/2-FPR.cz)>Math.abs((b[2]+b[5])/2-FPR.cz)?-1:1));
+  g.save();g.lineJoin='round';
+  for(const bx of boxes){const [x0,y0,z0,x1,y1,z1,ck,ly]=bx,c=COL[ck],glow=ck==='G',det=ly===1;
+    const poly=(pts,col)=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=col;g.fill();if(!(det&&ck==='K'))g.stroke();};
+    g.strokeStyle='#07080c';g.lineWidth=Math.max(1,W2*(det?.002:.004));if(glow){g.shadowColor=acc;g.shadowBlur=W2*.02*(1+.3*Math.sin(now/200));}
+    if(FPR.cy>y1)poly([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)],glow?shade(c,.35):(ck==='S'?'#7c8594':shade(c,.22)));
+    if(FPR.cy<y0)poly([P(x0,y0,z0),P(x1,y0,z0),P(x1,y0,z1),P(x0,y0,z1)],shade(c,-.5));
+    if(FPR.cz>z1)poly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],shade(c,-.18));
+    if(FPR.cz<z0)poly([P(x0,y0,z0),P(x1,y0,z0),P(x1,y1,z0),P(x0,y1,z0)],shade(c,-.28));
+    poly([P(x0,y0,z0),P(x0,y0,z1),P(x0,y1,z1),P(x0,y1,z0)],glow?c:c); // rear face, faces the camera
+    g.shadowBlur=0;
+    if(!det&&ck!=='K'&&(z1-z0)>1){const a=P(x0,y1,z0),b=P(x0,y1,z1);g.lineWidth=Math.max(1,W2*.003);g.strokeStyle=shade(c,.6);g.beginPath();g.moveTo(a[0],a[1]+1);g.lineTo(b[0],b[1]+1);g.stroke();}}
+  let mx=0,my=0,mz=1.5;for(const b of M)if(!b[7]&&b[3]>mx){mx=b[3];my=(b[1]+b[4])/2;mz=(b[2]+b[5])/2;}
+  g.restore();return {muz:P(mx+.4,my,mz),grip:P(.6,3.2,1.5),port:P(6,7.5,3),bul};}
+{const _fhR=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');
+  if(!FPR.on||!(gunMode&&h.eq.gun)||ITEMS[h.eq.gun.k].type!=='gun')return _fhR.apply(this,arguments);
+  const it=h.eq.gun,d=ITEMS[it.k],kick=FPR.fk!=null?FPR.fk:Math.max(0,1-(now-FP.kick)/220),S=Math.max(3,W2/44);
+  g.save();g.globalAlpha=1;
+  const pre=drawGunRear({save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){},stroke(){},set lineJoin(v){},set strokeStyle(v){},set lineWidth(v){},set fillStyle(v){},set shadowColor(v){},set shadowBlur(v){}},it,W2,H2,now,kick);
+  fpArm(g,W2,H2,now,pre.grip[0]+W2*FPR.ax,pre.grip[1]+H2*FPR.ay,FPR.arot,false,FPR.asc);
+  const r=drawGunRear(g,it,W2,H2,now,kick);
+  if(kick>.4){g.globalAlpha=Math.min(1,(kick-.4)*2.5);const [fx,fy]=r.muz;g.globalCompositeOperation='lighter';
+    const R=W2*.09*kick,gr=g.createRadialGradient(fx,fy,0,fx,fy,R);gr.addColorStop(0,r.bul?'rgba(255,250,220,1)':'rgba(220,255,255,1)');gr.addColorStop(.4,r.bul?'rgba(255,170,50,.9)':shade(d.c||'#3fe8ff',0));gr.addColorStop(1,'rgba(255,80,20,0)');
+    g.fillStyle=gr;g.beginPath();g.arc(fx,fy,R,0,7);g.fill();g.globalCompositeOperation='source-over';g.globalAlpha=1;}
+  FP.shells=(FP.shells||[]).filter(s=>now-s.t<600);for(const s of FP.shells){const t=(now-s.t)/1000,sx=r.port[0]+W2*.25*t,sy=r.port[1]+(-1.2*t+6*t*t)*H2*.08;g.save();g.translate(sx,sy);g.rotate(t*18);g.fillStyle='#e0b040';g.fillRect(-S*.5,-S*.25,S,S*.5);g.restore();}
+  const mxc=Math.max(d.ch||1,typeof gunMax==='function'?(gunMax(it)||1):1),bw=S*7,bh=S*3.6,bx=W2*.04,by=H2*.6;
+  g.fillStyle='rgba(8,10,16,.82)';g.fillRect(bx,by,bw,bh);g.fillStyle='#cfd6e0';g.fillRect(bx,by,bw,Math.max(1,S*.2));g.font=`bold ${Math.round(S*1.3)}px ui-monospace,monospace`;g.textBaseline='top';
+  g.fillStyle=r.bul?'#e0b040':d.c;g.textAlign='left';g.fillText(r.bul?'RND':'CHG',bx+S*.4,by+S*.4);g.textAlign='right';g.fillStyle=it.ch>0?'#f2f6fb':'#ff3b4e';g.fillText(String(Math.max(0,it.ch|0))+'/'+mxc,bx+bw-S*.4,by+S*.4);
+  const n=Math.min(mxc,12),pw=(bw-S*.8)/n;for(let j=0;j<n;j++){g.fillStyle=j<Math.round(it.ch/mxc*n)?(r.bul?'#e0b040':d.c):'#2a2e38';g.fillRect(bx+S*.4+j*pw,by+bh-S*1.1,Math.max(1,pw-S*.2),S*.6);}
+  g.restore();};}
+FPR.on=0; // rear-view vector concept off; arm-style guns live in pix41.js
+
+// ---- PIXEL PASS: draw into a low-res buffer like the FP arms (no anti-aliasing), then blow it up with hard pixels ----
+const PIXB={c:null};
+function pixWrap(g,fn){const k=FPR.pk||2.25,W=g.canvas.width,H=g.canvas.height,w=Math.ceil(W/k),h=Math.ceil(H/k);
+  if(!PIXB.c||PIXB.c.width!==w||PIXB.c.height!==h)PIXB.c=cvs(w,h);const o=PIXB.c.getContext('2d');o.setTransform(1,0,0,1,0,0);o.clearRect(0,0,w,h);o.setTransform(1/k,0,0,1/k,0,0);
+  const r=fn(o);
+  const id=o.getImageData(0,0,w,h),d=id.data;for(let i=3;i<d.length;i+=4){if(d[i]<110)d[i]=0;else d[i]=255;}o.putImageData(id,0,0);
+  g.save();g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;g.drawImage(PIXB.c,0,0,w*k,h*k);g.restore();return r;}
+{const _dg=drawGun;drawGun=function(g,it,ox,oy,S,now,kick){
+  if(FPR.old){const sv=GUNM2[it.k];delete GUNM2[it.k];try{return FPR.pix&&g.canvas?pixWrap(g,o=>_dg(o,it,ox,oy,S,now,kick)):_dg(g,it,ox,oy,S,now,kick);}finally{if(sv)GUNM2[it.k]=sv;}}
+  return FPR.pix&&g.canvas?pixWrap(g,o=>_dg(o,it,ox,oy,S,now,kick)):_dg(g,it,ox,oy,S,now,kick);};}
+{const _dr=drawGunRear;drawGunRear=function(g,it,W2,H2,now,kick){return FPR.pix&&g.canvas?pixWrap(g,o=>_dr(o,it,W2,H2,now,kick)):_dr(g,it,W2,H2,now,kick);};}
+{const _fma=fpMeleeArt;fpMeleeArt=function(it){return FPR.old?itemIcon(it):_fma(it);};}
+
+// ===================== v0.41: FP guns drawn the same way as the FP arms =====================
+// Blocky faces (front + light left strip + darker side + lighter top), speckle texture, no outlines,
+// rasterised on the arm's pixel grid (k=2.25) so gun pixels match hand pixels. Straight-out, seen from behind.
+// box: [x0,y0,z0,x1,y1,z1,col,layer]  layer: 'u' = under the hands, default = over the hands
+const GUNPX={
+ techpistol:{hands:1,cz:2.4,vpx:.5,fist:[.9,1.4],
+  boxes:[[0,-.8,.6,2.6,2.2,2.4,'D','u'],[2.6,.7,.9,5.6,1.5,2.1,'D','u'],[4.6,1.5,1.1,5.6,2.2,1.9,'D','u'],
+   [0,2.2,0,10,6,3,'B'],[0,6,.5,10,6.7,2.5,'D'],[10,2.6,.6,10.6,5.6,2.4,'D'],
+   [-.15,3.9,.9,0,4.4,2.1,'G'],[-.15,5.2,.5,0,5.5,2.5,'M'],
+   [-.1,6.7,.3,1.1,7.6,1,'D'],[-.1,6.7,2,1.1,7.6,2.7,'D'],[8.8,6.7,1.2,9.7,7.4,1.8,'G'],
+   [3.6,6.7,1,6.4,6.8,2,'K'],[1,4,3,9,4.5,3.08,'G'],[0,2.2,-.05,10,2.6,3.05,'M']]},
+ scatter:{hands:2,cz:1.5,vpx:.5,fist:[.9,1.6],fore:[10.5,2.2,-1.4],
+  boxes:[[0,-.6,.7,2.6,2.6,2.3,'D','u'],[2.6,1.2,.9,5.6,1.9,2.1,'D','u'],[6,2,.7,21,3.8,2.3,'D','u'],[9,1.4,.1,15.5,4.3,2.9,'W','u'],
+   [9.6,1.4,2.9,10,4.3,2.95,'K','u'],[11,1.4,2.9,11.4,4.3,2.95,'K','u'],[12.4,1.4,2.9,12.8,4.3,2.95,'K','u'],[13.8,1.4,2.9,14.2,4.3,2.95,'K','u'],
+   [9.6,1.4,.05,10,4.3,.1,'K','u'],[11,1.4,.05,11.4,4.3,.1,'K','u'],[12.4,1.4,.05,12.8,4.3,.1,'K','u'],[13.8,1.4,.05,14.2,4.3,.1,'K','u'],
+   [0,2.6,0,8,7,3,'B'],[0,7,.4,8,7.6,2.6,'D'],[8,4.3,.6,24,6.5,2.4,'M'],[8,6.5,1.1,23,7,1.9,'D'],[22.4,7,1.25,23.1,7.6,1.75,'G'],
+   [-.15,3.7,.9,0,4.1,2.1,'G'],[-.15,5.6,.9,0,6,2.1,'G'],[-.1,7.6,1.1,.9,8.2,1.9,'D'],
+   [9,6.5,.6,23,6.6,2.4,'K'],[3,7.6,1,6,7.7,2,'K'],
+   [1.2,3.2,3,7.2,5.6,3.3,'D'],[1.6,3.5,3.3,2.6,5.3,3.6,'R'],[3,3.5,3.3,4,5.3,3.6,'R'],[4.4,3.5,3.3,5.4,5.3,3.6,'R'],[5.8,3.5,3.3,6.8,5.3,3.6,'R'],
+   [1.6,3.5,3.6,2.6,4.1,3.62,'Y'],[3,3.5,3.6,4,4.1,3.62,'Y'],[4.4,3.5,3.6,5.4,4.1,3.62,'Y'],[5.8,3.5,3.6,6.8,4.1,3.62,'Y']]}
+};
+var FPX={on:1,cx:-20,cy:15,F:1.25,vpy:.47,clip:-.6,k:2.25,ar:-.12,as:1.05,lr:.28,ls:.82};
+function gunPxProj(spec,W2,H2,kick){const CY=spec.cy||FPX.cy,F=FPX.F*W2,VX=W2*spec.vpx+Math.sin(FP.bob)*W2*.008,VY=H2*FPX.vpy+Math.abs(Math.cos(FP.bob))*H2*.006,kb=kick*1.3,rise=kick*.045,cz=spec.cz;
+  return (x,y,z)=>{const xx=x-kb,yy=y+Math.max(0,xx)*rise,dz=Math.max(.5,xx-FPX.cx);return [VX+(z-cz)*F/dz,VY-(yy-CY)*F/dz];};}
+function gunPxLayer(o,spec,P,acc,now,layer,W2){
+  const COL={B:'#59606e',D:'#343944',M:'#474d5a',S:'#c9d1dc',W:'#6e4024',R:'#c8303c',Y:'#e0b040',K:'#0b0c11',G:acc};
+  const cz=spec.cz,cy=spec.cy||FPX.cy,sp=W2/95;
+  const bs=spec.boxes.filter(b=>(b[7]==='u')===(layer==='u')).map(b=>{const c=b.slice();c[0]=Math.max(c[0],FPX.clip);return c;}).filter(b=>b[3]>b[0])
+    .sort((a,b)=>(b[0]-a[0])||(Math.abs((b[2]+b[5])/2-cz)-Math.abs((a[2]+a[5])/2-cz)));
+  let seed=1;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const face=(pts,col,tex,strip)=>{o.save();o.beginPath();pts.forEach((p,i)=>i?o.lineTo(p[0],p[1]):o.moveTo(p[0],p[1]));o.closePath();o.fillStyle=col;o.fill();
+    if(tex||strip){o.clip();const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+      if(strip){o.fillStyle=shade(col,.2);o.fillRect(x0,y0,(x1-x0)*.22,y1-y0);}
+      if(tex){const n=Math.min(18,Math.round((x1-x0)*(y1-y0)/(sp*sp*6)));for(let q=0;q<n;q++){o.fillStyle=q%2?shade(col,-.12):shade(col,.09);o.fillRect(x0+rnd()*(x1-x0),y0+rnd()*(y1-y0),sp,sp);}}}
+    o.restore();};
+  for(const [x0,y0,z0,x1,y1,z1,ck] of bs){const c=COL[ck],glow=ck==='G',big=(z1-z0)*(y1-y0)>3&&ck!=='K';
+    if(glow){o.shadowColor=acc;o.shadowBlur=W2*.025*(1+.3*Math.sin(now/220));}
+    if(cy>y1)face([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)],glow?shade(c,.3):shade(c,.24),big,false);
+    if(cz>z1)face([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],shade(c,-.3),big,false);
+    if(cz<z0)face([P(x0,y0,z0),P(x1,y0,z0),P(x1,y1,z0),P(x0,y1,z0)],shade(c,-.3),big,false);
+    face([P(x0,y0,z0),P(x0,y0,z1),P(x0,y1,z1),P(x0,y1,z0)],c,big,big);
+    o.shadowBlur=0;}}
+function pxBuf(g,fn){const k=FPX.k,W=g.canvas.width,H=g.canvas.height,w=Math.ceil(W/k),h=Math.ceil(H/k);
+  if(!PIXB.c||PIXB.c.width!==w||PIXB.c.height!==h)PIXB.c=cvs(w,h);const o=PIXB.c.getContext('2d');o.setTransform(1,0,0,1,0,0);o.clearRect(0,0,w,h);o.imageSmoothingEnabled=false;o.setTransform(1/k,0,0,1/k,0,0);
+  fn(o);const id=o.getImageData(0,0,w,h),d=id.data;for(let i=3;i<d.length;i+=4)d[i]=d[i]<120?0:255;o.putImageData(id,0,0);
+  g.save();g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;g.drawImage(PIXB.c,0,0,w*k,h*k);g.restore();}
+{const _fhX=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire'),it=h.eq.gun,spec=it&&GUNPX[it.k];
+  if(!FPX.on||!(gunMode&&it)||!spec)return _fhX.apply(this,arguments);
+  const d=ITEMS[it.k],acc=d.c||'#3fe8ff',kick=FPR.fk!=null?FPR.fk:Math.max(0,1-(now-FP.kick)/220),P=gunPxProj(spec,W2,H2,kick),S=Math.max(3,W2/44);
+  g.save();g.globalAlpha=1;
+  const rf=P(spec.fist[0],spec.fist[1],1.5);
+  if(spec.hands===2){const lf=P(spec.fore[0],spec.fore[1],spec.fore[2]!=null?spec.fore[2]:1.5);fpArm(g,W2,H2,now,lf[0],lf[1],FPX.lr,true,FPX.ls);}
+  pxBuf(g,o=>gunPxLayer(o,spec,P,acc,now,'u',W2));
+  fpArm(g,W2,H2,now,rf[0],rf[1],FPX.ar,false,FPX.as);
+  pxBuf(g,o=>gunPxLayer(o,spec,P,acc,now,'o',W2));
+  // muzzle flash: blocky burst at the barrel tip, stays attached to the gun
+  if(kick>.3){let mx=0,my=0,mz=1.5;for(const b of spec.boxes)if(b[3]>mx&&b[6]!=='G'){mx=b[3];my=(b[1]+b[4])/2;mz=(b[2]+b[5])/2;}
+    const [fx,fy]=P(mx+.6,my+.6,mz),bul=!!d.ammo;pxBuf(g,o=>{const R=W2*.075*kick;o.fillStyle=bul?'#ffb03c':acc;o.globalAlpha=Math.min(1,kick*1.4);
+      for(let a=0;a<8;a++){const an=a*Math.PI/4+now/90,l=R*(a%2?.6:1);o.save();o.translate(fx,fy);o.rotate(an);o.fillRect(0,-R*.12,l,R*.24);o.restore();}
+      o.fillStyle=bul?'#fff3c0':'#e8ffff';o.beginPath();o.arc(fx,fy,R*.38,0,7);o.fill();o.globalAlpha=1;});}
+  // counter (left, above the look stick)
+  const mxc=Math.max(d.ch||1,typeof gunMax==='function'?(gunMax(it)||1):1),bw=S*7,bh=S*3.6,bx=W2*.04,by=H2*.6;
+  g.fillStyle='rgba(8,10,16,.82)';g.fillRect(bx,by,bw,bh);g.fillStyle='#cfd6e0';g.fillRect(bx,by,bw,Math.max(1,S*.2));g.font=`bold ${Math.round(S*1.3)}px ui-monospace,monospace`;g.textBaseline='top';
+  const bul=!!d.ammo;g.fillStyle=bul?'#e0b040':acc;g.textAlign='left';g.fillText(bul?'RND':'CHG',bx+S*.4,by+S*.4);g.textAlign='right';g.fillStyle=it.ch>0?'#f2f6fb':'#ff3b4e';g.fillText(String(Math.max(0,it.ch|0))+'/'+mxc,bx+bw-S*.4,by+S*.4);
+  const n=Math.min(mxc,12),pw=(bw-S*.8)/n;for(let j=0;j<n;j++){g.fillStyle=j<Math.round(it.ch/mxc*n)?(bul?'#e0b040':acc):'#2a2e38';g.fillRect(bx+S*.4+j*pw,by+bh-S*1.1,Math.max(1,pw-S*.2),S*.6);}
+  g.restore();};}
+
+// ===================== v0.41 test: Taser Knuckles + Machete =====================
+ITEMS.gauntlets.name='Taser Knuckles';
+ITEMS.gauntlets.desc='Gunmetal knuckle duster with a capacitor in the grip. Every punch dumps a taser charge. Very fast.';
+
+// ---- knuckle duster drawn ON the first-person fist (arm-local coords, same block style as the arm) ----
+// kind: 'taser' (gunmetal + live electrodes) | 'brass'
+function knuxOnFist(g,R,u,aw,Lr,hand,dd,t,kind){
+  const tz=kind==='taser',M=tz?'#3c424e':'#b8862c',ML=tz?'#8e99ab':'#f2cf6a',MD=tz?'#1b1e25':'#6a4812',MS=tz?'#2a2e37':'#8a6418';
+  const n=4,rw=aw/n,top=-Lr-3.2*u;
+  // bar across the knuckles (front + side face)
+  R(-aw/2-.8*u,-Lr+3.6*u,aw+1.6*u,3.4*u,M);R(-aw/2-.8*u,-Lr+3.6*u,aw+1.6*u,.9*u,ML);R(-aw/2-.8*u,-Lr+6.3*u,aw+1.6*u,.7*u,MD);
+  g.fillStyle=MS;g.beginPath();g.moveTo(aw/2+.6*u,-Lr+3*u);g.lineTo(aw/2+.6*u+dd,-Lr+3*u+dd*.5);g.lineTo(aw/2+.6*u+dd,-Lr+7*u+dd*.5);g.lineTo(aw/2+.6*u,-Lr+7*u);g.fill();
+  if(tz){R(-aw/2+.4*u,-Lr+4.8*u,aw-.8*u,1*u,'#ffd23a');for(let q=0;q<6;q++)R(-aw/2+.8*u+q*aw/6,-Lr+4.8*u,1.1*u,1*u,'#14161c');}
+  // four finger rings, arched like the reference (outer two sit lower)
+  for(let i=0;i<n;i++){const x0=-aw/2+i*rw+.1*u,lift=(i===0||i===n-1)?1.2*u:0,y0=top+lift,w=rw-.2*u,h=7.2*u;
+    R(x0,y0,w,h,M);R(x0,y0,w,.8*u,ML);R(x0,y0,.8*u,h,ML);R(x0+w-.8*u,y0+.8*u,.8*u,h-.8*u,MD);R(x0,y0+h-.7*u,w,.7*u,MD);
+    R(x0+1.1*u,y0+1.5*u,w-2.2*u,3.6*u,'#d9a988');R(x0+1.1*u,y0+1.5*u,w-2.2*u,.8*u,'#a87a5c'); // finger through the ring
+    if(tz){R(x0+w/2-.5*u,y0-1*u,1*u,1*u,'#14161c');R(x0+w/2-.3*u,y0-1.2*u,.6*u,.6*u,'#3af5f5');}}
+  if(!tz)return;
+  // live arcs between electrodes: flicker always, bigger on a punch
+  const pk=Math.max(0,1-(performance.now()-(FP.kick||0))/300),hot=.35+pk*.65;
+  g.save();g.globalCompositeOperation='lighter';
+  const ex=i=>-aw/2+i*rw+rw/2,ey=i=>top+((i===0||i===n-1)?1.2*u:0)-1*u;
+  const arc=(a,b,amp,col,wd)=>{g.strokeStyle=col;g.lineWidth=wd;g.beginPath();g.moveTo(ex(a),ey(a));const segs=5;for(let s=1;s<segs;s++){const f=s/segs;g.lineTo(ex(a)+(ex(b)-ex(a))*f+(Math.random()-.5)*amp*.4,ey(a)+(ey(b)-ey(a))*f-Math.random()*amp);}g.lineTo(ex(b),ey(b));g.stroke();};
+  const fl=Math.floor(t*14);
+  if(fl%3!==0||pk>0){g.globalAlpha=hot;for(let i=0;i<n-1;i++)if((fl+i)%2||pk>0)arc(i,i+1,2.4*u*(1+pk*2),'#3af5f5',.9*u);
+    g.globalAlpha=hot*.9;for(let i=0;i<n-1;i++)if((fl+i)%2||pk>0)arc(i,i+1,1.2*u,'#e8ffff',.4*u);}
+  if(pk>.15){g.globalAlpha=pk;const cx=0,cy=top-4*u;for(let r=0;r<7;r++){const an=r*0.9+t*20;arc(1,2,6*u*pk,'#7ff8ff',.6*u);g.fillStyle='#e8ffff';g.fillRect(cx+Math.cos(an)*6*u*pk-.5*u,cy+Math.sin(an)*3*u*pk-.5*u,u,u);}}
+  g.restore();}
+// hook into the arm painter (insert point patched into drawHand): window.__kn = 'taser'|'brass'|null
+
+// ---- route knuckle weapons to real fists in first person ----
+{const _fhK=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire'),m=h.eq.melee;
+  if(!(gunMode&&h.eq.gun)&&m&&(m.k==='gauntlets'||m.k==='knuckles')&&imp('mantis')<=0){window.__kn=m.k==='gauntlets'?'taser':'brass';try{fpFists(g,W2,H2,u,now);}finally{window.__kn=null;}return;}
+  return _fhK.apply(this,arguments);};}
+
+// ---- bag icons (16px grid, auto-outlined) ----
+ICON2.gauntlets=function(R){const M='#3c424e',L='#8e99ab',D='#1b1e25',Y='#ffd23a',E='#3af5f5';
+  // rings (arched)
+  const ring=(x,y)=>{R(x,y,4,4,M);R(x,y,4,1,L);R(x,y,1,4,L);R(x+3,y+1,1,3,D);R(x+1,y+1,2,2,'rgba(0,0,0,0)');};
+  ring(0,4);ring(4,3);ring(8,3);ring(12,4);
+  // holes
+  for(const [x,y] of [[1,5],[5,4],[9,4],[13,5]]){R(x,y,2,2,'#0b0c10');}
+  // bar + palm grip
+  R(1,8,14,2,M);R(1,8,14,1,L);R(2,9,12,1,Y);for(const x of [3,6,9,12])R(x,9,1,1,'#14161c');
+  R(3,10,10,2,M);R(3,11,10,1,D);R(5,10,6,1,'#0b0c10');R(2,12,12,1,M);R(2,12,12,1,D);
+  // electrodes + spark
+  R(6,2,1,1,E);R(10,2,1,1,E);R(7,1,1,1,'#e8ffff');R(9,1,1,1,E);R(8,2,1,1,'#7ff8ff');};
+ICON2.machete=function(R){const S='#c9d1dc',L='#f2f6fb',D='#5a6272',K='#1a1c22',O='#ff6a2a';
+  // blade diagonal, wide with clipped tip
+  for(let t=0;t<9;t++){R(5+t,9-t,1,1,D);R(6+t,9-t,1,1,S);R(6+t,10-t,1,1,S);R(7+t,10-t,1,1,L);}
+  R(14,1,1,1,L);R(13,1,1,1,S);R(15,2,1,1,L);R(9,6,1,1,O);R(10,5,1,1,O);
+  // guard + grip with rivets
+  R(4,10,3,1,'#4a4f5a');R(5,11,1,1,'#4a4f5a');
+  R(3,11,2,2,K);R(2,12,2,2,K);R(1,13,2,2,K);R(3,12,1,1,'#e0b040');R(2,13,1,1,'#e0b040');R(1,15,1,1,'#7a8090');};
+
+// ---- big inspect art (48px, hand-placed blocks, scaled 4x in the detail panel) ----
+function bigKnux(){return SPR.big_knux_c||(SPR.big_knux_c=(()=>{const c=cvs(48,40),g=c.getContext('2d'),P=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const M='#3c424e',L='#9aa5b8',LL='#d7dee9',D='#1b1e25',S='#2a2e37',Y='#ffd23a',E='#3af5f5',EL='#e8ffff';
+  const ring=(x,y,w,h)=>{P(x,y,w,h,D);P(x+1,y+1,w-2,h-2,M);P(x+1,y+1,w-2,2,L);P(x+1,y+1,2,h-2,L);P(x+2,y+1,w-5,1,LL);P(x+w-3,y+3,2,h-4,S);
+    P(x+4,y+4,w-8,h-8,D);P(x+5,y+5,w-10,h-10,'rgba(0,0,0,0)');g.clearRect(x+5,y+5,w-10,h-10);};
+  ring(1,9,12,12);ring(11,5,13,13);ring(23,5,13,13);ring(35,9,12,12);
+  // bar
+  P(2,19,44,7,D);P(3,20,42,5,M);P(3,20,42,1,LL);P(3,21,42,1,L);P(3,24,42,1,S);
+  for(let x=5;x<43;x+=6){P(x,22,3,2,Y);P(x+3,22,3,2,'#14161c');}
+  // palm grip with capacitor window
+  P(8,25,32,9,D);P(9,26,30,7,M);P(9,26,30,1,L);P(9,32,30,1,S);g.clearRect(13,27,22,4);P(13,27,22,4,'#071a1e');P(14,28,20,2,'#0e4a52');P(14,28,6,2,E);P(21,28,5,2,'#1a8a94');
+  P(6,34,36,4,D);P(7,34,34,2,M);P(7,34,34,1,L);
+  // electrodes on the two middle rings + outer rings
+  for(const [x,y] of [[16,2],[28,2],[6,6],[40,6]]){P(x,y,4,3,D);P(x+1,y,2,2,E);P(x+1,y,1,1,EL);}
+  // arcs
+  g.strokeStyle=E;g.lineWidth=1;g.beginPath();g.moveTo(18,2);g.lineTo(21,0);g.lineTo(23,3);g.lineTo(26,0);g.lineTo(29,2);g.stroke();
+  g.strokeStyle=EL;g.beginPath();g.moveTo(8,6);g.lineTo(10,3);g.lineTo(13,5);g.lineTo(17,2);g.stroke();
+  return c;})());}
+function bigMachete(){return SPR.big_mach_c||(SPR.big_mach_c=fpm2Canvas('machete',FPM_DRAW.machete));}
+
+// ---- Machete first-person sprite (44px, same pipeline as the katana) ----
+FPM_DRAW.machete=function(px){const G1='#1c1f26',G2='#2c313b',RV='#e0b040';
+  fpmDiag(px,4,40,0,37,t=>{
+   if(t<=1)return [0,['#5a6070','#8a90a0','#5a6070']];
+   if(t<=9){const rv=(t===3||t===7);return [0,[G1,rv?RV:G2,rv?RV:G2,G1]];}
+   if(t<=11)return [-2,['#2a2e37','#5a6272','#8a94a6','#aab4c4','#8a94a6','#5a6272','#2a2e37']];
+   const w=t<15?5:t<20?6:t<26?8:t<31?9:t<33?8:t<34?6:t<35?4:t<36?3:t<37?2:1;
+   const ramp=['#3a3f48','#5e6878','#7a8494','#8a94a4','#9aa4b4','#aab4c4','#c4ccd8','#e6edf6','#ffffff'];
+   const cols=ramp.slice(ramp.length-w);cols[0]='#3a3f48';cols[w-1]='#ffffff';if(w>2)cols[w-2]='#e6edf6';
+   if(t===22||t===29)cols[w-1]=null;
+   if(t>=15&&t<=23&&w>3)cols[2]=(t%2)?'#ff6a2a':'#c84a1a';
+   return [0,cols];});};
+// detail panel: show the big art for the two test items
+{const _dhK=detailHTML;detailHTML=function(it,ref){let html=_dhK.apply(this,arguments);try{if(it&&(it.k==='gauntlets'||it.k==='machete')){const c=it.k==='gauntlets'?bigKnux():bigMachete(),z=it.k==='gauntlets'?5:6;
+  const url=c.toDataURL();html=`<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="background:radial-gradient(circle,#1a2230,#080a10);border:1px solid #2a3444;border-radius:6px;padding:10px"><img src="${url}" style="width:${c.width*z/2}px;height:${c.height*z/2}px;image-rendering:pixelated"></div></div>`+html;}}catch(e){}return html;};}
+// top-down held sprite: duster rings on both fists
+{const _dhd=drawHeld;drawHeld=function(R,k,o,f,c){if(k==='gauntlets'){for(const x of [3,10]){R(x,9+o,3,2,'#3c424e');R(x,9+o,3,1,'#8e99ab');R(x+1,8+o,1,1,'#3af5f5');}if(f)R(12,7+o,1,1,'#e8ffff');return;}return _dhd.apply(this,arguments);};}
+
+// ===================== v0.41 test: Baseball Bat =====================
+def('bat',{type:'melee',name:'Baseball Bat',t:1,acc:1.05,dly:1,dm:1.05,icon:'club',c:'#c08a4a',forever:1,
+  desc:'Classic home protection at its finest. Long before the tower, it was the first line of defense — and for most people down here, it still is.'});
+const BATW=['#4a2e16','#7a4e26','#a06a36','#c48a4e','#e2b070','#f6d39a'];
+FPM_DRAW.bat=function(px){const T1='#14161c';
+  // round club: symmetric light down the middle so it reads as a cylinder, domed tip
+  const cyl=w=>{const o=[];for(let j=0;j<w;j++){const c=(j+.5)/w,d=Math.abs(c-.42);o.push(d<.12?BATW[5]:d<.24?BATW[4]:d<.36?BATW[3]:d<.46?BATW[2]:BATW[1]);}o[0]=BATW[0];o[w-1]=BATW[0];return o;};
+  const tape=w=>{const o=[];for(let j=0;j<w;j++)o.push(j===0||j===w-1?T1:j===1?'#3a3f4a':'#22252d');return o;};
+  fpmDiag(px,4,40,0,38,t=>{
+   if(t<=1)return [-1,cyl(5)];                                   // flared knob
+   if(t<=10){const c=tape(3);if(t%3===0)c[1]='#5a6070';return [0,c];}  // taped handle
+   if(t===11)return [0,cyl(3)];
+   const w=t<15?3:t<19?4:t<23?5:t<27?6:t<29?7:8;
+   if(t<=34){const c=cyl(w);if(t>=29&&t<=31){c[3]='#3a2412';}if(t===24)c[1]='#5a3a1e';return [0,c];}
+   // domed end: shrink from both sides so the top is round
+   const cap={35:[0,8],36:[1,7],37:[1,6],38:[2,4]}[t];if(!cap)return null;return [cap[0],cyl(cap[1])];});};
+ICON2.bat=function(R){const W0=BATW;
+  R(1,14,2,1,'#14161c');R(2,13,1,1,'#14161c');R(3,12,1,1,'#14161c');R(1,15,1,1,W0[2]);     // tape + knob
+  for(let i=0;i<10;i++){const x=4+i,y=11-i,w=i<3?1:2;R(x,y,1,w,i<3?W0[3]:W0[4]);if(i>=3)R(x,y+w,1,1,W0[1]);if(i>=5)R(x+1,y,1,1,W0[3]);}
+  R(13,2,2,1,W0[4]);R(14,1,1,1,W0[3]);R(9,6,1,1,'#3a2412');R(10,5,1,1,'#3a2412');};
+{const _dhb=drawHeld;drawHeld=function(R,k,o,f,c){if(k==='bat'){R(12,9+o,1,2,'#14161c');R(12,3+o,2,6,'#b07a42');R(13,3+o,1,6,'#e2b070');R(12,2+o,2,1,'#8a5a2e');return;}return _dhb.apply(this,arguments);};}
+{const _dhB=detailHTML;detailHTML=function(it,ref){let html=_dhB.apply(this,arguments);try{if(it&&it.k==='bat'){const c=fpm2Canvas('bat',FPM_DRAW.bat),url=c.toDataURL();
+  html=`<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="background:radial-gradient(circle,#1a2230,#080a10);border:1px solid #2a3444;border-radius:6px;padding:10px"><img src="${url}" style="width:${c.width*3}px;height:${c.height*3}px;image-rendering:pixelated"></div></div>`+html;}}catch(e){}return html;};}
+
+// ===================== v0.41 fixes =====================
+// weapon layout: bigger first-person guns + melee (concept C sizes)
+Object.assign(FPVM,{gs:1.15,gx:.66,gy:.84,mx:.6,my:.8,ms:2.2});
+
+// compare panel: fist implants / knuckle weapons count as your fists, not "bare fists"
+{const _dh41=detailHTML;detailHTML=function(it,ref){let html=_dh41.apply(this,arguments);try{if(it&&ITEMS[it.k]&&ITEMS[it.k].type==='melee'&&!G.hero.eq.melee){
+  const fi=['knux','gorilla','breaker'].find(k=>imp(k)>0);if(fi){const nm={knux:'Shock Knuckles',gorilla:'IronArms',breaker:'Breaker Arms'}[fi];html=html.replace(/your bare fists/g,'your '+nm).replace(/bare fists/g,nm);}}}catch(e){}return html;};}
+
+// throwing knives: never hide in the 3rd ranged slot — they go in hand, the gun moves to slot 3
+{const _et41=equipThrow;equipThrow=function(it){const r=_et41.apply(this,arguments);try{const h=G.hero,g3=h.eq.gun3;if(g3&&ITEMS[g3.k].type==='throw'){const g=h.eq.gun;h.eq.gun=g3;h.eq.gun3=g;if(g)log(`${itemName(g3)} in hand. ${itemName(g)} moved to your 3rd ranged slot.`,'');refresh();}}catch(e){}return r;};}
+// first-person: throwables drawn in the fist with a count (no more CHG 0/NaN)
+{const _fh41=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire'),it=h.eq.gun;
+  if(!(gunMode&&it&&ITEMS[it.k].type==='throw'))return _fh41.apply(this,arguments);
+  const fl=Math.min(1,(now-(FP.flick||0))/240),fk=fl<1?Math.sin(fl*Math.PI):0,P=Math.max(2,Math.round(u*3.4)),fx=W2*.62,fy=H2*.8;
+  g.save();g.translate(fx,fy);g.rotate(-.2-fk*1.1);g.imageSmoothingEnabled=false;const ic=itemIcon(it),z=16*P*1.6;g.drawImage(ic,-z*.1,-z*.9,z,z);g.restore();
+  fpArm(g,W2,H2,now,fx,fy+3*P,.1-fk*.4,false,1);
+  const S=Math.max(3,W2/44),bw=S*7,bh=S*2.6,bx=W2*.04,by=H2*.6;g.fillStyle='rgba(8,10,16,.82)';g.fillRect(bx,by,bw,bh);g.font=`bold ${Math.round(S*1.3)}px ui-monospace,monospace`;g.textBaseline='top';
+  g.fillStyle='#cfd6e0';g.textAlign='left';g.fillText('THR',bx+S*.4,by+S*.5);g.textAlign='right';g.fillStyle='#f2f6fb';g.fillText('×'+(it.q|0),bx+bw-S*.4,by+S*.5);};}
+
+// message history: close button on top, capped height, newest first
+logHistory=function(){const H=(G&&G.hist)||[];let body='',cur=null;
+  for(let j=H.length-1;j>=Math.max(0,H.length-250);j--){const e=H[j];if(e.f!==cur){if(cur!==null)body+='</div>';cur=e.f;body+=`<h5 style="margin:10px 0 4px">${floorLbl(e.f)}</h5><div>`;}
+    body+=`<p class="${e.c}" style="margin:2px 0;font-size:12px"><span class="dim">T${e.t}</span> ${String(e.m).replace(/</g,'&lt;')}</p>`;}
+  if(cur!==null)body+='</div>';if(!H.length)body='<p class="dim">Nothing logged yet this run.</p>';
+  openModal(`<div class="mhead" style="position:sticky;top:0;z-index:2;background:#0b0e16;padding-bottom:6px"><h2>MESSAGE LOG</h2><button class="x" style="min-width:44px;min-height:44px;font-size:20px" onclick="closeModal()">✕</button></div><div style="max-height:62vh;overflow:auto">${body}</div><div class="row"><button class="btn go" style="width:100%;min-height:44px" onclick="closeModal()">CLOSE</button></div>`);};
+
+// IMMUNE feedback when gas/fire can't touch a target
+function immune41(m,what){if(!m||m.hp<=0)return;const t=G.turn||0;if((m._imT||-99)+5>t)return;m._imT=t;fx({t:'txt',p:m.pos,s:'IMMUNE',c:'#9aa7b4'});if(MOBS[m.k].boss&&!m._imLog){m._imLog=1;log(`${mobName(m)} shrugs off the ${what}. ${what==='gas'?'Machines do not breathe.':'It runs hotter than that.'}`,'warn');}}
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
