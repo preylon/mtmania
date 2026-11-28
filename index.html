@@ -708,7 +708,7 @@ function tryGen(depth){
       else{const y=rr(c.y0+1,c.y1-1),wx=e==='w'?c.x0:c.x1;L.map[idx(wx,y)]=T.DOOR;c.doors.push(idx(wx,y));if(e==='w')for(let x=R0;x<wx;x++)set(x,y);else for(let x=wx+1;x<=R1;x++)set(x,y);}}}
   for(let k=R0;k<=R1;k++){const pat=(k%3)!==0;for(const i of [idx(k,R0-1),idx(k,R1+1),idx(R0-1,k),idx(R1+1,k)])if(L.map[i]===T.WALL&&pat)L.map[i]=T.WINDOW;}
   L.view=1;
-  if(depth>1&&chance(.6)){const side=[1,2,3][rnd(3)];const at=(k,dd)=>side===1?idx(R0-dd,k):side===2?idx(R1+dd,k):idx(k,R0-dd);const wl=t=>t===T.WALL||t===T.WINDOW;for(let tries=0;tries<12;tries++){const a=rr(R0+4,R1-10),bl=rr(3,5);const e0=a-1,e1=a+bl;if(L.map[at(e0,0)]!==T.FLOOR||L.map[at(e1,0)]!==T.FLOOR||!wl(L.map[at(e0,-1)])||!wl(L.map[at(e1,-1)]))continue;let ok=true;for(let k=a;k<a+bl;k++)if(L.map[at(k,0)]!==T.FLOOR)ok=false;if(!ok)continue;for(let k=a;k<a+bl;k++){L.map[at(k,1)]=T.RAIL;const sk=at(k,2);if(sk>=0&&sk<N&&(side===2?R1+2<W:R0-2>=0))L.map[sk]=T.SKY;}L.map[at(e0,0)]=T.DOOR;L.map[at(e1,0)]=T.DOOR;L.balcD=[at(e0,0),at(e1,0)];L.view=2;break;}}
+  if(depth>1&&chance(.6)){const side=[1,2][rnd(2)];const at=(k,dd)=>side===1?idx(R0-dd,k):side===2?idx(R1+dd,k):idx(k,R0-dd);const wl=t=>t===T.WALL||t===T.WINDOW;for(let tries=0;tries<12;tries++){const a=rr(R0+4,R1-10),bl=rr(3,5);const e0=a-1,e1=a+bl;if(L.map[at(e0,0)]!==T.FLOOR||L.map[at(e1,0)]!==T.FLOOR||!wl(L.map[at(e0,-1)])||!wl(L.map[at(e1,-1)]))continue;let ok=true;for(let k=a;k<a+bl;k++)if(L.map[at(k,0)]!==T.FLOOR)ok=false;if(!ok)continue;for(let k=a;k<a+bl;k++){L.map[at(k,1)]=T.RAIL;const sk=at(k,2);if(sk>=0&&sk<N&&(side===2?R1+2<W:R0-2>=0))L.map[sk]=T.SKY;}L.map[at(e0,0)]=T.DOOR;L.map[at(e1,0)]=T.DOOR;L.balcD=[at(e0,0),at(e1,0)];L.view=2;break;}}
   // roles
   const entry=pick(real); entry.type='entry';
   let exit=null,bd=-1;for(const c of real){if(c===entry)continue;const d=Math.abs(c.cx-entry.cx)+Math.abs(c.cy-entry.cy)+Math.random();if(d>bd){bd=d;exit=c;}}
@@ -3715,7 +3715,7 @@ function fpFrame(now){
   const RW=240,RH=Math.max(160,Math.min(600,Math.round(RW*RD.h/RD.w)));
   if(!FP.buf||FP.buf.width!==RW||FP.buf.height!==RH){FP.buf=cvs(RW,RH);FP.img=FP.buf.getContext('2d').createImageData(RW,RH);FP.z=new Float32Array(RW);FP.sd=new Float32Array(RW);FP.st=new Float32Array(RW);}
   const shk=(RD.shake||0)>0?(Math.random()-.5)*RD.shake:0;RD.shake=Math.max(0,(RD.shake||0)-dt*20);
-  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*.46+shk),fov={narrow:.58,normal:.72,wide:.85,ultra:1.0}[FP.set.fov]||.72,U=RW/(2*fov),out=!!L.street;
+  const D=FP.img.data,M=FP.mapData,MW=W*16,horizon=Math.round(RH*(.46+.3*(FP.pitch||0))+shk),fov={narrow:.58,normal:.72,wide:.85,ultra:1.0}[FP.set.fov]||.72,U=RW/(2*fov),out=!!L.street;
   const dx=Math.sin(FP.ang),dy=-Math.cos(FP.ang),px=-dy*fov,py=dx*fov;
   const shadeOf=(i,dist)=>{if(!L.seen[i])return 0;let s=L.vis&&L.vis[i]?1:.4;return s/(1+dist*dist*.03);};
   const faces=fpFaceList(L),pulse=t=>.78+.22*Math.sin(now/260+t);
@@ -3729,7 +3729,7 @@ function fpFrame(now){
     for(let x=0,o=o0;x<RW;x++,fx_+=sx,fy_+=sy,o+=4){const tx=Math.floor(fx_),ty=Math.floor(fy_);
       if(tx<0||ty<0||tx>=W||ty>=H){D[o]=D[o+1]=D[o+2]=4;D[o+3]=255;continue;}
       const i=ty*W+tx,s=shadeOf(i,dist),u=((fx_-tx)*16)|0,v=((fy_-ty)*16)|0;
-      if(floor){const sb=FP.fsub&&FP.fsub[i],tx2=sb>=0?sb%W:tx,ty2=sb>=0?(sb/W|0):ty;const m=((ty2*16+v)*MW+tx2*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;}
+      if(floor){const sb=FP.fsub&&FP.fsub[i],tx2=sb>=0?sb%W:tx,ty2=sb>=0?(sb/W|0):ty;const m=((ty2*16+v)*MW+tx2*16+u)*4;D[o]=M[m]*s;D[o+1]=M[m+1]*s;D[o+2]=M[m+2]*s;const cv=FP.cl&&FP.cl[i];if(cv>0){const k2=Math.min(1,cv);D[o]=Math.min(255,D[o]*(1-k2*.3)+255*k2*Math.max(s,.45));D[o+1]=D[o+1]*(1-k2*.6)+30*k2;D[o+2]=D[o+2]*(1-k2*.5)+50*k2;}}
       else if(out&&OUT&&OUT[i]){const f=y/horizon,sk=SK[x],bh=BH[x];let r=10+f*40,gg=8+f*14,b=34+f*40;if(y>bh){r=14;gg=12;b=26;const wq=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*90)*12.9898+Math.floor((horizon-y)/3)*78.233)*43758.5)%1+1)%1;if(wq>.86&&((horizon-y)%3)!==0){r=wq>.95?120:255;gg=wq>.95?220:200;b=wq>.95?235:120;}}else{const st=((Math.sin(Math.floor((FP.ang+(x/RW-.5)*fov*1.6)*160)*91.7+y*47.3)*43758.5)%1+1)%1;if(st>.997&&y<horizon*.6){r=gg=b=200;}}D[o]=r;D[o+1]=gg;D[o+2]=b;}
       else{let r=22,gg=20,b=30;if(u===0||v===0){r=12;gg=11;b=18;}if(L.map[i]===T.SKY){r=14;gg=12;b=40;}else if((tx*3+ty*5)%7===0&&u>3&&u<12&&v>5&&v<10){r=150;gg=230;b=235;}else if((tx+ty)%11===0&&u>5&&u<10&&v>5&&v<10){r=255;gg=190;b=120;}
         const sc=Math.max(s,.18);D[o]=r*sc+3;D[o+1]=gg*sc+3;D[o+2]=b*sc+5;}
@@ -3979,6 +3979,7 @@ function camLOS(c,hp){try{const L=G.L,onWall=wallish(L,c);if(onWall&&Y(hp)<=Y(c)
 {const _vt2=vendorTalk;vendorTalk=function(m){const r=_vt2.apply(this,arguments);try{const hs=document.querySelectorAll('#modal .mhead h2'),h2=hs[hs.length-1];if(h2&&m&&m.vt&&VENDORS[m.vt])h2.innerHTML=esc(npcName(m)).toUpperCase()+' <small style="opacity:.7;font-size:.7em">· '+esc(VENDORS[m.vt].n).toUpperCase()+'</small>';}catch(e){}return r;};}
 // ---------- CHANGELOG + LEGEND
 const CHANGELOG=[
+ ['v0.41e','LOOK 360 now tilts up and down too. MESSAGE LOG colours: white for everyday lines, yellow for things you do, red for combat and deaths, green for good news. Wall slams are rare now (a bit of spice, not every fight). Security cameras sweep a red beam across the floor in first person too. Backhand Blades show in first person (a blade out of each forearm). Taser Knuckles and fists punch with a short jab and alternate hands (fixes the arm shooting up the screen). New first-person Minigun with a spinning six-barrel cluster. Balconies only on the west and east outer walls.'],
  ['v0.41c','ELEVATORS are back in fixed spots: the way UP is always on the north edge near the middle, the way DOWN on the south edge, flush in the wall. SURGICAL POD in first person is a real capsule: white shell, glass with reflections, pulsing side rims (cyan idle, red while it works), four arms that reach in, you visible inside. Tapping a tile straight ahead walks straight. Cy-Step (was SilentStep Servos): quieter, springier legs, a bit harder to hit. JETT is rider-sized on a rebuilt hover sled; no more jumping, melee swings sometimes whiff on him, guns work. Allies shout when they are close to dying and can bleed after a heavy hit. WALK AWAY achievement only if every deserter you met walked. Balconies have a standing glass rail in first person. Gravity Hammer has a new sledge look.'],
  ['v0.41b','FIRST PERSON STREET: the buildings around the street now rise full height — storefronts on the ground floor, then stories of lit windows, ledges, vertical neon signs and billboards; the MTX tower is dark glass with a red MTX sign that goes off the top of the screen. Tower windows seen from the street are glass, not a view of the city.'],
  ['v0.41','FIRST PERSON WEAPONS: Tech Pistol and Scatter Shotgun redrawn in the same blocky style as your arms, held straight out (pistol one-handed, shotgun two-handed); recoil kicks but stays in your hands. Mono-Katana and Machete redrawn at twice the detail and sit in your fist. All first-person weapons are bigger. TASER KNUCKLES (were Shock Gauntlets): a gunmetal knuckle duster you can see on both fists, live arcs between the electrodes, a burst on every punch. Brass Knuckles show on your fists too. NEW: BASEBALL BAT. FIXES: turning cameras off at a security console stops the beams; standing in a beam gets you caught; throwing knives go in your hand instead of a hidden slot and show a count; the message log has a close button up top; first-person ◀ ▶ step sideways and « » turn; fire/gas immune enemies say IMMUNE; computers in first person no longer have a flat copy on the floor.'],
@@ -4077,7 +4078,7 @@ function showLegend(tab){const S=legendData();let cur=tab||0;
       else{(async()=>{try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(!dl){toast('Download not available here — use copy.');return;}await dl.save({filename:'mega-tower-mania-legend.txt',data:txt});}catch(e){toast('Download cancelled or blocked.');}})();}};};
   draw();}
 // title + menu hooks
-{const tl=$('.tlog');if(tl){tl.textContent='v0.41c · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
+{const tl=$('.tlog');if(tl){tl.textContent='v0.41e · LEGEND & CHANGELOG ▸';tl.style.pointerEvents='auto';tl.style.cursor='pointer';tl.onclick=()=>showLegend(0);}}
 
 // ---------- v0.11 boot terminal + techy creator
 function bootSeq(done){const b=$('#boot'),tx=$('#bootTx'),q=$('#bootQ');b.className='';tx.innerHTML='';q.textContent='';
@@ -4714,7 +4715,7 @@ function squadTab(){if(!G)return;const h=G.hero,al=allies().filter(a=>!a.cower);
   return _ma.apply(this,arguments);};}
 // ---------- knockback, glass, falls
 {const _ha=heroAttack;heroAttack=function(m){const h=G.hero,L=G.L,before=m.pos;const r=_ha.apply(this,arguments);
-  try{if(L.mobs.indexOf(m)<0||MOBS[m.k].boss||m.hp<=0)return r;const ch=Math.max(0,Math.min(.45,(h.str-10)*.06+(h.cls==='enforcer'?.08:0)+(imp('breaker')?.1:0)));if(!chance(ch))return r;
+  try{if(L.mobs.indexOf(m)<0||MOBS[m.k].boss||m.hp<=0)return r;const ch=Math.max(0,Math.min(.12,(h.str-10)*.012+(h.cls==='enforcer'?.03:0)+(imp('breaker')?.03:0)));if(!chance(ch))return r;
     const dx=Math.sign(X(m.pos)-X(h.pos)),dy=Math.sign(Y(m.pos)-Y(h.pos)),to=m.pos+dx+dy*W,t=L.map[to];
     if(t===T.RAIL){L.map[to]=T.SKY;mapChanged();m.pos=to;fx({t:'boom',p:to,c:'#cfefff',r:1});sfx('boom');log(`You shove the ${mobName(m)} through the glass. It drops out of sight.`,'hi');G.L.below=(G.L.below||0)+1;killMob(m);return r;}
     if(t===T.WALL||t===T.PILLAR){dmgMob(m,rr(1,4));log(`You slam the ${mobName(m)} into the wall.`);return r;}
@@ -7373,15 +7374,15 @@ function fitFloor(){RD.tiles=Math.max(W,H)+1;rdResize();saveOpts();try{toast('Zo
   const cs=document.createElement('style');cs.textContent='#fpStick{visibility:hidden!important;pointer-events:none!important}#fpStick2{position:fixed;z-index:31;width:112px;height:112px;border-radius:50%;border:2px solid rgba(63,232,255,.5);background:radial-gradient(circle,rgba(63,232,255,.12),rgba(8,10,18,.55));display:none;touch-action:none;bottom:calc(150px + env(safe-area-inset-bottom))}#fpStick2 .knob{position:absolute;left:38px;top:38px;width:36px;height:36px;border-radius:50%;background:rgba(63,232,255,.6);box-shadow:0 0 12px rgba(63,232,255,.6)}#fpStick2 .lab{position:absolute;bottom:-16px;width:100%;text-align:center;font:9px var(--px,monospace);color:rgba(63,232,255,.85)}';
   document.head.appendChild(cs);const st=document.createElement('div');st.id='fpStick2';st.innerHTML='<div class="knob"></div><div class="lab">LOOK 360</div>';document.body.appendChild(st);
   const knob=st.querySelector('.knob');let id=null,x0=0,v=0,last=0;FP.yaw=null;
-  st.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;try{st.setPointerCapture(id);}catch(_){}e.stopPropagation();e.preventDefault();});
-  st.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=Math.max(-42,Math.min(42,e.clientX-x0));knob.style.left=(38+dx)+'px';v=dx/42;e.stopPropagation();});
-  const end=e=>{if(e.pointerId!==id)return;id=null;v=0;knob.style.left='38px';e.stopPropagation();};
+  st.addEventListener('pointerdown',e=>{id=e.pointerId;x0=e.clientX;st._y0=e.clientY;try{st.setPointerCapture(id);}catch(_){}e.stopPropagation();e.preventDefault();});
+  st.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=Math.max(-42,Math.min(42,e.clientX-x0)),dy_=Math.max(-42,Math.min(42,e.clientY-st._y0));knob.style.left=(38+dx)+'px';knob.style.top=(38+dy_)+'px';v=dx/42;st._vy=dy_/42;e.stopPropagation();});
+  const end=e=>{if(e.pointerId!==id)return;id=null;v=0;st._vy=0;knob.style.left='38px';knob.style.top='38px';e.stopPropagation();};
   st.addEventListener('pointerup',end);st.addEventListener('pointercancel',end);
   function tick(now){requestAnimationFrame(tick);const dt=Math.min(.05,(now-last)/1000||0);last=now;try{
     const old=document.getElementById('fpStick');st.style.display=old?old.style.display:'none';if(st.style.display==='block'){st.style.left=old.style.left;st.style.right=old.style.right;}
     if(!FP.on){FP.yaw=null;return;}
     if(FP.yaw==null){FP.yaw=FP.dir*Math.PI/2+(FP.look||0);}else if(FP._dirSet!==FP.dir){FP.yaw=FP.dir*Math.PI/2;}
-    if(v){const sp=Math.sign(v)*Math.pow(Math.abs(v),1.6)*3.2;FP.yaw+=sp*dt;}
+    if(v){const sp=Math.sign(v)*Math.pow(Math.abs(v),1.6)*3.2;FP.yaw+=sp*dt;}{const vy=st._vy||0;if(vy){FP.pitch=Math.max(-1,Math.min(1,(FP.pitch||0)-Math.sign(vy)*Math.pow(Math.abs(vy),1.6)*1.8*dt));}}
     const q=Math.round(FP.yaw/(Math.PI/2));FP.dir=((q%4)+4)%4;FP._dirSet=FP.dir;FP.look=FP.yaw-q*Math.PI/2;
   }catch(e){}}
   requestAnimationFrame(tick);
@@ -8220,13 +8221,22 @@ const GUNPX={
    [1.2,3.2,3,7.2,5.6,3.3,'D'],[1.6,3.5,3.3,2.6,5.3,3.6,'R'],[3,3.5,3.3,4,5.3,3.6,'R'],[4.4,3.5,3.3,5.4,5.3,3.6,'R'],[5.8,3.5,3.3,6.8,5.3,3.6,'R'],
    [1.6,3.5,3.6,2.6,4.1,3.62,'Y'],[3,3.5,3.6,4,4.1,3.62,'Y'],[4.4,3.5,3.6,5.4,4.1,3.62,'Y'],[5.8,3.5,3.6,6.8,4.1,3.62,'Y']]}
 };
+GUNPX.minigun={hands:2,cz:1.5,vpx:.5,fist:[1.2,1.0],fore:[3.5,4.6,-1.4],cy:15,
+  boxes:[[.4,-.6,1,2.8,1,2,'D','u'],
+   [0,1,-.3,7,3.4,3.3,'B'],[0,3.4,0,7,3.7,3,'D'],[-.15,1.6,.3,0,3,2.7,'D'],[-.18,2,.8,-.15,2.5,2.2,'G'],[-.18,1.2,1.3,-.15,1.5,1.7,'R'],
+   [1.5,1,-2.4,5.5,3.2,-.3,'D'],[1.5,3.2,-2.2,5.5,3.5,-.5,'M'],[1.7,1.4,-2.45,5.3,1.8,-2.4,'Y'],[4.6,3.5,-.6,6.4,3.9,.6,'Y'],
+   [2.2,3.7,.2,3.4,5.6,2.8,'M'],[2.2,5.6,.2,3.4,6,2.8,'D'],
+   [9,3.3,.1,9.8,6.1,2.9,'M'],[16,3.3,.1,16.8,6.1,2.9,'M'],[21.6,3.3,.1,22.4,6.1,2.9,'M'],
+   [2.6,7.4,1.1,8,7.9,1.9,'D'],[2.6,6.1,1.1,3.1,7.4,1.9,'D'],[7.5,6.1,1.1,8,7.4,1.9,'D'],
+   [1,1,3.3,6,1.4,3.4,'G']],
+  dyn(now){const spin=FP.kick&&now-FP.kick<900?now/28:0,o=[],cy=4.7,cz=1.5,r=1.05;for(let k=0;k<6;k++){const an=spin+k*Math.PI/3,y=cy+Math.sin(an)*r,z=cz+Math.cos(an)*r;o.push([3.4,y-.3,z-.3,22.6,y+.3,z+.3,k===0?'S':k%2?'D':'M']);o.push([3.3,y-.16,z-.16,3.4,y+.16,z+.16,'K']);}return o;}};
 var FPX={on:1,cx:-20,cy:15,F:1.25,vpy:.47,clip:-.6,k:2.25,ar:-.12,as:1.05,lr:.28,ls:.82};
 function gunPxProj(spec,W2,H2,kick){const CY=spec.cy||FPX.cy,F=FPX.F*W2,VX=W2*spec.vpx+Math.sin(FP.bob)*W2*.008,VY=H2*FPX.vpy+Math.abs(Math.cos(FP.bob))*H2*.006,kb=kick*1.3,rise=kick*.045,cz=spec.cz;
   return (x,y,z)=>{const xx=x-kb,yy=y+Math.max(0,xx)*rise,dz=Math.max(.5,xx-FPX.cx);return [VX+(z-cz)*F/dz,VY-(yy-CY)*F/dz];};}
 function gunPxLayer(o,spec,P,acc,now,layer,W2){
   const COL={B:'#59606e',D:'#343944',M:'#474d5a',S:'#c9d1dc',W:'#6e4024',R:'#c8303c',Y:'#e0b040',K:'#0b0c11',G:acc};
   const cz=spec.cz,cy=spec.cy||FPX.cy,sp=W2/95;
-  const bs=spec.boxes.filter(b=>(b[7]==='u')===(layer==='u')).map(b=>{const c=b.slice();c[0]=Math.max(c[0],FPX.clip);return c;}).filter(b=>b[3]>b[0])
+  const bs=spec.boxes.concat(spec.dyn?spec.dyn(now):[]).filter(b=>(b[7]==='u')===(layer==='u')).map(b=>{const c=b.slice();c[0]=Math.max(c[0],FPX.clip);return c;}).filter(b=>b[3]>b[0])
     .sort((a,b)=>(b[0]-a[0])||(Math.abs((b[2]+b[5])/2-cz)-Math.abs((a[2]+a[5])/2-cz)));
   let seed=1;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
   const face=(pts,col,tex,strip)=>{o.save();o.beginPath();pts.forEach((p,i)=>i?o.lineTo(p[0],p[1]):o.moveTo(p[0],p[1]));o.closePath();o.fillStyle=col;o.fill();
@@ -8572,6 +8582,41 @@ function fpPodCv(now,L){const work=!!(G._podT&&performance.now()-G._podT<2000),f
   // outline
   const id=g.getImageData(0,0,Wc,Hc),dd=id.data,a=(x,y)=>x>=0&&y>=0&&x<Wc&&y<Hc&&dd[(y*Wc+x)*4+3]>40,o=[];for(let y=0;y<Hc;y++)for(let x=0;x<Wc;x++)if(!a(x,y)&&(a(x+1,y)||a(x-1,y)||a(x,y+1)||a(x,y-1)))o.push([x,y]);g.fillStyle='#07080c';for(const [x,y] of o)g.fillRect(x,y,1,1);
   return PODC[key]=c;}
+
+// ===================== v0.41d: message log colours + rarer wall slams =====================
+// white = mundane, yellow = your actions, red = combat / death, green = something good
+const LOG_RED=/\b(hit|hits|miss|misses|missed|slash|slashes|shoot|shoots|shot|kick|kicks|punch|punches|stab|stabs|swing|swings|damage|goes down|is destroyed|dies|died|killed|kills|attack|attacks|bleeding|on fire|burns|stun|stunned|knock|slam|slams|ALARM|ambush|swoops|boots you|bites|claws|zaps|blast|explodes|Hostile)\b/i;
+const LOG_YEL=/^(You |Your |Equipped|Picked up|Bought|Sold|Loaded|Threw|Opened|Unlocked|Hacked|Used|Drank|Ate|Installed|Removed|Dropped|Stowed|Read|Searched|Swapped|Reloaded)/;
+{const _lg41=log;log=function(m,c){try{const s=String(m);if(c==='warn')c='act';if(!c){if(LOG_RED.test(s))c='bad';else if(LOG_YEL.test(s))c='act';}}catch(e){}return _lg41.call(this,m,c);};}
+(function(){const st=document.createElement('style');st.textContent='.l{color:#eef1f5!important}.l.act,.l.warn,.l.cred{color:#ffd23a!important}.l.bad{color:#ff4a5a!important}.l.hi{color:#39ff7a!important}';document.head.appendChild(st);})();
+
+// ===================== v0.41e =====================
+// ---- fists punch: short forward jab instead of the whole arm shooting up the screen; alternate hands with knuckles too ----
+fpFists=function(g,W2,H2,u,now){const pt=Math.min(1,(now-(FP.kick||0))/260),pk=pt<1?Math.sin(pt*Math.PI):0,R=FP.pn===1,bob=Math.sin(FP.bob)*3*u;
+  {const p=R?0:pk;fpArm(g,W2,H2,now,W2*.32+(W2*.07)*p+bob*.5,H2*.76-H2*.07*p,-.05+.12*p,true,1+.1*p);}
+  {const p=R?pk:0;fpArm(g,W2,H2,now,W2*.68-(W2*.07)*p+bob,H2*.76-H2*.07*p,.05-.12*p,false,1+.1*p);}};
+{const _fhP=fpHands;fpHands=function(g,W2,H2,u,now){if(FP.kick&&FP._lk!==FP.kick){FP._lk=FP.kick;const h=G.hero,m=h.eq.melee;if(m&&(m.k==='gauntlets'||m.k==='knuckles')||(!m&&imp('mantis')>0))FP.pn=(FP.pn|0)^1;}return _fhP.apply(this,arguments);};}
+
+// ---- Backhand Blades in first person: both fists, blade folded out from the back of each forearm ----
+{const _fhB=fpHands;fpHands=function(g,W2,H2,u,now){const h=G.hero,gunMode=FP.lastAct==='gun'||(UI.mode&&UI.mode.t==='fire');
+  if(!(gunMode&&h.eq.gun)&&!h.eq.melee&&imp('mantis')>0){window.__kn='blade';try{fpFists(g,W2,H2,u,now);}finally{window.__kn=null;}return;}
+  return _fhB.apply(this,arguments);};}
+{const _ko=knuxOnFist;knuxOnFist=function(g,R,u,aw,Lr,hand,dd,t,kind){if(kind!=='blade')return _ko.apply(this,arguments);
+  // blade housing on the back of the forearm, blade swung out past the knuckles (gunmetal, red mono-edge)
+  const x0=aw/2-4.2*u,hy=-Lr+hand+3*u;R(x0-1*u,hy,5.2*u,14*u,'#2c313b');R(x0-1*u,hy,5.2*u,1*u,'#7c8594');R(x0+3.2*u,hy+1*u,1*u,13*u,'#14161c');R(x0,hy+3*u,1*u,1*u,'#ff2a3a');R(x0,hy+8*u,1*u,1*u,'#ff2a3a');
+  const top=-Lr-22*u;
+  g.fillStyle='#9aa5b8';g.beginPath();g.moveTo(x0,hy+2*u);g.lineTo(x0+4*u,hy+2*u);g.lineTo(x0+3*u,top+6*u);g.lineTo(x0+1.4*u,top);g.lineTo(x0-.6*u,top+5*u);g.closePath();g.fill();
+  g.fillStyle='#d7dee9';g.beginPath();g.moveTo(x0+.4*u,hy+2*u);g.lineTo(x0+1.6*u,hy+2*u);g.lineTo(x0+1.4*u,top+1.5*u);g.lineTo(x0-.2*u,top+5*u);g.closePath();g.fill();
+  g.fillStyle='#5a6272';g.beginPath();g.moveTo(x0+3.2*u,hy+2*u);g.lineTo(x0+4*u,hy+2*u);g.lineTo(x0+3*u,top+6*u);g.lineTo(x0+2.4*u,top+4*u);g.closePath();g.fill();
+  const pk=Math.max(0,1-(performance.now()-(FP.kick||0))/300);g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.6+.4*pk;g.strokeStyle='#ff2a3a';g.lineWidth=.7*u;g.beginPath();g.moveTo(x0-.5*u,hy);g.lineTo(x0-.6*u,top+5*u);g.lineTo(x0+1.4*u,top);g.stroke();g.restore();};}
+
+// ---- cameras sweep their red beam across the floor in first person too ----
+{const _ff41=fpFrame;fpFrame=function(now){try{const L=G.L;if(L&&L.props){const cl=FP.cl&&FP.cl.length===N?FP.cl:(FP.cl=new Float32Array(N));cl.fill(0);const off=G.camOff&&G.camOff[sectorOf(G.depth)];
+  if(!off)for(const k in L.props){const p=L.props[k];if(p.k!=='cam'||p.off||p.broke)continue;const c=+k;if(dist(c,G.hero.pos)>12||!L.seen[c])continue;const a=camAim(c);
+    for(let dy=1;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const j=c+dx+dy*W;if(j<0||j>=N||Math.abs(X(j)-X(c))!==Math.abs(dx)||wallish(L,j))continue;if(!camLOS(c,j))continue;const an=Math.atan2(dx,dy)-a,w=Math.abs(an);if(w>.52)continue;
+      const v=(.5+.5*(1-w/.52))*(1-dy/8);if(v>cl[j])cl[j]=v;}}}}catch(e){}return _ff41.apply(this,arguments);};}
+
+// ---- balconies: only on the west/east outer walls (elevators own north/south) ----
 
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!had){had=true;return;}try{if(typeof G!=='undefined'&&G&&!G.over){save();toast('Update downloaded — it loads next time you open the app.');}else location.reload();}catch(e){}});});}
